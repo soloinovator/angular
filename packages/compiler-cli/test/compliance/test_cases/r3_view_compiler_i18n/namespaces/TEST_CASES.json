@@ -8,6 +8,12 @@
       ],
       "expectations": [
         {
+          "files": [
+            {
+              "generated": "foreign_object.js",
+              "expected": "foreign_object.js"
+            }
+          ],
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
@@ -22,6 +28,12 @@
       ],
       "expectations": [
         {
+          "files": [
+            {
+              "generated": "namespaced_div.js",
+              "expected": "namespaced_div.js"
+            }
+          ],
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"

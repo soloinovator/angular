@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 /// <reference types="node" />
 
@@ -28,7 +28,7 @@ export class ActivePerfRecorder implements PerfRecorder {
   private bytes: number[];
 
   private currentPhase = PerfPhase.Unaccounted;
-  private currentPhaseEntered = this.zeroTime;
+  private currentPhaseEntered: HrTime;
 
   /**
    * Creates an `ActivePerfRecorder` with its zero point set to the current time.
@@ -38,6 +38,7 @@ export class ActivePerfRecorder implements PerfRecorder {
   }
 
   private constructor(private zeroTime: HrTime) {
+    this.currentPhaseEntered = this.zeroTime;
     this.counters = Array(PerfEvent.LAST).fill(0);
     this.phaseTime = Array(PerfPhase.LAST).fill(0);
     this.bytes = Array(PerfCheckpoint.LAST).fill(0);

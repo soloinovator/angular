@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, Injectable, NgModule} from '@angular/core';
@@ -11,12 +11,12 @@ import {BrowserModule} from '@angular/platform-browser';
 import {ServerModule} from '@angular/platform-server';
 
 @Injectable()
-export class NormalService {
-}
+export class NormalService {}
 
 @Component({
   selector: 'dep-app',
   template: '{{found}}',
+  standalone: false,
 })
 export class AppComponent {
   found: boolean;
@@ -26,16 +26,12 @@ export class AppComponent {
 }
 
 @NgModule({
-  imports: [
-    BrowserModule.withServerTransition({appId: 'id-app'}),
-    ServerModule,
-  ],
+  imports: [BrowserModule, ServerModule],
   declarations: [AppComponent],
   bootstrap: [AppComponent],
   providers: [NormalService],
 })
-export class DepAppModule {
-}
+export class DepAppModule {}
 
 @Injectable({providedIn: DepAppModule})
 export class ShakeableService {

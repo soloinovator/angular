@@ -3,37 +3,56 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ApplicationRef, ChangeDetectorRef, Component, ComponentFactoryResolver, ComponentRef, ElementRef, EmbeddedViewRef, Injector, NgModule, TemplateRef, ViewChild, ViewContainerRef} from '@angular/core';
-import {InternalViewRef} from '@angular/core/src/linker/view_ref';
+import {
+  ApplicationRef,
+  ChangeDetectorRef,
+  Component,
+  ComponentRef,
+  createComponent,
+  ElementRef,
+  EmbeddedViewRef,
+  EnvironmentInjector,
+  Injector,
+  TemplateRef,
+  ViewChild,
+  ViewContainerRef,
+} from '@angular/core';
+import {ViewRef as InternalViewRef} from '@angular/core/src/render3/view_ref';
 import {TestBed} from '@angular/core/testing';
-
 
 describe('ViewRef', () => {
   it('should remove nodes from DOM when the view is detached from app ref', () => {
-    @Component({selector: 'dynamic-cpt', template: '<div></div>'})
+    @Component({
+      selector: 'dynamic-cpt',
+      template: '<div></div>',
+      standalone: false,
+    })
     class DynamicComponent {
       constructor(public elRef: ElementRef) {}
     }
 
-    @Component({template: `<span></span>`})
+    @Component({
+      template: `<span></span>`,
+      standalone: false,
+    })
     class App {
       componentRef!: ComponentRef<DynamicComponent>;
       constructor(
-          public appRef: ApplicationRef, private cfr: ComponentFactoryResolver,
-          private injector: Injector) {}
+        public appRef: ApplicationRef,
+        private injector: EnvironmentInjector,
+      ) {}
 
       create() {
-        const componentFactory = this.cfr.resolveComponentFactory(DynamicComponent);
-        this.componentRef = componentFactory.create(this.injector);
-        (this.componentRef.hostView as InternalViewRef).attachToAppRef(this.appRef);
+        this.componentRef = createComponent(DynamicComponent, {environmentInjector: this.injector});
+        (this.componentRef.hostView as InternalViewRef<unknown>).attachToAppRef(this.appRef);
         document.body.appendChild(this.componentRef.instance.elRef.nativeElement);
       }
 
       destroy() {
-        (this.componentRef.hostView as InternalViewRef).detachFromAppRef();
+        (this.componentRef.hostView as InternalViewRef<unknown>).detachFromAppRef();
       }
     }
 
@@ -54,10 +73,13 @@ describe('ViewRef', () => {
   it('should invoke the onDestroy callback of a view ref', () => {
     let called = false;
 
-    @Component({template: ''})
+    @Component({
+      template: '',
+      standalone: false,
+    })
     class App {
       constructor(changeDetectorRef: ChangeDetectorRef) {
-        (changeDetectorRef as InternalViewRef).onDestroy(() => called = true);
+        (changeDetectorRef as InternalViewRef<unknown>).onDestroy(() => (called = true));
       }
     }
 
@@ -70,24 +92,27 @@ describe('ViewRef', () => {
   });
 
   it('should remove view ref from view container when destroyed', () => {
-    @Component({template: ''})
+    @Component({
+      template: '',
+      standalone: false,
+    })
     class DynamicComponent {
       constructor(public viewContainerRef: ViewContainerRef) {}
     }
 
-    @Component({template: `<ng-template>Hello</ng-template>`})
+    @Component({
+      template: `<ng-template>Hello</ng-template>`,
+      standalone: false,
+    })
     class App {
       @ViewChild(TemplateRef) templateRef!: TemplateRef<any>;
       componentRef!: ComponentRef<DynamicComponent>;
       viewRef!: EmbeddedViewRef<any>;
-      constructor(
-          private _viewContainerRef: ViewContainerRef,
-          private _componentFactoryResolver: ComponentFactoryResolver) {}
+      constructor(private _viewContainerRef: ViewContainerRef) {}
 
       create() {
-        const factory = this._componentFactoryResolver.resolveComponentFactory(DynamicComponent);
         this.viewRef = this.templateRef.createEmbeddedView(null);
-        this.componentRef = this._viewContainerRef.createComponent(factory);
+        this.componentRef = this._viewContainerRef.createComponent(DynamicComponent);
         this.componentRef.instance.viewContainerRef.insert(this.viewRef);
       }
     }
@@ -104,24 +129,27 @@ describe('ViewRef', () => {
   });
 
   it('should mark a ViewRef as destroyed when the host view is destroyed', () => {
-    @Component({template: ''})
+    @Component({
+      template: '',
+      standalone: false,
+    })
     class DynamicComponent {
       constructor(public viewContainerRef: ViewContainerRef) {}
     }
 
-    @Component({template: `<ng-template>Hello</ng-template>`})
+    @Component({
+      template: `<ng-template>Hello</ng-template>`,
+      standalone: false,
+    })
     class App {
       @ViewChild(TemplateRef) templateRef!: TemplateRef<any>;
       componentRef!: ComponentRef<DynamicComponent>;
       viewRef!: EmbeddedViewRef<any>;
-      constructor(
-          private _viewContainerRef: ViewContainerRef,
-          private _componentFactoryResolver: ComponentFactoryResolver) {}
+      constructor(private _viewContainerRef: ViewContainerRef) {}
 
       create() {
-        const factory = this._componentFactoryResolver.resolveComponentFactory(DynamicComponent);
         this.viewRef = this.templateRef.createEmbeddedView(null);
-        this.componentRef = this._viewContainerRef.createComponent(factory);
+        this.componentRef = this._viewContainerRef.createComponent(DynamicComponent);
         this.componentRef.instance.viewContainerRef.insert(this.viewRef);
       }
     }

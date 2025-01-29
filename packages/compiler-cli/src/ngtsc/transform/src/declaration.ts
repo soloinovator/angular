@@ -3,18 +3,21 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Type} from '@angular/compiler';
 import ts from 'typescript';
 
-import {ImportRewriter} from '../../imports';
-import {ClassDeclaration} from '../../reflection';
-import {ImportManager, translateType} from '../../translator';
+import {ImportRewriter, ReferenceEmitter} from '../../imports';
+import {ClassDeclaration, ReflectionHost} from '../../reflection';
+import {
+  ImportManager,
+  presetImportManagerForceNamespaceImports,
+  translateType,
+} from '../../translator';
 
 import {DtsTransform} from './api';
-import {addImports} from './utils';
 
 /**
  * Keeps track of `DtsTransform`s per source file, so that it is known which source files need to
@@ -34,7 +37,7 @@ export class DtsTransformRegistry {
    * Gets the dts transforms to be applied for the given source file, or `null` if no transform is
    * necessary.
    */
-  getAllTransforms(sf: ts.SourceFile): DtsTransform[]|null {
+  getAllTransforms(sf: ts.SourceFile): DtsTransform[] | null {
     // No need to transform if it's not a declarations file, or if no changes have been requested
     // to the input file. Due to the way TypeScript afterDeclarations transformers work, the
     // `ts.SourceFile` path is the same as the original .ts. The only way we know it's actually a
@@ -44,7 +47,7 @@ export class DtsTransformRegistry {
     }
     const originalSf = ts.getOriginalNode(sf) as ts.SourceFile;
 
-    let transforms: DtsTransform[]|null = null;
+    let transforms: DtsTransform[] | null = null;
     if (this.ivyDeclarationTransforms.has(originalSf)) {
       transforms = [];
       transforms.push(this.ivyDeclarationTransforms.get(originalSf)!);
@@ -54,10 +57,13 @@ export class DtsTransformRegistry {
 }
 
 export function declarationTransformFactory(
-    transformRegistry: DtsTransformRegistry, importRewriter: ImportRewriter,
-    importPrefix?: string): ts.TransformerFactory<ts.SourceFile> {
+  transformRegistry: DtsTransformRegistry,
+  reflector: ReflectionHost,
+  refEmitter: ReferenceEmitter,
+  importRewriter: ImportRewriter,
+): ts.TransformerFactory<ts.SourceFile> {
   return (context: ts.TransformationContext) => {
-    const transformer = new DtsTransformer(context, importRewriter, importPrefix);
+    const transformer = new DtsTransformer(context, reflector, refEmitter, importRewriter);
     return (fileOrBundle) => {
       if (ts.isBundle(fileOrBundle)) {
         // Only attempt to transform source files.
@@ -77,14 +83,20 @@ export function declarationTransformFactory(
  */
 class DtsTransformer {
   constructor(
-      private ctx: ts.TransformationContext, private importRewriter: ImportRewriter,
-      private importPrefix?: string) {}
+    private ctx: ts.TransformationContext,
+    private reflector: ReflectionHost,
+    private refEmitter: ReferenceEmitter,
+    private importRewriter: ImportRewriter,
+  ) {}
 
   /**
    * Transform the declaration file and add any declarations which were recorded.
    */
   transform(sf: ts.SourceFile, transforms: DtsTransform[]): ts.SourceFile {
-    const imports = new ImportManager(this.importRewriter, this.importPrefix);
+    const imports = new ImportManager({
+      ...presetImportManagerForceNamespaceImports,
+      rewriter: this.importRewriter,
+    });
 
     const visitor: ts.Visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
       if (ts.isClassDeclaration(node)) {
@@ -98,16 +110,18 @@ class DtsTransformer {
     };
 
     // Recursively scan through the AST and process all nodes as desired.
-    sf = ts.visitNode(sf, visitor);
+    sf = ts.visitNode(sf, visitor, ts.isSourceFile) || sf;
 
-    // Add new imports for this file.
-    return addImports(imports, sf);
+    // Update/insert needed imports.
+    return imports.transformTsFile(this.ctx, sf);
   }
 
   private transformClassDeclaration(
-      clazz: ts.ClassDeclaration, transforms: DtsTransform[],
-      imports: ImportManager): ts.ClassDeclaration {
-    let elements: ts.ClassElement[]|ReadonlyArray<ts.ClassElement> = clazz.members;
+    clazz: ts.ClassDeclaration,
+    transforms: DtsTransform[],
+    imports: ImportManager,
+  ): ts.ClassDeclaration {
+    let elements: ts.ClassElement[] | ReadonlyArray<ts.ClassElement> = clazz.members;
     let elementsChanged = false;
 
     for (const transform of transforms) {
@@ -131,9 +145,15 @@ class DtsTransformer {
       if (transform.transformClass !== undefined) {
         // If no DtsTransform has changed the class yet, then the (possibly mutated) elements have
         // not yet been incorporated. Otherwise, `newClazz.members` holds the latest class members.
-        const inputMembers = (clazz === newClazz ? elements : newClazz.members);
+        const inputMembers = clazz === newClazz ? elements : newClazz.members;
 
-        newClazz = transform.transformClass(newClazz, inputMembers, imports);
+        newClazz = transform.transformClass(
+          newClazz,
+          inputMembers,
+          this.reflector,
+          this.refEmitter,
+          imports,
+        );
       }
     }
 
@@ -141,20 +161,23 @@ class DtsTransformer {
     // an updated class declaration with the updated elements.
     if (elementsChanged && clazz === newClazz) {
       newClazz = ts.factory.updateClassDeclaration(
-          /* node */ clazz,
-          /* modifiers */ clazz.modifiers,
-          /* name */ clazz.name,
-          /* typeParameters */ clazz.typeParameters,
-          /* heritageClauses */ clazz.heritageClauses,
-          /* members */ elements);
+        /* node */ clazz,
+        /* modifiers */ clazz.modifiers,
+        /* name */ clazz.name,
+        /* typeParameters */ clazz.typeParameters,
+        /* heritageClauses */ clazz.heritageClauses,
+        /* members */ elements,
+      );
     }
 
     return newClazz;
   }
 
   private transformFunctionDeclaration(
-      declaration: ts.FunctionDeclaration, transforms: DtsTransform[],
-      imports: ImportManager): ts.FunctionDeclaration {
+    declaration: ts.FunctionDeclaration,
+    transforms: DtsTransform[],
+    imports: ImportManager,
+  ): ts.FunctionDeclaration {
     let newDecl = declaration;
 
     for (const transform of transforms) {
@@ -180,8 +203,12 @@ export class IvyDeclarationDtsTransform implements DtsTransform {
   }
 
   transformClass(
-      clazz: ts.ClassDeclaration, members: ReadonlyArray<ts.ClassElement>,
-      imports: ImportManager): ts.ClassDeclaration {
+    clazz: ts.ClassDeclaration,
+    members: ReadonlyArray<ts.ClassElement>,
+    reflector: ReflectionHost,
+    refEmitter: ReferenceEmitter,
+    imports: ImportManager,
+  ): ts.ClassDeclaration {
     const original = ts.getOriginalNode(clazz) as ClassDeclaration;
 
     if (!this.declarationFields.has(original)) {
@@ -189,25 +216,33 @@ export class IvyDeclarationDtsTransform implements DtsTransform {
     }
     const fields = this.declarationFields.get(original)!;
 
-    const newMembers = fields.map(decl => {
+    const newMembers = fields.map((decl) => {
       const modifiers = [ts.factory.createModifier(ts.SyntaxKind.StaticKeyword)];
-      const typeRef = translateType(decl.type, imports);
+      const typeRef = translateType(
+        decl.type,
+        original.getSourceFile(),
+        reflector,
+        refEmitter,
+        imports,
+      );
       markForEmitAsSingleLine(typeRef);
       return ts.factory.createPropertyDeclaration(
-          /* modifiers */ modifiers,
-          /* name */ decl.name,
-          /* questionOrExclamationToken */ undefined,
-          /* type */ typeRef,
-          /* initializer */ undefined);
+        /* modifiers */ modifiers,
+        /* name */ decl.name,
+        /* questionOrExclamationToken */ undefined,
+        /* type */ typeRef,
+        /* initializer */ undefined,
+      );
     });
 
     return ts.factory.updateClassDeclaration(
-        /* node */ clazz,
-        /* modifiers */ clazz.modifiers,
-        /* name */ clazz.name,
-        /* typeParameters */ clazz.typeParameters,
-        /* heritageClauses */ clazz.heritageClauses,
-        /* members */[...members, ...newMembers]);
+      /* node */ clazz,
+      /* modifiers */ clazz.modifiers,
+      /* name */ clazz.name,
+      /* typeParameters */ clazz.typeParameters,
+      /* heritageClauses */ clazz.heritageClauses,
+      /* members */ [...members, ...newMembers],
+    );
   }
 }
 

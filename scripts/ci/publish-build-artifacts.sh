@@ -34,7 +34,7 @@ function publishRepo {
 
   BUILD_REPO="${COMPONENT}-builds"
   REPO_DIR="$(pwd)/tmp/${BUILD_REPO}"
-  REPO_URL="https://github.com/angular/${BUILD_REPO}.git"
+  REPO_URL="https://github.com/${ORG}/${BUILD_REPO}.git"
 
   if [ -n "${CREATE_REPOS:-}" ]; then
     curl -u "$ORG:$TOKEN" https://api.github.com/user/repos \
@@ -52,7 +52,7 @@ function publishRepo {
   (
     if [[ $(git ls-remote --heads ${REPO_URL} ${BRANCH}) ]]; then
       echo "Branch ${BRANCH} already exists. Cloning that branch."
-      git clone ${REPO_URL} ${REPO_DIR} --depth 1 --branch ${BRANCH}
+      git clone ${REPO_URL} ${REPO_DIR} --depth 100 --branch ${BRANCH}
 
       cd ${REPO_DIR}
       echo "Cloned repository and switched into the repository directory (${REPO_DIR})."
@@ -60,7 +60,7 @@ function publishRepo {
       echo "Branch ${BRANCH} does not exist on ${BUILD_REPO} yet."
       echo "Cloning default branch and creating branch '${BRANCH}' on top of it."
 
-      git clone ${REPO_URL} ${REPO_DIR} --depth 1
+       git clone ${REPO_URL} ${REPO_DIR} --depth 100
       cd ${REPO_DIR}
 
       echo "Cloned repository and switched into directory. Creating new branch now.."
@@ -69,19 +69,12 @@ function publishRepo {
     fi
   )
 
-  # Unshallow the repo manually so that it doesn't trigger a push failure.
-  # This is generally unsafe, however we immediately remove all of the files from within
-  # the repo on the next line, so we should be able to safely treat the entire repo
-  # contents as an atomic piece to be pushed.
-  rm $REPO_DIR/.git/shallow
-
   # copy over build artifacts into the repo directory
   rm -rf $REPO_DIR/*
   cp -R $ARTIFACTS_DIR/* $REPO_DIR/
 
   if [[ ${CI} ]]; then
     (
-      # The file ~/.git_credentials is created in /.circleci/config.yml
       cd $REPO_DIR && \
       git config credential.helper "store --file=$HOME/.git_credentials"
     )
@@ -152,7 +145,7 @@ function publishAllBuilds() {
 }
 
 # See docs/DEVELOPER.md for help
-CUR_BRANCH=${CI_BRANCH:-$(git symbolic-ref --short HEAD)}
+CUR_BRANCH=$(git symbolic-ref --short HEAD)
 if [ $# -gt 0 ]; then
   ORG=$1
   publishAllBuilds "ssh"

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 /* tslint:disable:no-console  */
 import {logging, WebDriver} from 'selenium-webdriver';
@@ -16,7 +16,7 @@ export async function verifyNoBrowserErrors() {
   const browserLog = await browser.manage().logs().get('browser');
   const collectedErrors: any[] = [];
 
-  browserLog.forEach(logEntry => {
+  browserLog.forEach((logEntry) => {
     const msg = logEntry.message;
 
     console.log('>> ' + msg, logEntry);

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, NgModule} from '@angular/core';
@@ -16,15 +16,21 @@ import * as diViewChildExample from './di/ts/viewChild/module';
 import * as diViewChildrenExample from './di/ts/viewChildren/module';
 import * as testabilityWhenStableExample from './testability/ts/whenStable/module';
 
-@Component({selector: 'example-app', template: '<router-outlet></router-outlet>'})
-export class TestsAppComponent {
-}
+@Component({
+  selector: 'example-app',
+  template: '<router-outlet></router-outlet>',
+  standalone: false,
+})
+export class TestsAppComponent {}
 
 @NgModule({
   imports: [
-    animationDslExample.AppModule, diContentChildExample.AppModule,
-    diContentChildrenExample.AppModule, diViewChildExample.AppModule,
-    diViewChildrenExample.AppModule, testabilityWhenStableExample.AppModule,
+    animationDslExample.AppModule,
+    diContentChildExample.AppModule,
+    diContentChildrenExample.AppModule,
+    diViewChildExample.AppModule,
+    diViewChildrenExample.AppModule,
+    testabilityWhenStableExample.AppModule,
 
     // Router configuration so that the individual e2e tests can load their
     // app components.
@@ -35,10 +41,9 @@ export class TestsAppComponent {
       {path: 'di/viewChild', component: diViewChildExample.AppComponent},
       {path: 'di/viewChildren', component: diViewChildrenExample.AppComponent},
       {path: 'testability/whenStable', component: testabilityWhenStableExample.AppComponent},
-    ])
+    ]),
   ],
   declarations: [TestsAppComponent],
-  bootstrap: [TestsAppComponent]
+  bootstrap: [TestsAppComponent],
 })
-export class TestsAppModule {
-}
+export class TestsAppModule {}

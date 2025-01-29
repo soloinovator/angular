@@ -3,38 +3,59 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ChangeDetectorRef, EventEmitter, OnDestroy, Pipe, PipeTransform, ɵisPromise, ɵisSubscribable} from '@angular/core';
+import {
+  ChangeDetectorRef,
+  EventEmitter,
+  OnDestroy,
+  Pipe,
+  PipeTransform,
+  untracked,
+  ɵisPromise,
+  ɵisSubscribable,
+} from '@angular/core';
 import {Observable, Subscribable, Unsubscribable} from 'rxjs';
 
 import {invalidPipeArgumentError} from './invalid_pipe_argument_error';
 
 interface SubscriptionStrategy {
-  createSubscription(async: Subscribable<any>|Promise<any>, updateLatestValue: any): Unsubscribable
-      |Promise<any>;
-  dispose(subscription: Unsubscribable|Promise<any>): void;
+  createSubscription(
+    async: Subscribable<any> | Promise<any>,
+    updateLatestValue: any,
+  ): Unsubscribable | Promise<any>;
+  dispose(subscription: Unsubscribable | Promise<any>): void;
 }
 
 class SubscribableStrategy implements SubscriptionStrategy {
   createSubscription(async: Subscribable<any>, updateLatestValue: any): Unsubscribable {
-    return async.subscribe({
-      next: updateLatestValue,
-      error: (e: any) => {
-        throw e;
-      }
-    });
+    // Subscription can be side-effectful, and we don't want any signal reads which happen in the
+    // side effect of the subscription to be tracked by a component's template when that
+    // subscription is triggered via the async pipe. So we wrap the subscription in `untracked` to
+    // decouple from the current reactive context.
+    //
+    // `untracked` also prevents signal _writes_ which happen in the subscription side effect from
+    // being treated as signal writes during the template evaluation (which throws errors).
+    return untracked(() =>
+      async.subscribe({
+        next: updateLatestValue,
+        error: (e: any) => {
+          throw e;
+        },
+      }),
+    );
   }
 
   dispose(subscription: Unsubscribable): void {
-    subscription.unsubscribe();
+    // See the comment in `createSubscription` above on the use of `untracked`.
+    untracked(() => subscription.unsubscribe());
   }
 }
 
 class PromiseStrategy implements SubscriptionStrategy {
   createSubscription(async: Promise<any>, updateLatestValue: (v: any) => any): Promise<any> {
-    return async.then(updateLatestValue, e => {
+    return async.then(updateLatestValue, (e) => {
       throw e;
     });
   }
@@ -76,15 +97,15 @@ const _subscribableStrategy = new SubscribableStrategy();
 @Pipe({
   name: 'async',
   pure: false,
-  standalone: true,
 })
 export class AsyncPipe implements OnDestroy, PipeTransform {
-  private _ref: ChangeDetectorRef|null;
+  private _ref: ChangeDetectorRef | null;
   private _latestValue: any = null;
+  private markForCheckOnValueUpdate = true;
 
-  private _subscription: Unsubscribable|Promise<any>|null = null;
-  private _obj: Subscribable<any>|Promise<any>|EventEmitter<any>|null = null;
-  private _strategy: SubscriptionStrategy|null = null;
+  private _subscription: Unsubscribable | Promise<any> | null = null;
+  private _obj: Subscribable<any> | Promise<any> | EventEmitter<any> | null = null;
+  private _strategy: SubscriptionStrategy | null = null;
 
   constructor(ref: ChangeDetectorRef) {
     // Assign `ref` into `this._ref` manually instead of declaring `_ref` in the constructor
@@ -107,13 +128,21 @@ export class AsyncPipe implements OnDestroy, PipeTransform {
   // TypeScript has a hard time matching Observable to Subscribable, for more information
   // see https://github.com/microsoft/TypeScript/issues/43643
 
-  transform<T>(obj: Observable<T>|Subscribable<T>|Promise<T>): T|null;
-  transform<T>(obj: null|undefined): null;
-  transform<T>(obj: Observable<T>|Subscribable<T>|Promise<T>|null|undefined): T|null;
-  transform<T>(obj: Observable<T>|Subscribable<T>|Promise<T>|null|undefined): T|null {
+  transform<T>(obj: Observable<T> | Subscribable<T> | Promise<T>): T | null;
+  transform<T>(obj: null | undefined): null;
+  transform<T>(obj: Observable<T> | Subscribable<T> | Promise<T> | null | undefined): T | null;
+  transform<T>(obj: Observable<T> | Subscribable<T> | Promise<T> | null | undefined): T | null {
     if (!this._obj) {
       if (obj) {
-        this._subscribe(obj);
+        try {
+          // Only call `markForCheck` if the value is updated asynchronously.
+          // Synchronous updates _during_ subscription should not wastefully mark for check -
+          // this value is already going to be returned from the transform function.
+          this.markForCheckOnValueUpdate = false;
+          this._subscribe(obj);
+        } finally {
+          this.markForCheckOnValueUpdate = true;
+        }
       }
       return this._latestValue;
     }
@@ -126,15 +155,17 @@ export class AsyncPipe implements OnDestroy, PipeTransform {
     return this._latestValue;
   }
 
-  private _subscribe(obj: Subscribable<any>|Promise<any>|EventEmitter<any>): void {
+  private _subscribe(obj: Subscribable<any> | Promise<any> | EventEmitter<any>): void {
     this._obj = obj;
     this._strategy = this._selectStrategy(obj);
-    this._subscription = this._strategy.createSubscription(
-        obj, (value: Object) => this._updateLatestValue(obj, value));
+    this._subscription = this._strategy.createSubscription(obj, (value: Object) =>
+      this._updateLatestValue(obj, value),
+    );
   }
 
-  private _selectStrategy(obj: Subscribable<any>|Promise<any>|
-                          EventEmitter<any>): SubscriptionStrategy {
+  private _selectStrategy(
+    obj: Subscribable<any> | Promise<any> | EventEmitter<any>,
+  ): SubscriptionStrategy {
     if (ɵisPromise(obj)) {
       return _promiseStrategy;
     }
@@ -158,9 +189,9 @@ export class AsyncPipe implements OnDestroy, PipeTransform {
   private _updateLatestValue(async: any, value: Object): void {
     if (async === this._obj) {
       this._latestValue = value;
-      // Note: `this._ref` is only cleared in `ngOnDestroy` so is known to be available when a
-      // value is being updated.
-      this._ref!.markForCheck();
+      if (this.markForCheckOnValueUpdate) {
+        this._ref?.markForCheck();
+      }
     }
   }
 }

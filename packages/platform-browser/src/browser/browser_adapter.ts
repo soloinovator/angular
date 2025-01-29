@@ -3,10 +3,13 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ɵparseCookieValue as parseCookieValue, ɵsetRootDomAdapter as setRootDomAdapter} from '@angular/common';
+import {
+  ɵparseCookieValue as parseCookieValue,
+  ɵsetRootDomAdapter as setRootDomAdapter,
+} from '@angular/common';
 
 import {GenericBrowserDomAdapter} from './generic_browser_adapter';
 
@@ -16,49 +19,44 @@ import {GenericBrowserDomAdapter} from './generic_browser_adapter';
  * @security Tread carefully! Interacting with the DOM directly is dangerous and
  * can introduce XSS risks.
  */
-/* tslint:disable:requireParameterType no-console */
 export class BrowserDomAdapter extends GenericBrowserDomAdapter {
   static makeCurrent() {
     setRootDomAdapter(new BrowserDomAdapter());
   }
 
-  onAndCancel(el: Node, evt: any, listener: any): Function {
-    el.addEventListener(evt, listener, false);
-    // Needed to follow Dart's subscription semantic, until fix of
-    // https://code.google.com/p/dart/issues/detail?id=17406
+  override onAndCancel(el: Node, evt: any, listener: any, options: any): Function {
+    el.addEventListener(evt, listener, options);
     return () => {
-      el.removeEventListener(evt, listener, false);
+      el.removeEventListener(evt, listener, options);
     };
   }
-  dispatchEvent(el: Node, evt: any) {
+  override dispatchEvent(el: Node, evt: any) {
     el.dispatchEvent(evt);
   }
-  remove(node: Node): void {
-    if (node.parentNode) {
-      node.parentNode.removeChild(node);
-    }
+  override remove(node: Node): void {
+    (node as Element | Text | Comment).remove();
   }
-  createElement(tagName: string, doc?: Document): HTMLElement {
+  override createElement(tagName: string, doc?: Document): HTMLElement {
     doc = doc || this.getDefaultDocument();
     return doc.createElement(tagName);
   }
-  createHtmlDocument(): Document {
+  override createHtmlDocument(): Document {
     return document.implementation.createHTMLDocument('fakeTitle');
   }
-  getDefaultDocument(): Document {
+  override getDefaultDocument(): Document {
     return document;
   }
 
-  isElementNode(node: Node): boolean {
+  override isElementNode(node: Node): boolean {
     return node.nodeType === Node.ELEMENT_NODE;
   }
 
-  isShadowRoot(node: any): boolean {
+  override isShadowRoot(node: any): boolean {
     return node instanceof DocumentFragment;
   }
 
   /** @deprecated No longer being used in Ivy code. To be removed in version 14. */
-  getGlobalEventTarget(doc: Document, target: string): EventTarget|null {
+  override getGlobalEventTarget(doc: Document, target: string): EventTarget | null {
     if (target === 'window') {
       return window;
     }
@@ -70,32 +68,29 @@ export class BrowserDomAdapter extends GenericBrowserDomAdapter {
     }
     return null;
   }
-  getBaseHref(doc: Document): string|null {
+  override getBaseHref(doc: Document): string | null {
     const href = getBaseElementHref();
     return href == null ? null : relativePath(href);
   }
-  resetBaseElement(): void {
+  override resetBaseElement(): void {
     baseElement = null;
   }
-  getUserAgent(): string {
+  override getUserAgent(): string {
     return window.navigator.userAgent;
   }
-  getCookie(name: string): string|null {
+  override getCookie(name: string): string | null {
     return parseCookieValue(document.cookie, name);
   }
 }
 
-let baseElement: HTMLElement|null = null;
-function getBaseElementHref(): string|null {
+let baseElement: HTMLElement | null = null;
+function getBaseElementHref(): string | null {
   baseElement = baseElement || document.querySelector('base');
   return baseElement ? baseElement.getAttribute('href') : null;
 }
 
-// based on urlUtils.js in AngularJS 1
-let urlParsingNode: HTMLAnchorElement|undefined;
-function relativePath(url: any): string {
-  urlParsingNode = urlParsingNode || document.createElement('a');
-  urlParsingNode.setAttribute('href', url);
-  const pathName = urlParsingNode.pathname;
-  return pathName.charAt(0) === '/' ? pathName : `/${pathName}`;
+function relativePath(url: string): string {
+  // The base URL doesn't really matter, we just need it so relative paths have something
+  // to resolve against. In the browser `HTMLBaseElement.href` is always absolute.
+  return new URL(url, document.baseURI).pathname;
 }

@@ -64,10 +64,7 @@
       ],
       "expectations": [
         {
-          "failureMessage": "Incorrect template",
-          "files": [
-            "chain_multiple_bindings_for_multiple_elements.js"
-          ]
+          "failureMessage": "Incorrect template"
         }
       ]
     },
@@ -78,10 +75,7 @@
       ],
       "expectations": [
         {
-          "failureMessage": "Incorrect template",
-          "files": [
-            "chain_multiple_bindings_with_child_elements.js"
-          ]
+          "failureMessage": "Incorrect template"
         }
       ]
     },
@@ -94,7 +88,10 @@
         {
           "failureMessage": "Incorrect attribute array",
           "files": [
-            "exclude_bindings_from_consts.js"
+            {
+              "expected": "exclude_bindings_from_consts_template.js",
+              "generated": "exclude_bindings_from_consts.js"
+            }
           ]
         }
       ]
@@ -110,6 +107,17 @@
           "files": [
             "interpolated_attributes.js"
           ]
+        }
+      ]
+    },
+    {
+      "description": "should handle duplicate bindings",
+      "inputFiles": [
+        "duplicate_bindings.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Incorrect handling of duplicate bindings"
         }
       ]
     }

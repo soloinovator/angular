@@ -3,26 +3,28 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {absoluteFrom, getFileSystem, getSourceFileOrError} from '../../file_system';
 import {runInEachFileSystem} from '../../file_system/testing';
 import {OwningModule, Reference} from '../../imports';
 import {isNamedClassDeclaration, TypeScriptReflectionHost} from '../../reflection';
-import {loadFakeCore, makeProgram} from '../../testing';
+import {loadAngularCore, makeProgram} from '../../testing';
 import {DtsMetadataReader} from '../src/dts';
+import {isHostDirectiveMetaForGlobalMode} from '../src/util';
 
 runInEachFileSystem(() => {
   beforeEach(() => {
-    loadFakeCore(getFileSystem());
+    loadAngularCore(getFileSystem());
   });
 
   describe('DtsMetadataReader', () => {
     it('should not assume directives are structural', () => {
       const mainPath = absoluteFrom('/main.d.ts');
       const {program} = makeProgram(
-          [{
+        [
+          {
             name: mainPath,
             contents: `
           import {ViewContainerRef} from '@angular/core';
@@ -32,12 +34,14 @@ runInEachFileSystem(() => {
             constructor(p0: ViewContainerRef);
             static ɵdir: i0.ɵɵDirectiveDeclaration<TestDir, "[test]", never, {}, {}, never>
           }
-        `
-          }],
-          {
-            skipLibCheck: true,
-            lib: ['es6', 'dom'],
-          });
+        `,
+          },
+        ],
+        {
+          skipLibCheck: true,
+          lib: ['es6', 'dom'],
+        },
+      );
 
       const sf = getSourceFileOrError(program, mainPath);
       const clazz = sf.statements[2];
@@ -46,8 +50,10 @@ runInEachFileSystem(() => {
       }
 
       const typeChecker = program.getTypeChecker();
-      const dtsReader =
-          new DtsMetadataReader(typeChecker, new TypeScriptReflectionHost(typeChecker));
+      const dtsReader = new DtsMetadataReader(
+        typeChecker,
+        new TypeScriptReflectionHost(typeChecker),
+      );
 
       const meta = dtsReader.getDirectiveMetadata(new Reference(clazz))!;
       expect(meta.isStructural).toBeFalse();
@@ -56,7 +62,8 @@ runInEachFileSystem(() => {
     it('should identify a structural directive by its constructor', () => {
       const mainPath = absoluteFrom('/main.d.ts');
       const {program} = makeProgram(
-          [{
+        [
+          {
             name: mainPath,
             contents: `
           import {TemplateRef, ViewContainerRef} from '@angular/core';
@@ -66,12 +73,14 @@ runInEachFileSystem(() => {
             constructor(p0: ViewContainerRef, p1: TemplateRef);
             static ɵdir: i0.ɵɵDirectiveDeclaration<TestDir, "[test]", never, {}, {}, never>
           }
-        `
-          }],
-          {
-            skipLibCheck: true,
-            lib: ['es6', 'dom'],
-          });
+        `,
+          },
+        ],
+        {
+          skipLibCheck: true,
+          lib: ['es6', 'dom'],
+        },
+      );
 
       const sf = getSourceFileOrError(program, mainPath);
       const clazz = sf.statements[2];
@@ -80,8 +89,10 @@ runInEachFileSystem(() => {
       }
 
       const typeChecker = program.getTypeChecker();
-      const dtsReader =
-          new DtsMetadataReader(typeChecker, new TypeScriptReflectionHost(typeChecker));
+      const dtsReader = new DtsMetadataReader(
+        typeChecker,
+        new TypeScriptReflectionHost(typeChecker),
+      );
 
       const meta = dtsReader.getDirectiveMetadata(new Reference(clazz))!;
       expect(meta.isStructural).toBeTrue();
@@ -90,10 +101,10 @@ runInEachFileSystem(() => {
     it('should retain an absolute owning module for relative imports', () => {
       const externalPath = absoluteFrom('/external.d.ts');
       const {program} = makeProgram(
-          [
-            {
-              name: externalPath,
-              contents: `
+        [
+          {
+            name: externalPath,
+            contents: `
           import * as i0 from '@angular/core';
           import * as i1 from 'absolute';
           import * as i2 from './relative';
@@ -101,33 +112,34 @@ runInEachFileSystem(() => {
           export declare class ExternalModule {
             static ɵmod: i0.ɵɵNgModuleDeclaration<RelativeModule, [typeof i2.RelativeDir], never, [typeof i1.AbsoluteDir, typeof i2.RelativeDir]>;
           }
-        `
-            },
-            {
-              name: absoluteFrom('/relative.d.ts'),
-              contents: `
+        `,
+          },
+          {
+            name: absoluteFrom('/relative.d.ts'),
+            contents: `
           import * as i0 from '@angular/core';
 
           export declare class RelativeDir {
             static ɵdir: i0.ɵɵDirectiveDeclaration<RelativeDir, '[dir]', never, never, never, never>;
           }
-        `
-            },
-            {
-              name: absoluteFrom('/node_modules/absolute.d.ts'),
-              contents: `
+        `,
+          },
+          {
+            name: absoluteFrom('/node_modules/absolute.d.ts'),
+            contents: `
           import * as i0 from '@angular/core';
 
           export declare class AbsoluteDir {
             static ɵdir: i0.ɵɵDirectiveDeclaration<ExternalDir, '[dir]', never, never, never, never>;
           }
-        `
-            }
-          ],
-          {
-            skipLibCheck: true,
-            lib: ['es6', 'dom'],
-          });
+        `,
+          },
+        ],
+        {
+          skipLibCheck: true,
+          lib: ['es6', 'dom'],
+        },
+      );
 
       const externalSf = getSourceFileOrError(program, externalPath);
       const clazz = externalSf.statements[3];
@@ -136,8 +148,10 @@ runInEachFileSystem(() => {
       }
 
       const typeChecker = program.getTypeChecker();
-      const dtsReader =
-          new DtsMetadataReader(typeChecker, new TypeScriptReflectionHost(typeChecker));
+      const dtsReader = new DtsMetadataReader(
+        typeChecker,
+        new TypeScriptReflectionHost(typeChecker),
+      );
 
       const withoutOwningModule = dtsReader.getNgModuleMetadata(new Reference(clazz))!;
       expect(withoutOwningModule.exports.length).toBe(2);
@@ -179,7 +193,8 @@ runInEachFileSystem(() => {
   it('should identify host directives', () => {
     const mainPath = absoluteFrom('/main.d.ts');
     const {program} = makeProgram(
-        [{
+      [
+        {
           name: mainPath,
           contents: `
             import * as i0 from '@angular/core';
@@ -198,12 +213,14 @@ runInEachFileSystem(() => {
                 {directive: typeof AdvancedHostDir; inputs: { "inputAlias": "customInputAlias"; }; outputs: { "outputAlias": "customOutputAlias"; };}
               ]>
             }
-          `
-        }],
-        {
-          skipLibCheck: true,
-          lib: ['es6', 'dom'],
-        });
+          `,
+        },
+      ],
+      {
+        skipLibCheck: true,
+        lib: ['es6', 'dom'],
+      },
+    );
 
     const sf = getSourceFileOrError(program, mainPath);
     const clazz = sf.statements[3];
@@ -216,12 +233,14 @@ runInEachFileSystem(() => {
     const dtsReader = new DtsMetadataReader(typeChecker, new TypeScriptReflectionHost(typeChecker));
 
     const meta = dtsReader.getDirectiveMetadata(new Reference(clazz))!;
-    const hostDirectives = meta.hostDirectives?.map(hostDir => ({
-                                                      name: hostDir.directive.debugName,
-                                                      directive: hostDir.directive,
-                                                      inputs: hostDir.inputs,
-                                                      outputs: hostDir.outputs
-                                                    }));
+    const hostDirectives = meta.hostDirectives?.map((hostDir) => ({
+      name: isHostDirectiveMetaForGlobalMode(hostDir)
+        ? hostDir.directive.debugName
+        : 'Unresolved host dir',
+      directive: hostDir.directive,
+      inputs: hostDir.inputs,
+      outputs: hostDir.outputs,
+    }));
 
     expect(hostDirectives).toEqual([
       {
@@ -234,8 +253,126 @@ runInEachFileSystem(() => {
         name: 'AdvancedHostDir',
         directive: jasmine.any(Reference),
         inputs: {inputAlias: 'customInputAlias'},
-        outputs: {outputAlias: 'customOutputAlias'}
-      }
+        outputs: {outputAlias: 'customOutputAlias'},
+      },
     ]);
+  });
+
+  it('should read the post-v16 inputs map syntax', () => {
+    const mainPath = absoluteFrom('/main.d.ts');
+    const {program} = makeProgram(
+      [
+        {
+          name: mainPath,
+          contents: `
+            import * as i0 from '@angular/core';
+
+            export declare class TestDir {
+              static ɵdir: i0.ɵɵDirectiveDeclaration<TestDir, "[test]", never, {
+                "input": {"alias": "input", "required": false},
+                "otherInput": {"alias": "alias", "required": true}
+              }, {}, never>
+            }
+          `,
+        },
+      ],
+      {
+        skipLibCheck: true,
+        lib: ['es6', 'dom'],
+      },
+    );
+
+    const sf = getSourceFileOrError(program, mainPath);
+    const clazz = sf.statements[1];
+    if (!isNamedClassDeclaration(clazz)) {
+      return fail('Expected class declaration');
+    }
+
+    const typeChecker = program.getTypeChecker();
+    const dtsReader = new DtsMetadataReader(typeChecker, new TypeScriptReflectionHost(typeChecker));
+    const meta = dtsReader.getDirectiveMetadata(new Reference(clazz))!;
+
+    expect(meta.inputs.toDirectMappedObject()).toEqual({input: 'input', otherInput: 'alias'});
+    expect(
+      Array.from(meta.inputs)
+        .filter((i) => i.required)
+        .map((i) => i.classPropertyName),
+    ).toEqual(['otherInput']);
+  });
+
+  it('should read the pre-v16 inputs map syntax', () => {
+    const mainPath = absoluteFrom('/main.d.ts');
+    const {program} = makeProgram(
+      [
+        {
+          name: mainPath,
+          contents: `
+            import * as i0 from '@angular/core';
+
+            export declare class TestDir {
+              static ɵdir: i0.ɵɵDirectiveDeclaration<TestDir, "[test]", never, {
+                "input": "input",
+                "otherInput": "alias"
+              }, {}, never>
+            }
+          `,
+        },
+      ],
+      {
+        skipLibCheck: true,
+        lib: ['es6', 'dom'],
+      },
+    );
+
+    const sf = getSourceFileOrError(program, mainPath);
+    const clazz = sf.statements[1];
+    if (!isNamedClassDeclaration(clazz)) {
+      return fail('Expected class declaration');
+    }
+
+    const typeChecker = program.getTypeChecker();
+    const dtsReader = new DtsMetadataReader(typeChecker, new TypeScriptReflectionHost(typeChecker));
+    const meta = dtsReader.getDirectiveMetadata(new Reference(clazz))!;
+
+    expect(meta.inputs.toDirectMappedObject()).toEqual({input: 'input', otherInput: 'alias'});
+    expect(Array.from(meta.inputs).filter((i) => i.required)).toEqual([]);
+  });
+
+  it('should not fail fatal at runtime when reference cannot be resolved', () => {
+    const externalPath = absoluteFrom('/external.d.ts');
+    const {program} = makeProgram(
+      [
+        {
+          name: externalPath,
+          contents: `
+            import * as i0 from '@angular/core';
+            import * as i2 from './relative';
+
+            export class ValidRef {}
+
+            export declare class ExternalModule {
+              static ɵmod: i0.ɵɵNgModuleDeclaration<RelativeModule, [], never, [typeof i2.InvalidTypesForIt, typeof ValidRef]>;
+            }
+          `,
+        },
+      ],
+      {
+        skipLibCheck: true,
+        lib: ['es6', 'dom'],
+      },
+    );
+
+    const externalSf = getSourceFileOrError(program, externalPath);
+    const clazz = externalSf.statements[3];
+    if (!isNamedClassDeclaration(clazz)) {
+      return fail('Expected class declaration');
+    }
+
+    const typeChecker = program.getTypeChecker();
+    const dtsReader = new DtsMetadataReader(typeChecker, new TypeScriptReflectionHost(typeChecker));
+
+    const withoutOwningModule = dtsReader.getNgModuleMetadata(new Reference(clazz))!;
+    expect(withoutOwningModule.exports.length).toBe(1);
+    expect(withoutOwningModule.isPoisoned).toBe(true);
   });
 });

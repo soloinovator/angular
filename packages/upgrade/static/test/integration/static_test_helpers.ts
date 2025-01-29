@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {NgZone, PlatformRef, Type} from '@angular/core';
@@ -12,10 +12,14 @@ import * as angular from '../../../src/common/src/angular1';
 import {$EXCEPTION_HANDLER, $ROOT_SCOPE} from '../../../src/common/src/constants';
 
 export function bootstrap(
-    platform: PlatformRef, Ng2Module: Type<{}>, element: Element, ng1Module: angular.IModule) {
+  platform: PlatformRef,
+  Ng2Module: Type<{}>,
+  element: Element,
+  ng1Module: angular.IModule,
+) {
   // We bootstrap the Angular module first; then when it is ready (async) we bootstrap the AngularJS
   // module on the bootstrap element (also ensuring that AngularJS errors will fail the test).
-  return platform.bootstrapModule(Ng2Module).then(ref => {
+  return platform.bootstrapModule(Ng2Module).then((ref) => {
     const ngZone = ref.injector.get<NgZone>(NgZone);
     const upgrade = ref.injector.get(UpgradeModule);
     const failHardModule: any = ($provide: angular.IProvideService) => {

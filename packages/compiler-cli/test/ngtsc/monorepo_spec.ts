@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {absoluteFrom} from '../../src/ngtsc/file_system';
@@ -28,13 +28,16 @@ runInEachFileSystem(() => {
     });
 
     it('should compile a project with a reference above the current dir', () => {
-      env.write('/app/index.ts', `
+      env.write(
+        '/app/index.ts',
+        `
         import {Component, NgModule} from '@angular/core';
         import {LibModule} from '../lib/module';
 
         @Component({
           selector: 'app-cmp',
           template: '<lib-cmp></lib-cmp>',
+          standalone: false,
         })
         export class AppCmp {}
 
@@ -43,8 +46,11 @@ runInEachFileSystem(() => {
           imports: [LibModule],
         })
         export class AppModule {}
-      `);
-      env.write('/lib/module.ts', `
+      `,
+      );
+      env.write(
+        '/lib/module.ts',
+        `
         import {NgModule} from '@angular/core';
         import {LibCmp} from './cmp';
 
@@ -53,16 +59,21 @@ runInEachFileSystem(() => {
           exports: [LibCmp],
         })
         export class LibModule {}
-      `);
-      env.write('/lib/cmp.ts', `
+      `,
+      );
+      env.write(
+        '/lib/cmp.ts',
+        `
         import {Component} from '@angular/core';
 
         @Component({
           selector: 'lib-cmp',
           template: '...',
+          standalone: false,
         })
         export class LibCmp {}
-      `);
+      `,
+      );
 
       env.driveMain();
 
@@ -71,13 +82,16 @@ runInEachFileSystem(() => {
     });
 
     it('should compile a project with a reference into the same dir', () => {
-      env.write('/app/index.ts', `
+      env.write(
+        '/app/index.ts',
+        `
         import {Component, NgModule} from '@angular/core';
         import {TargetModule} from './target';
 
         @Component({
           selector: 'app-cmp',
           template: '<target-cmp></target-cmp>',
+          standalone: false,
         })
         export class AppCmp {}
 
@@ -86,14 +100,18 @@ runInEachFileSystem(() => {
           imports: [TargetModule],
         })
         export class AppModule {}
-      `);
+      `,
+      );
 
-      env.write('/app/target.ts', `
+      env.write(
+        '/app/target.ts',
+        `
         import {Component, NgModule} from '@angular/core';
 
         @Component({
           selector: 'target-cmp',
           template: '...',
+          standalone: false,
         })
         export class TargetCmp {}
 
@@ -102,7 +120,8 @@ runInEachFileSystem(() => {
           exports: [TargetCmp],
         })
         export class TargetModule {}
-      `);
+      `,
+      );
 
       env.driveMain();
 

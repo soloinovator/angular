@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, NgModule} from '@angular/core';
@@ -12,15 +12,19 @@ import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
 
 @Component({
   selector: 'key-events-app',
-  template: `Click in the following area and press a key to display its name:<br>
-  <div (keydown)="onKeyDown($event)" class="sample-area" tabindex="0">{{lastKey}}</div><br>
-  Click in the following area and press shift.enter:<br>
-  <div
-    (keydown.shift.enter)="onShiftEnter($event)"
-    (click)="resetShiftEnter()"
-    class="sample-area"
-    tabindex="0"
-  >{{shiftEnter ? 'You pressed shift.enter!' : ''}}</div>`
+  template: `Click in the following area and press a key to display its name:<br />
+    <div (keydown)="onKeyDown($event)" class="sample-area" tabindex="0">{{ lastKey }}</div>
+    <br />
+    Click in the following area and press shift.enter:<br />
+    <div
+      (keydown.shift.enter)="onShiftEnter($event)"
+      (click)="resetShiftEnter()"
+      class="sample-area"
+      tabindex="0"
+    >
+      {{ shiftEnter ? 'You pressed shift.enter!' : '' }}
+    </div>`,
+  standalone: false,
 })
 export class KeyEventsApp {
   lastKey: string = '(none)';
@@ -50,17 +54,17 @@ export class KeyEventsApp {
       'alt': (event: KeyboardEvent) => event.altKey,
       'control': (event: KeyboardEvent) => event.ctrlKey,
       'meta': (event: KeyboardEvent) => event.metaKey,
-      'shift': (event: KeyboardEvent) => event.shiftKey
+      'shift': (event: KeyboardEvent) => event.shiftKey,
     };
 
     let fullKey = '';
     let key = event.key.toLowerCase();
     if (key === ' ') {
-      key = 'space';  // for readability
+      key = 'space'; // for readability
     } else if (key === '.') {
-      key = 'dot';  // because '.' is used as a separator in event names
+      key = 'dot'; // because '.' is used as a separator in event names
     }
-    modifierKeys.forEach(modifierName => {
+    modifierKeys.forEach((modifierName) => {
       if (modifierName != key) {
         const modifierGetter = modifierKeyGetters[modifierName];
         if (modifierGetter(event)) {
@@ -73,7 +77,6 @@ export class KeyEventsApp {
 }
 
 @NgModule({declarations: [KeyEventsApp], bootstrap: [KeyEventsApp], imports: [BrowserModule]})
-export class ExampleModule {
-}
+export class ExampleModule {}
 
 platformBrowserDynamic().bootstrapModule(ExampleModule);

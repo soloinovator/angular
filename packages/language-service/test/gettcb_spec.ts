@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {initMockFileSystem} from '@angular/compiler-cli/src/ngtsc/file_system/testing';
@@ -22,10 +22,11 @@ describe('get typecheck block', () => {
 
       @Component({
         template: '<div>{{ myProp }}</div>',
+        standalone: false,
       })
       export class AppCmp {
         myProp!: string;
-      }`
+      }`,
     };
     const env = LanguageServiceTestEnv.setup();
     const project = createModuleAndProjectWithDeclarations(env, 'test', files);
@@ -51,11 +52,12 @@ describe('get typecheck block', () => {
 
             @Component({
               templateUrl: './app.html',
+              standalone: false,
             })
             export class AppCmp {
               myProp!: string;
             }`,
-      'app.html': '<div>{{ myProp }}</div>'
+      'app.html': '<div>{{ myProp }}</div>',
     };
     const env = LanguageServiceTestEnv.setup();
     const project = createModuleAndProjectWithDeclarations(env, 'test', files);
@@ -81,10 +83,11 @@ describe('get typecheck block', () => {
 
       @Component({
         template: '<div>{{ myProp }}</div>',
+        standalone: false,
       })
       export class AppCmp {
         myProp!: string;
-      }`
+      }`,
     };
     const env = LanguageServiceTestEnv.setup();
     const project = createModuleAndProjectWithDeclarations(env, 'test', files);

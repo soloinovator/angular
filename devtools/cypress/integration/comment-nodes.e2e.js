@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 function showComments() {
@@ -24,8 +24,8 @@ describe('Comment nodes', () => {
   it('should find comment nodes when the setting is enabled', () => {
     showComments();
     cy.get('.tree-wrapper')
-        .find('.tree-node:contains("#comment")')
-        .its('length')
-        .should('not.eq', 0);
+      .find('.tree-node:contains("#comment")')
+      .its('length')
+      .should('not.eq', 0);
   });
 });

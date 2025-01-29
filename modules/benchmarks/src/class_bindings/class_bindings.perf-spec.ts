@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {runBenchmark} from '@angular/build-tooling/bazel/benchmark/driver-utilities';
@@ -18,7 +18,7 @@ describe('class bindings perf', () => {
       ignoreBrowserSynchronization: true,
       params: [],
       prepare: () => $('#destroy').click(),
-      work: () => $('#create').click()
+      work: () => $('#create').click(),
     });
   });
 
@@ -30,7 +30,7 @@ describe('class bindings perf', () => {
       ignoreBrowserSynchronization: true,
       params: [],
       prepare: () => $('#create').click(),
-      work: () => $('#update').click()
+      work: () => $('#update').click(),
     });
   });
 });

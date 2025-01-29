@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CommonModule} from '@angular/common';
@@ -17,8 +17,7 @@ import {BenchmarkableExpandingRowModule} from './benchmarkable_expanding_row_mod
 @Component({
   selector: 'benchmark-root',
   encapsulation: ViewEncapsulation.None,
-  template: `
-    <h2>cfc-expanding-row initialization benchmark</h2>
+  template: ` <h2>cfc-expanding-row initialization benchmark</h2>
 
     <section>
       <button id="reset" (click)="reset()">Reset</button>
@@ -29,6 +28,7 @@ import {BenchmarkableExpandingRowModule} from './benchmarkable_expanding_row_mod
     <benchmark-area>
       <benchmarkable-expanding-row></benchmarkable-expanding-row>
     </benchmark-area>`,
+  standalone: false,
 })
 export class InitializationRoot implements AfterViewInit {
   @ViewChild(BenchmarkableExpandingRow, {static: true}) expandingRow!: BenchmarkableExpandingRow;
@@ -63,17 +63,11 @@ export class InitializationRoot implements AfterViewInit {
 @NgModule({
   declarations: [InitializationRoot],
   exports: [InitializationRoot],
-  imports: [
-    CommonModule,
-    BenchmarkableExpandingRowModule,
-    BenchmarkModule,
-    BrowserModule,
-  ],
+  imports: [CommonModule, BenchmarkableExpandingRowModule, BenchmarkModule, BrowserModule],
   bootstrap: [InitializationRoot],
 })
 // Component benchmarks must export a BenchmarkModule.
-export class ExpandingRowBenchmarkModule {
-}
+export class ExpandingRowBenchmarkModule {}
 
 export async function execTimed(description: string, func: () => Promise<void>) {
   console.time(description);

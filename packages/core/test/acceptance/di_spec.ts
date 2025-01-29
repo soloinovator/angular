@@ -3,30 +3,85 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CommonModule} from '@angular/common';
-import {Attribute, ChangeDetectorRef, Component, ComponentFactoryResolver, ComponentRef, createEnvironmentInjector, createNgModule, Directive, ElementRef, ENVIRONMENT_INITIALIZER, EnvironmentInjector, EventEmitter, forwardRef, Host, HostBinding, ImportedNgModuleProviders, importProvidersFrom, ImportProvidersSource, inject, Inject, Injectable, InjectFlags, InjectionToken, InjectOptions, INJECTOR, Injector, Input, LOCALE_ID, makeEnvironmentProviders, ModuleWithProviders, NgModule, NgZone, Optional, Output, Pipe, PipeTransform, Provider, Self, SkipSelf, TemplateRef, Type, ViewChild, ViewContainerRef, ViewEncapsulation, ViewRef, ɵcreateInjector as createInjector, ɵDEFAULT_LOCALE_ID as DEFAULT_LOCALE_ID, ɵINJECTOR_SCOPE, ɵInternalEnvironmentProviders as InternalEnvironmentProviders} from '@angular/core';
+import {
+  assertInInjectionContext,
+  Attribute,
+  ChangeDetectorRef,
+  Component,
+  ComponentRef,
+  createEnvironmentInjector,
+  createNgModule,
+  Directive,
+  ElementRef,
+  ENVIRONMENT_INITIALIZER,
+  EnvironmentInjector,
+  EventEmitter,
+  forwardRef,
+  Host,
+  HOST_TAG_NAME,
+  HostAttributeToken,
+  HostBinding,
+  importProvidersFrom,
+  ImportProvidersSource,
+  inject,
+  Inject,
+  Injectable,
+  InjectFlags,
+  InjectionToken,
+  InjectOptions,
+  INJECTOR,
+  Injector,
+  Input,
+  LOCALE_ID,
+  makeEnvironmentProviders,
+  ModuleWithProviders,
+  NgModule,
+  NgModuleRef,
+  NgZone,
+  Optional,
+  Output,
+  Pipe,
+  PipeTransform,
+  Provider,
+  runInInjectionContext,
+  Self,
+  SkipSelf,
+  TemplateRef,
+  Type,
+  ViewChild,
+  ViewContainerRef,
+  ViewEncapsulation,
+  ViewRef,
+  ɵcreateInjector as createInjector,
+  ɵDEFAULT_LOCALE_ID as DEFAULT_LOCALE_ID,
+  ɵINJECTOR_SCOPE,
+  ɵInternalEnvironmentProviders as InternalEnvironmentProviders,
+} from '@angular/core';
+import {RuntimeError, RuntimeErrorCode} from '@angular/core/src/errors';
 import {ViewRef as ViewRefInternal} from '@angular/core/src/render3/view_ref';
 import {TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {BehaviorSubject} from 'rxjs';
 
-const getProvidersByToken =
-    (providers: Provider[], token: Type<unknown>|InjectionToken<unknown>): Provider[] =>
-        providers.filter(provider => (provider as any).provide === token);
+const getProvidersByToken = (
+  providers: Provider[],
+  token: Type<unknown> | InjectionToken<unknown>,
+): Provider[] => providers.filter((provider) => (provider as any).provide === token);
 
 const hasProviderWithToken = (providers: Provider[], token: InjectionToken<unknown>): boolean =>
-    getProvidersByToken(providers, token).length > 0;
+  getProvidersByToken(providers, token).length > 0;
 
 const collectEnvironmentInitializerProviders = (providers: Provider[]) =>
-    getProvidersByToken(providers, ENVIRONMENT_INITIALIZER);
+  getProvidersByToken(providers, ENVIRONMENT_INITIALIZER);
 
 function unwrappedImportProvidersFrom(...sources: ImportProvidersSource[]): Provider[] {
-  const providers =
-      (importProvidersFrom(...sources) as unknown as InternalEnvironmentProviders).ɵproviders;
-  if (providers.some(provider => 'ɵproviders' in provider)) {
+  const providers = (importProvidersFrom(...sources) as unknown as InternalEnvironmentProviders)
+    .ɵproviders;
+  if (providers.some((provider) => 'ɵproviders' in provider)) {
     throw new Error(`Unexpected nested EnvironmentProviders in test`);
   }
   return providers as Provider[];
@@ -46,8 +101,7 @@ describe('importProvidersFrom', () => {
         {provide: D, useValue: 'D'},
       ],
     })
-    class MyModule2 {
-    }
+    class MyModule2 {}
     @NgModule({
       imports: [MyModule2],
       providers: [
@@ -55,8 +109,7 @@ describe('importProvidersFrom', () => {
         {provide: B, useValue: 'B'},
       ],
     })
-    class MyModule {
-    }
+    class MyModule {}
     const providers = unwrappedImportProvidersFrom(MyModule);
 
     // 4 tokens (A, B, C, D) + 2 providers for each NgModule:
@@ -76,8 +129,7 @@ describe('importProvidersFrom', () => {
 
   it('should collect providers from directly imported ModuleWithProviders', () => {
     @NgModule({})
-    class Module {
-    }
+    class Module {}
 
     const providers = unwrappedImportProvidersFrom({
       ngModule: Module,
@@ -86,40 +138,38 @@ describe('importProvidersFrom', () => {
     expect(hasProviderWithToken(providers, A)).toBe(true);
   });
 
-  it('should collect all providers when a module is used twice with different providers (via ModuleWithProviders)',
-     () => {
-       @NgModule({
-         providers: [
-           {provide: A, useValue: 'A'}  //
-         ]
-       })
-       class ModuleA {
-       }
+  it('should collect all providers when a module is used twice with different providers (via ModuleWithProviders)', () => {
+    @NgModule({
+      providers: [
+        {provide: A, useValue: 'A'}, //
+      ],
+    })
+    class ModuleA {}
 
-       @NgModule({imports: [ModuleA]})
-       class ModuleB {
-         static forRoot(): ModuleWithProviders<ModuleB> {
-           return {ngModule: ModuleB, providers: [{provide: B, useValue: 'B'}]};
-         }
-         static forChild(): ModuleWithProviders<ModuleB> {
-           return {ngModule: ModuleB, providers: [{provide: C, useValue: 'C'}]};
-         }
-       }
+    @NgModule({imports: [ModuleA]})
+    class ModuleB {
+      static forRoot(): ModuleWithProviders<ModuleB> {
+        return {ngModule: ModuleB, providers: [{provide: B, useValue: 'B'}]};
+      }
+      static forChild(): ModuleWithProviders<ModuleB> {
+        return {ngModule: ModuleB, providers: [{provide: C, useValue: 'C'}]};
+      }
+    }
 
-       const providers = unwrappedImportProvidersFrom(ModuleB.forRoot(), ModuleB.forChild());
+    const providers = unwrappedImportProvidersFrom(ModuleB.forRoot(), ModuleB.forChild());
 
-       // Expect 2 `ENVIRONMENT_INITIALIZER` providers: one for `ModuleA`, another one for `ModuleB`
-       expect(collectEnvironmentInitializerProviders(providers).length).toBe(2);
+    // Expect 2 `ENVIRONMENT_INITIALIZER` providers: one for `ModuleA`, another one for `ModuleB`
+    expect(collectEnvironmentInitializerProviders(providers).length).toBe(2);
 
-       // Expect exactly 1 provider for each module: `ModuleA` and `ModuleB`
-       expect(getProvidersByToken(providers, ModuleA).length).toBe(1);
-       expect(getProvidersByToken(providers, ModuleB).length).toBe(1);
+    // Expect exactly 1 provider for each module: `ModuleA` and `ModuleB`
+    expect(getProvidersByToken(providers, ModuleA).length).toBe(1);
+    expect(getProvidersByToken(providers, ModuleB).length).toBe(1);
 
-       // Expect all tokens to be collected.
-       expect(hasProviderWithToken(providers, A)).toBe(true);
-       expect(hasProviderWithToken(providers, B)).toBe(true);
-       expect(hasProviderWithToken(providers, C)).toBe(true);
-     });
+    // Expect all tokens to be collected.
+    expect(hasProviderWithToken(providers, A)).toBe(true);
+    expect(hasProviderWithToken(providers, B)).toBe(true);
+    expect(hasProviderWithToken(providers, C)).toBe(true);
+  });
 
   it('should process nested arrays within a provider set of ModuleWithProviders type', () => {
     @NgModule()
@@ -130,8 +180,8 @@ describe('importProvidersFrom', () => {
           providers: [
             {provide: A, useValue: 'A'},
             // Nested arrays inside the list of providers:
-            [{provide: B, useValue: 'B'}, [{provide: C, useValue: 'C'}]]
-          ]
+            [{provide: B, useValue: 'B'}, [{provide: C, useValue: 'C'}]],
+          ],
         };
       }
     }
@@ -150,85 +200,81 @@ describe('importProvidersFrom', () => {
     expect(hasProviderWithToken(providers, C)).toBe(true);
   });
 
-  it('should process nested arrays within provider set of an imported ModuleWithProviders type',
-     () => {
-       @NgModule()
-       class ModuleA {
-         static forRoot(): ModuleWithProviders<ModuleA> {
-           return {
-             ngModule: ModuleA,
-             providers: [
-               {provide: A, useValue: 'A'},
-               // Nested arrays inside the list of providers:
-               [{provide: B, useValue: 'B'}, [{provide: C, useValue: 'C'}]]
-             ]
-           };
-         }
-       }
+  it('should process nested arrays within provider set of an imported ModuleWithProviders type', () => {
+    @NgModule()
+    class ModuleA {
+      static forRoot(): ModuleWithProviders<ModuleA> {
+        return {
+          ngModule: ModuleA,
+          providers: [
+            {provide: A, useValue: 'A'},
+            // Nested arrays inside the list of providers:
+            [{provide: B, useValue: 'B'}, [{provide: C, useValue: 'C'}]],
+          ],
+        };
+      }
+    }
 
-       @NgModule({imports: [ModuleA.forRoot()]})
-       class ModuleB {
-       }
+    @NgModule({imports: [ModuleA.forRoot()]})
+    class ModuleB {}
 
-       const providers = unwrappedImportProvidersFrom(ModuleB);
+    const providers = unwrappedImportProvidersFrom(ModuleB);
 
-       // Expect 2 `ENVIRONMENT_INITIALIZER` providers: one for `ModuleA`, another one for `ModuleB`
-       expect(collectEnvironmentInitializerProviders(providers).length).toBe(2);
+    // Expect 2 `ENVIRONMENT_INITIALIZER` providers: one for `ModuleA`, another one for `ModuleB`
+    expect(collectEnvironmentInitializerProviders(providers).length).toBe(2);
 
-       // Expect exactly 1 provider for each module: `ModuleA` and `ModuleB`
-       expect(getProvidersByToken(providers, ModuleA).length).toBe(1);
-       expect(getProvidersByToken(providers, ModuleB).length).toBe(1);
+    // Expect exactly 1 provider for each module: `ModuleA` and `ModuleB`
+    expect(getProvidersByToken(providers, ModuleA).length).toBe(1);
+    expect(getProvidersByToken(providers, ModuleB).length).toBe(1);
 
-       // Expect all tokens to be collected.
-       expect(hasProviderWithToken(providers, A)).toBe(true);
-       expect(hasProviderWithToken(providers, B)).toBe(true);
-       expect(hasProviderWithToken(providers, C)).toBe(true);
-     });
+    // Expect all tokens to be collected.
+    expect(hasProviderWithToken(providers, A)).toBe(true);
+    expect(hasProviderWithToken(providers, B)).toBe(true);
+    expect(hasProviderWithToken(providers, C)).toBe(true);
+  });
 
-  it('should collect providers defined via `@NgModule.providers` when ModuleWithProviders type is used',
-     () => {
-       @NgModule({
-         providers: [
-           {provide: A, useValue: 'Original A'},  //
-           {provide: B, useValue: 'B'},           //
-           {provide: D, useValue: 'Original D', multi: true}
-         ]
-       })
-       class ModuleA {
-         static forRoot(): ModuleWithProviders<ModuleA> {
-           return {
-             ngModule: ModuleA,
-             providers: [
-               {provide: A, useValue: 'Overridden A'},  //
-               {provide: C, useValue: 'C'},             //
-               {provide: D, useValue: 'Extra D', multi: true}
-             ]
-           };
-         }
-       }
+  it('should collect providers defined via `@NgModule.providers` when ModuleWithProviders type is used', () => {
+    @NgModule({
+      providers: [
+        {provide: A, useValue: 'Original A'}, //
+        {provide: B, useValue: 'B'}, //
+        {provide: D, useValue: 'Original D', multi: true},
+      ],
+    })
+    class ModuleA {
+      static forRoot(): ModuleWithProviders<ModuleA> {
+        return {
+          ngModule: ModuleA,
+          providers: [
+            {provide: A, useValue: 'Overridden A'}, //
+            {provide: C, useValue: 'C'}, //
+            {provide: D, useValue: 'Extra D', multi: true},
+          ],
+        };
+      }
+    }
 
-       const providers = unwrappedImportProvidersFrom(ModuleA.forRoot());
+    const providers = unwrappedImportProvidersFrom(ModuleA.forRoot());
 
-       // Expect all tokens to be collected.
-       expect(hasProviderWithToken(providers, A)).toBe(true);
-       expect(hasProviderWithToken(providers, B)).toBe(true);
-       expect(hasProviderWithToken(providers, C)).toBe(true);
-       expect(hasProviderWithToken(providers, D)).toBe(true);
+    // Expect all tokens to be collected.
+    expect(hasProviderWithToken(providers, A)).toBe(true);
+    expect(hasProviderWithToken(providers, B)).toBe(true);
+    expect(hasProviderWithToken(providers, C)).toBe(true);
+    expect(hasProviderWithToken(providers, D)).toBe(true);
 
-       const parentEnvInjector = TestBed.inject(EnvironmentInjector);
-       const injector = createEnvironmentInjector(providers, parentEnvInjector);
+    const parentEnvInjector = TestBed.inject(EnvironmentInjector);
+    const injector = createEnvironmentInjector(providers, parentEnvInjector);
 
-       // Verify that overridden token A has the right value.
-       expect(injector.get(A)).toBe('Overridden A');
+    // Verify that overridden token A has the right value.
+    expect(injector.get(A)).toBe('Overridden A');
 
-       // Verify that a multi-provider has both values.
-       expect(injector.get(D)).toEqual(['Original D', 'Extra D']);
-     });
+    // Verify that a multi-provider has both values.
+    expect(injector.get(D)).toEqual(['Original D', 'Extra D']);
+  });
 
   it('should not be allowed in component providers', () => {
     @NgModule({})
-    class Module {
-    }
+    class Module {}
 
     expect(() => {
       @Component({
@@ -237,9 +283,9 @@ describe('importProvidersFrom', () => {
         // The double array here is necessary to escape the compile-time error, via Provider's
         // `any[]` option.
         providers: [[importProvidersFrom(Module)]],
+        standalone: false,
       })
-      class Cmp {
-      }
+      class Cmp {}
 
       TestBed.createComponent(Cmp);
     }).toThrowError(/NG0207/);
@@ -247,12 +293,10 @@ describe('importProvidersFrom', () => {
 
   it('should import providers from an array of NgModules (may be nested)', () => {
     @NgModule({providers: [{provide: A, useValue: 'A'}]})
-    class ModuleA {
-    }
+    class ModuleA {}
 
     @NgModule({providers: [{provide: B, useValue: 'B'}]})
-    class ModuleB {
-    }
+    class ModuleB {}
 
     const providers = unwrappedImportProvidersFrom([ModuleA, [ModuleB]]);
 
@@ -262,31 +306,31 @@ describe('importProvidersFrom', () => {
 
   it('should throw when trying to import providers from standalone components', () => {
     @NgModule({providers: [{provide: A, useValue: 'A'}]})
-    class ModuleA {
-    }
+    class ModuleA {}
 
     @Component({
       standalone: true,
       template: '',
       imports: [ModuleA],
     })
-    class StandaloneCmp {
-    }
+    class StandaloneCmp {}
 
     expect(() => {
       importProvidersFrom(StandaloneCmp);
-    })
-        .toThrowError(
-            'NG0800: Importing providers supports NgModule or ModuleWithProviders but got a standalone component "StandaloneCmp"');
+    }).toThrowError(
+      'NG0800: Importing providers supports NgModule or ModuleWithProviders but got a standalone component "StandaloneCmp"',
+    );
   });
 });
 
 describe('EnvironmentProviders', () => {
   const TOKEN = new InjectionToken<string>('TOKEN');
-  const environmentProviders = makeEnvironmentProviders([{
-    provide: TOKEN,
-    useValue: 'token!',
-  }]);
+  const environmentProviders = makeEnvironmentProviders([
+    {
+      provide: TOKEN,
+      useValue: 'token!',
+    },
+  ]);
 
   it('should be accepted by TestBed providers', () => {
     TestBed.configureTestingModule({
@@ -300,8 +344,7 @@ describe('EnvironmentProviders', () => {
     @NgModule({
       providers: [environmentProviders],
     })
-    class TestModule {
-    }
+    class TestModule {}
 
     const inj = createNgModule(TestModule).injector;
     expect(inj.get(TOKEN)).toEqual('token!');
@@ -311,8 +354,7 @@ describe('EnvironmentProviders', () => {
     @NgModule({
       providers: [environmentProviders],
     })
-    class TestModule {
-    }
+    class TestModule {}
 
     TestBed.configureTestingModule({
       imports: [TestModule],
@@ -323,8 +365,7 @@ describe('EnvironmentProviders', () => {
 
   it('should be accepted in ModuleWithProviders & createNgModule', () => {
     @NgModule({})
-    class EmptyModule {
-    }
+    class EmptyModule {}
 
     const mwp: ModuleWithProviders<EmptyModule> = {
       ngModule: EmptyModule,
@@ -334,8 +375,7 @@ describe('EnvironmentProviders', () => {
     @NgModule({
       imports: [mwp],
     })
-    class TestModule {
-    }
+    class TestModule {}
 
     const inj = createNgModule(TestModule).injector;
     expect(inj.get(TOKEN)).toEqual('token!');
@@ -343,8 +383,10 @@ describe('EnvironmentProviders', () => {
 
   it('should be accepted by createEnvironmentInjector', () => {
     TestBed.configureTestingModule({});
-    const inj =
-        createEnvironmentInjector([environmentProviders], TestBed.inject(EnvironmentInjector));
+    const inj = createEnvironmentInjector(
+      [environmentProviders],
+      TestBed.inject(EnvironmentInjector),
+    );
     expect(inj.get(TOKEN)).toEqual('token!');
   });
 
@@ -370,6 +412,7 @@ describe('EnvironmentProviders', () => {
   it('should be rejected by @Component.providers', () => {
     @Component({
       providers: [environmentProviders as any],
+      standalone: false,
     })
     class TestCmp {
       readonly token = inject(TOKEN);
@@ -382,13 +425,19 @@ describe('EnvironmentProviders', () => {
 describe('di', () => {
   describe('no dependencies', () => {
     it('should create directive with no deps', () => {
-      @Directive({selector: '[dir]', exportAs: 'dir'})
+      @Directive({
+        selector: '[dir]',
+        exportAs: 'dir',
+        standalone: false,
+      })
       class MyDirective {
         value = 'Created';
       }
-      @Component({template: '<div dir #dir="dir">{{ dir.value }}</div>'})
-      class MyComp {
-      }
+      @Component({
+        template: '<div dir #dir="dir">{{ dir.value }}</div>',
+        standalone: false,
+      })
+      class MyComp {}
       TestBed.configureTestingModule({declarations: [MyDirective, MyComp]});
       const fixture = TestBed.createComponent(MyComp);
       fixture.detectChanges();
@@ -403,12 +452,10 @@ describe('di', () => {
       const testToken = new InjectionToken<string[]>('test-multi');
 
       @NgModule({providers: [{provide: testToken, useValue: 'A', multi: true}]})
-      class TestModuleA {
-      }
+      class TestModuleA {}
 
       @NgModule({providers: [{provide: testToken, useValue: 'B', multi: true}]})
-      class TestModuleB {
-      }
+      class TestModuleB {}
 
       TestBed.configureTestingModule({
         imports: [
@@ -417,7 +464,7 @@ describe('di', () => {
             providers: [{provide: testToken, useValue: 'C', multi: true}],
           },
           TestModuleB,
-        ]
+        ],
       });
 
       expect(TestBed.inject(testToken)).toEqual(['A', 'B', 'C']);
@@ -427,7 +474,11 @@ describe('di', () => {
   describe('directive injection', () => {
     let log: string[] = [];
 
-    @Directive({selector: '[dirB]', exportAs: 'dirB'})
+    @Directive({
+      selector: '[dirB]',
+      exportAs: 'dirB',
+      standalone: false,
+    })
     class DirectiveB {
       @Input() value = 'DirB';
 
@@ -436,15 +487,23 @@ describe('di', () => {
       }
     }
 
-    beforeEach(() => log = []);
+    beforeEach(() => (log = []));
 
     it('should create directive with intra view dependencies', () => {
-      @Directive({selector: '[dirA]', exportAs: 'dirA'})
+      @Directive({
+        selector: '[dirA]',
+        exportAs: 'dirA',
+        standalone: false,
+      })
       class DirectiveA {
         value = 'DirA';
       }
 
-      @Directive({selector: '[dirC]', exportAs: 'dirC'})
+      @Directive({
+        selector: '[dirC]',
+        exportAs: 'dirC',
+        standalone: false,
+      })
       class DirectiveC {
         value: string;
 
@@ -458,10 +517,10 @@ describe('di', () => {
         <div dirA>
           <span dirB dirC #dir="dirC">{{ dir.value }}</span>
         </div>
-      `
+      `,
+        standalone: false,
       })
-      class MyComp {
-      }
+      class MyComp {}
 
       TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, DirectiveC, MyComp]});
       const fixture = TestBed.createComponent(MyComp);
@@ -472,7 +531,10 @@ describe('di', () => {
     });
 
     it('should instantiate injected directives in dependency order', () => {
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirectiveA {
         value = 'dirA';
 
@@ -481,9 +543,11 @@ describe('di', () => {
         }
       }
 
-      @Component({template: '<div dirA dirB></div>'})
-      class MyComp {
-      }
+      @Component({
+        template: '<div dirA dirB></div>',
+        standalone: false,
+      })
+      class MyComp {}
 
       TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, MyComp]});
       const fixture = TestBed.createComponent(MyComp);
@@ -493,7 +557,10 @@ describe('di', () => {
     });
 
     it('should fallback to the module injector', () => {
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirectiveA {
         value = 'dirA';
 
@@ -505,13 +572,15 @@ describe('di', () => {
       // - dirB is know to the node injectors
       // - then when dirA tries to inject dirB, it will check the node injector first tree
       // - if not found, it will check the module injector tree
-      @Component({template: '<div dirB></div><div dirA></div>'})
-      class MyComp {
-      }
+      @Component({
+        template: '<div dirB></div><div dirA></div>',
+        standalone: false,
+      })
+      class MyComp {}
 
       TestBed.configureTestingModule({
         declarations: [DirectiveA, DirectiveB, MyComp],
-        providers: [{provide: DirectiveB, useValue: {value: 'module'}}]
+        providers: [{provide: DirectiveB, useValue: {value: 'module'}}],
       });
       const fixture = TestBed.createComponent(MyComp);
       fixture.detectChanges();
@@ -520,16 +589,22 @@ describe('di', () => {
     });
 
     it('should instantiate injected directives before components', () => {
-      @Component({selector: 'my-comp', template: ''})
+      @Component({
+        selector: 'my-comp',
+        template: '',
+        standalone: false,
+      })
       class MyComp {
         constructor(dirB: DirectiveB) {
           log.push(`Comp (dep: ${dirB.value})`);
         }
       }
 
-      @Component({template: '<my-comp dirB></my-comp>'})
-      class MyApp {
-      }
+      @Component({
+        template: '<my-comp dirB></my-comp>',
+        standalone: false,
+      })
+      class MyApp {}
 
       TestBed.configureTestingModule({declarations: [DirectiveB, MyComp, MyApp]});
       const fixture = TestBed.createComponent(MyApp);
@@ -539,14 +614,20 @@ describe('di', () => {
     });
 
     it('should inject directives in the correct order in a for loop', () => {
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirectiveA {
         constructor(dir: DirectiveB) {
           log.push(`DirA (dep: ${dir.value})`);
         }
       }
 
-      @Component({template: '<div dirA dirB *ngFor="let i of array"></div>'})
+      @Component({
+        template: '<div dirA dirB *ngFor="let i of array"></div>',
+        standalone: false,
+      })
       class MyComp {
         array = [1, 2, 3];
       }
@@ -555,12 +636,21 @@ describe('di', () => {
       const fixture = TestBed.createComponent(MyComp);
       fixture.detectChanges();
 
-      expect(log).toEqual(
-          ['DirB', 'DirA (dep: DirB)', 'DirB', 'DirA (dep: DirB)', 'DirB', 'DirA (dep: DirB)']);
+      expect(log).toEqual([
+        'DirB',
+        'DirA (dep: DirB)',
+        'DirB',
+        'DirA (dep: DirB)',
+        'DirB',
+        'DirA (dep: DirB)',
+      ]);
     });
 
     it('should instantiate directives with multiple out-of-order dependencies', () => {
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirectiveA {
         value = 'DirA';
 
@@ -569,7 +659,10 @@ describe('di', () => {
         }
       }
 
-      @Directive({selector: '[dirC]'})
+      @Directive({
+        selector: '[dirC]',
+        standalone: false,
+      })
       class DirectiveC {
         value = 'DirC';
 
@@ -578,16 +671,21 @@ describe('di', () => {
         }
       }
 
-      @Directive({selector: '[dirB]'})
+      @Directive({
+        selector: '[dirB]',
+        standalone: false,
+      })
       class DirectiveB {
         constructor(dirA: DirectiveA, dirC: DirectiveC) {
           log.push(`DirB (deps: ${dirA.value} and ${dirC.value})`);
         }
       }
 
-      @Component({template: '<div dirA dirB dirC></div>'})
-      class MyComp {
-      }
+      @Component({
+        template: '<div dirA dirB dirC></div>',
+        standalone: false,
+      })
+      class MyComp {}
 
       TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, DirectiveC, MyComp]});
       const fixture = TestBed.createComponent(MyComp);
@@ -597,7 +695,10 @@ describe('di', () => {
     });
 
     it('should instantiate in the correct order for complex case', () => {
-      @Directive({selector: '[dirC]'})
+      @Directive({
+        selector: '[dirC]',
+        standalone: false,
+      })
       class DirectiveC {
         value = 'DirC';
 
@@ -606,7 +707,10 @@ describe('di', () => {
         }
       }
 
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirectiveA {
         value = 'DirA';
 
@@ -615,7 +719,10 @@ describe('di', () => {
         }
       }
 
-      @Directive({selector: '[dirD]'})
+      @Directive({
+        selector: '[dirD]',
+        standalone: false,
+      })
       class DirectiveD {
         value = 'DirD';
 
@@ -624,33 +731,51 @@ describe('di', () => {
         }
       }
 
-      @Component({selector: 'my-comp', template: ''})
+      @Component({
+        selector: 'my-comp',
+        template: '',
+        standalone: false,
+      })
       class MyComp {
         constructor(dirD: DirectiveD) {
           log.push(`Comp (dep: ${dirD.value})`);
         }
       }
 
-      @Component({template: '<my-comp dirA dirB dirC dirD></my-comp>'})
-      class MyApp {
-      }
+      @Component({
+        template: '<my-comp dirA dirB dirC dirD></my-comp>',
+        standalone: false,
+      })
+      class MyApp {}
 
-      TestBed.configureTestingModule(
-          {declarations: [DirectiveA, DirectiveB, DirectiveC, DirectiveD, MyComp, MyApp]});
+      TestBed.configureTestingModule({
+        declarations: [DirectiveA, DirectiveB, DirectiveC, DirectiveD, MyComp, MyApp],
+      });
       const fixture = TestBed.createComponent(MyApp);
       fixture.detectChanges();
 
-      expect(log).toEqual(
-          ['DirB', 'DirC (dep: DirB)', 'DirA (dep: DirC)', 'DirD (dep: DirA)', 'Comp (dep: DirD)']);
+      expect(log).toEqual([
+        'DirB',
+        'DirC (dep: DirB)',
+        'DirA (dep: DirC)',
+        'DirD (dep: DirA)',
+        'Comp (dep: DirD)',
+      ]);
     });
 
     it('should instantiate in correct order with mixed parent and peer dependencies', () => {
-      @Component({template: '<div dirA dirB dirC></div>'})
+      @Component({
+        template: '<div dirA dirB dirC></div>',
+        standalone: false,
+      })
       class MyApp {
         value = 'App';
       }
 
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirectiveA {
         constructor(dirB: DirectiveB, app: MyApp) {
           log.push(`DirA (deps: ${dirB.value} and ${app.value})`);
@@ -667,7 +792,10 @@ describe('di', () => {
     it('should not use a parent when peer dep is available', () => {
       let count = 1;
 
-      @Directive({selector: '[dirB]'})
+      @Directive({
+        selector: '[dirB]',
+        standalone: false,
+      })
       class DirectiveB {
         count: number;
 
@@ -677,20 +805,28 @@ describe('di', () => {
         }
       }
 
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirectiveA {
         constructor(dirB: DirectiveB) {
           log.push(`DirA (dep: DirB - ${dirB.count})`);
         }
       }
 
-      @Component({selector: 'my-comp', template: '<div dirA dirB></div>'})
-      class MyComp {
-      }
+      @Component({
+        selector: 'my-comp',
+        template: '<div dirA dirB></div>',
+        standalone: false,
+      })
+      class MyComp {}
 
-      @Component({template: '<my-comp dirB></my-comp>'})
-      class MyApp {
-      }
+      @Component({
+        template: '<my-comp dirB></my-comp>',
+        standalone: false,
+      })
+      class MyApp {}
 
       TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, MyComp, MyApp]});
       const fixture = TestBed.createComponent(MyApp);
@@ -700,24 +836,35 @@ describe('di', () => {
     });
 
     describe('dependencies in parent views', () => {
-      @Directive({selector: '[dirA]', exportAs: 'dirA'})
+      @Directive({
+        selector: '[dirA]',
+        exportAs: 'dirA',
+        standalone: false,
+      })
       class DirectiveA {
         injector: Injector;
 
-        constructor(public dirB: DirectiveB, public vcr: ViewContainerRef) {
+        constructor(
+          public dirB: DirectiveB,
+          public vcr: ViewContainerRef,
+        ) {
           this.injector = vcr.injector;
         }
       }
 
-      @Component(
-          {selector: 'my-comp', template: '<div dirA #dir="dirA">{{ dir.dirB.value }}</div>'})
-      class MyComp {
-      }
+      @Component({
+        selector: 'my-comp',
+        template: '<div dirA #dir="dirA">{{ dir.dirB.value }}</div>',
+        standalone: false,
+      })
+      class MyComp {}
 
       it('should find dependencies on component hosts', () => {
-        @Component({template: '<my-comp dirB></my-comp>'})
-        class MyApp {
-        }
+        @Component({
+          template: '<my-comp dirB></my-comp>',
+          standalone: false,
+        })
+        class MyApp {}
 
         TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, MyComp, MyApp]});
         const fixture = TestBed.createComponent(MyApp);
@@ -733,7 +880,8 @@ describe('di', () => {
             <div *ngIf="showing">
               <div dirA #dir="dirA">{{ dir.dirB.value }}</div>
             </div>
-          </div>`
+          </div>`,
+          standalone: false,
         })
         class MyApp {
           showing = false;
@@ -756,7 +904,8 @@ describe('di', () => {
                 <div dirA #dir="dirA">{{ dir.dirB.value }}</div>
               </ng-container>
             </ng-container>
-          </div>`
+          </div>`,
+          standalone: false,
         })
         class MyApp {
           skipContent = false;
@@ -772,7 +921,10 @@ describe('di', () => {
       });
 
       it('should find dependencies in declaration tree of ng-template (not insertion tree)', () => {
-        @Directive({selector: '[structuralDir]'})
+        @Directive({
+          selector: '[structuralDir]',
+          standalone: false,
+        })
         class StructuralDirective {
           @Input() tmp!: TemplateRef<any>;
 
@@ -793,14 +945,16 @@ describe('di', () => {
          <div dirB value="insertion">
            <div structuralDir [tmp]="foo"></div>
            <!-- insertion point -->
-         </div>`
+         </div>`,
+          standalone: false,
         })
         class MyComp {
           @ViewChild(StructuralDirective) structuralDir!: StructuralDirective;
         }
 
-        TestBed.configureTestingModule(
-            {declarations: [StructuralDirective, DirectiveA, DirectiveB, MyComp]});
+        TestBed.configureTestingModule({
+          declarations: [StructuralDirective, DirectiveA, DirectiveB, MyComp],
+        });
         const fixture = TestBed.createComponent(MyComp);
         fixture.detectChanges();
         fixture.componentInstance.structuralDir.create();
@@ -815,10 +969,10 @@ describe('di', () => {
           template: `<div>
             <my-comp dirB></my-comp>
             <my-comp dirB></my-comp>
-          </div>`
+          </div>`,
+          standalone: false,
         })
-        class MyApp {
-        }
+        class MyApp {}
 
         TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, MyComp, MyApp]});
         const fixture = TestBed.createComponent(MyApp);
@@ -829,7 +983,10 @@ describe('di', () => {
       });
 
       it('should create injectors and host bindings in same view', () => {
-        @Directive({selector: '[hostBindingDir]'})
+        @Directive({
+          selector: '[hostBindingDir]',
+          standalone: false,
+        })
         class HostBindingDirective {
           @HostBinding('id') id = 'foo';
         }
@@ -837,15 +994,17 @@ describe('di', () => {
         @Component({
           template: `<div dirB hostBindingDir>
             <p dirA #dir="dirA">{{ dir.dirB.value }}</p>
-          </div>`
+          </div>`,
+          standalone: false,
         })
         class MyApp {
           @ViewChild(HostBindingDirective) hostBindingDir!: HostBindingDirective;
           @ViewChild(DirectiveA) dirA!: DirectiveA;
         }
 
-        TestBed.configureTestingModule(
-            {declarations: [DirectiveA, DirectiveB, HostBindingDirective, MyApp]});
+        TestBed.configureTestingModule({
+          declarations: [DirectiveA, DirectiveB, HostBindingDirective, MyApp],
+        });
         const fixture = TestBed.createComponent(MyApp);
         fixture.detectChanges();
 
@@ -863,22 +1022,33 @@ describe('di', () => {
       });
 
       it('dynamic components should find dependencies when parent is projected', () => {
-        @Directive({selector: '[dirA]'})
-        class DirA {
-        }
-        @Directive({selector: '[dirB]'})
-        class DirB {
-        }
-        @Component({selector: 'child', template: ''})
+        @Directive({
+          selector: '[dirA]',
+          standalone: false,
+        })
+        class DirA {}
+        @Directive({
+          selector: '[dirB]',
+          standalone: false,
+        })
+        class DirB {}
+        @Component({
+          selector: 'child',
+          template: '',
+          standalone: false,
+        })
         class Child {
-          constructor(@Optional() readonly dirA: DirA, @Optional() readonly dirB: DirB) {}
+          constructor(
+            @Optional() readonly dirA: DirA,
+            @Optional() readonly dirB: DirB,
+          ) {}
         }
         @Component({
           selector: 'projector',
           template: '<ng-content></ng-content>',
+          standalone: false,
         })
-        class Projector {
-        }
+        class Projector {}
 
         @Component({
           template: `
@@ -887,198 +1057,230 @@ describe('di', () => {
               <ng-container #childOrigin></ng-container>
               <ng-container #childOriginWithDirB dirB></ng-container>
             </div>
-          </projector>`
+          </projector>`,
+          standalone: false,
         })
         class MyApp {
           @ViewChild('childOrigin', {read: ViewContainerRef, static: true})
           childOrigin!: ViewContainerRef;
           @ViewChild('childOriginWithDirB', {read: ViewContainerRef, static: true})
           childOriginWithDirB!: ViewContainerRef;
-          childFactory = this.resolver.resolveComponentFactory(Child);
-
-          constructor(readonly resolver: ComponentFactoryResolver, readonly injector: Injector) {}
 
           addChild() {
-            return this.childOrigin.createComponent(this.childFactory);
+            return this.childOrigin.createComponent(Child);
           }
           addChildWithDirB() {
-            return this.childOriginWithDirB.createComponent(this.childFactory);
+            return this.childOriginWithDirB.createComponent(Child);
           }
         }
 
-        const fixture =
-            TestBed.configureTestingModule({declarations: [Child, DirA, DirB, Projector, MyApp]})
-                .createComponent(MyApp);
+        const fixture = TestBed.configureTestingModule({
+          declarations: [Child, DirA, DirB, Projector, MyApp],
+        }).createComponent(MyApp);
         const child = fixture.componentInstance.addChild();
         expect(child).toBeDefined();
         expect(child.instance.dirA)
-            .not.toBeNull('dirA should be found. It is on the parent of the viewContainerRef.');
+          .withContext('dirA should be found. It is on the parent of the viewContainerRef.')
+          .not.toBeNull();
         const child2 = fixture.componentInstance.addChildWithDirB();
         expect(child2).toBeDefined();
         expect(child2.instance.dirA)
-            .not.toBeNull('dirA should be found. It is on the parent of the viewContainerRef.');
+          .withContext('dirA should be found. It is on the parent of the viewContainerRef.')
+          .not.toBeNull();
         expect(child2.instance.dirB)
-            .toBeNull(
-                'dirB appears on the ng-container and should not be found because the ' +
-                'viewContainerRef.createComponent node is inserted next to the container.');
+          .withContext(
+            'dirB appears on the ng-container and should not be found because the ' +
+              'viewContainerRef.createComponent node is inserted next to the container.',
+          )
+          .toBeNull();
       });
     });
 
     it('should throw if directive is not found anywhere', () => {
-      @Directive({selector: '[dirB]'})
+      @Directive({
+        selector: '[dirB]',
+        standalone: false,
+      })
       class DirectiveB {
         constructor() {}
       }
 
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirectiveA {
         constructor(siblingDir: DirectiveB) {}
       }
 
-      @Component({template: '<div dirA></div>'})
-      class MyComp {
-      }
+      @Component({
+        template: '<div dirA></div>',
+        standalone: false,
+      })
+      class MyComp {}
 
       TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, MyComp]});
       expect(() => TestBed.createComponent(MyComp)).toThrowError(/No provider for DirectiveB/);
     });
 
     it('should throw if directive is not found in ancestor tree', () => {
-      @Directive({selector: '[dirB]'})
+      @Directive({
+        selector: '[dirB]',
+        standalone: false,
+      })
       class DirectiveB {
         constructor() {}
       }
 
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirectiveA {
         constructor(siblingDir: DirectiveB) {}
       }
 
-      @Component({template: '<div dirA></div><div dirB></div>'})
-      class MyComp {
-      }
+      @Component({
+        template: '<div dirA></div><div dirB></div>',
+        standalone: false,
+      })
+      class MyComp {}
 
       TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, MyComp]});
       expect(() => TestBed.createComponent(MyComp)).toThrowError(/No provider for DirectiveB/);
     });
 
-    it('should not have access to the directive injector in a standalone injector from within a directive-level provider factory',
-       () => {
-         // https://github.com/angular/angular/issues/42651
-         class TestA {
-           constructor(public injector: string) {}
-         }
-         class TestB {
-           constructor(public a: TestA) {}
-         }
+    it('should not have access to the directive injector in a standalone injector from within a directive-level provider factory', () => {
+      // https://github.com/angular/angular/issues/42651
+      class TestA {
+        constructor(public injector: string) {}
+      }
+      class TestB {
+        constructor(public a: TestA) {}
+      }
 
-         function createTestB() {
-           // Setup a standalone injector that provides `TestA`, which is resolved from a
-           // standalone child injector that requests `TestA` as a dependency for `TestB`.
-           // Although we're inside a directive factory and therefore have access to the
-           // directive-level injector, `TestA` has to be resolved from the standalone injector.
-           const parent = Injector.create({
-             providers: [{provide: TestA, useFactory: () => new TestA('standalone'), deps: []}],
-             name: 'TestA',
-           });
-           const child = Injector.create({
-             providers: [{provide: TestB, useClass: TestB, deps: [TestA]}],
-             parent,
-             name: 'TestB',
-           });
-           return child.get(TestB);
-         }
+      function createTestB() {
+        // Setup a standalone injector that provides `TestA`, which is resolved from a
+        // standalone child injector that requests `TestA` as a dependency for `TestB`.
+        // Although we're inside a directive factory and therefore have access to the
+        // directive-level injector, `TestA` has to be resolved from the standalone injector.
+        const parent = Injector.create({
+          providers: [{provide: TestA, useFactory: () => new TestA('standalone'), deps: []}],
+          name: 'TestA',
+        });
+        const child = Injector.create({
+          providers: [{provide: TestB, useClass: TestB, deps: [TestA]}],
+          parent,
+          name: 'TestB',
+        });
+        return child.get(TestB);
+      }
 
-         @Component({
-           template: '',
-           providers: [
-             {provide: TestA, useFactory: () => new TestA('component'), deps: []},
-             {provide: TestB, useFactory: createTestB},
-           ],
-         })
-         class MyComp {
-           constructor(public readonly testB: TestB) {}
-         }
+      @Component({
+        template: '',
+        providers: [
+          {provide: TestA, useFactory: () => new TestA('component'), deps: []},
+          {provide: TestB, useFactory: createTestB},
+        ],
+        standalone: false,
+      })
+      class MyComp {
+        constructor(public readonly testB: TestB) {}
+      }
 
-         TestBed.configureTestingModule({declarations: [MyComp]});
+      TestBed.configureTestingModule({declarations: [MyComp]});
 
-         const cmp = TestBed.createComponent(MyComp);
-         expect(cmp.componentInstance.testB).toBeInstanceOf(TestB);
-         expect(cmp.componentInstance.testB.a.injector).toBe('standalone');
-       });
+      const cmp = TestBed.createComponent(MyComp);
+      expect(cmp.componentInstance.testB).toBeInstanceOf(TestB);
+      expect(cmp.componentInstance.testB.a.injector).toBe('standalone');
+    });
 
-    it('should not have access to the directive injector in a standalone injector from within a directive-level provider factory',
-       () => {
-         class TestA {
-           constructor(public injector: string) {}
-         }
-         class TestB {
-           constructor(public a: TestA|null) {}
-         }
+    it('should not have access to the directive injector in a standalone injector from within a directive-level provider factory', () => {
+      class TestA {
+        constructor(public injector: string) {}
+      }
+      class TestB {
+        constructor(public a: TestA | null) {}
+      }
 
-         function createTestB() {
-           // Setup a standalone injector that provides `TestB` with an optional dependency of
-           // `TestA`. Since `TestA` is not provided by the standalone injector it should resolve
-           // to null; both the NgModule providers and the component-level providers should not
-           // be considered.
-           const injector = Injector.create({
-             providers: [{provide: TestB, useClass: TestB, deps: [[TestA, new Optional()]]}],
-             name: 'TestB',
-           });
-           return injector.get(TestB);
-         }
+      function createTestB() {
+        // Setup a standalone injector that provides `TestB` with an optional dependency of
+        // `TestA`. Since `TestA` is not provided by the standalone injector it should resolve
+        // to null; both the NgModule providers and the component-level providers should not
+        // be considered.
+        const injector = Injector.create({
+          providers: [{provide: TestB, useClass: TestB, deps: [[TestA, new Optional()]]}],
+          name: 'TestB',
+        });
+        return injector.get(TestB);
+      }
 
-         @Component({
-           template: '',
-           providers: [
-             {provide: TestA, useFactory: () => new TestA('component'), deps: []},
-             {provide: TestB, useFactory: createTestB},
-           ],
-         })
-         class MyComp {
-           constructor(public readonly testB: TestB) {}
-         }
+      @Component({
+        template: '',
+        providers: [
+          {provide: TestA, useFactory: () => new TestA('component'), deps: []},
+          {provide: TestB, useFactory: createTestB},
+        ],
+        standalone: false,
+      })
+      class MyComp {
+        constructor(public readonly testB: TestB) {}
+      }
 
-         TestBed.configureTestingModule({
-           declarations: [MyComp],
-           providers: [{provide: TestA, useFactory: () => new TestA('module'), deps: []}]
-         });
+      TestBed.configureTestingModule({
+        declarations: [MyComp],
+        providers: [{provide: TestA, useFactory: () => new TestA('module'), deps: []}],
+      });
 
-         const cmp = TestBed.createComponent(MyComp);
-         expect(cmp.componentInstance.testB).toBeInstanceOf(TestB);
-         expect(cmp.componentInstance.testB.a).toBeNull();
-       });
+      const cmp = TestBed.createComponent(MyComp);
+      expect(cmp.componentInstance.testB).toBeInstanceOf(TestB);
+      expect(cmp.componentInstance.testB.a).toBeNull();
+    });
 
     it('should throw if directive tries to inject itself', () => {
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirectiveA {
         constructor(siblingDir: DirectiveA) {}
       }
 
-      @Component({template: '<div dirA></div>'})
-      class MyComp {
-      }
+      @Component({
+        template: '<div dirA></div>',
+        standalone: false,
+      })
+      class MyComp {}
 
       TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, MyComp]});
-      expect(() => TestBed.createComponent(MyComp))
-          .toThrowError(
-              'NG0200: Circular dependency in DI detected for DirectiveA. Find more at https://angular.io/errors/NG0200');
+      expect(() => TestBed.createComponent(MyComp)).toThrowError(
+        'NG0200: Circular dependency in DI detected for DirectiveA. Find more at https://angular.dev/errors/NG0200',
+      );
     });
 
     describe('flags', () => {
-      @Directive({selector: '[dirB]'})
+      @Directive({
+        selector: '[dirB]',
+        standalone: false,
+      })
       class DirectiveB {
         @Input('dirB') value = '';
       }
 
       describe('Optional', () => {
-        @Directive({selector: '[dirA]'})
+        @Directive({
+          selector: '[dirA]',
+          standalone: false,
+        })
         class DirectiveA {
           constructor(@Optional() public dirB: DirectiveB) {}
         }
 
         it('should not throw if dependency is @Optional (module injector)', () => {
-          @Component({template: '<div dirA></div>'})
+          @Component({
+            template: '<div dirA></div>',
+            standalone: false,
+          })
           class MyComp {
             @ViewChild(DirectiveA) dirA!: DirectiveA;
           }
@@ -1092,12 +1294,18 @@ describe('di', () => {
         });
 
         it('should return null if @Optional dependency has @Self flag', () => {
-          @Directive({selector: '[dirC]'})
+          @Directive({
+            selector: '[dirC]',
+            standalone: false,
+          })
           class DirectiveC {
             constructor(@Optional() @Self() public dirB: DirectiveB) {}
           }
 
-          @Component({template: '<div dirC></div>'})
+          @Component({
+            template: '<div dirC></div>',
+            standalone: false,
+          })
           class MyComp {
             @ViewChild(DirectiveC) dirC!: DirectiveC;
           }
@@ -1111,12 +1319,18 @@ describe('di', () => {
         });
 
         it('should not throw if dependency is @Optional but defined elsewhere', () => {
-          @Directive({selector: '[dirC]'})
+          @Directive({
+            selector: '[dirC]',
+            standalone: false,
+          })
           class DirectiveC {
             constructor(@Optional() public dirB: DirectiveB) {}
           }
 
-          @Component({template: '<div dirB></div><div dirC></div>'})
+          @Component({
+            template: '<div dirB></div><div dirC></div>',
+            standalone: false,
+          })
           class MyComp {
             @ViewChild(DirectiveC) dirC!: DirectiveC;
           }
@@ -1132,9 +1346,12 @@ describe('di', () => {
         it('should imply @Optional in presence of a default value', () => {
           const NON_EXISTING_PROVIDER = new InjectionToken<string>('non-existing');
 
-          @Component({template: ''})
+          @Component({
+            template: '',
+            standalone: false,
+          })
           class MyComp {
-            value: string|undefined;
+            value: string | undefined;
             constructor(injector: Injector) {
               this.value = injector.get(NON_EXISTING_PROVIDER, 'default', InjectFlags.Host);
             }
@@ -1149,17 +1366,23 @@ describe('di', () => {
       });
 
       it('should check only the current node with @Self', () => {
-        @Directive({selector: '[dirA]'})
+        @Directive({
+          selector: '[dirA]',
+          standalone: false,
+        })
         class DirectiveA {
           constructor(@Self() public dirB: DirectiveB) {}
         }
 
-        @Component({template: '<div dirB><div dirA></div></div>'})
-        class MyComp {
-        }
+        @Component({
+          template: '<div dirB><div dirA></div></div>',
+          standalone: false,
+        })
+        class MyComp {}
         TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, MyComp]});
-        expect(() => TestBed.createComponent(MyComp))
-            .toThrowError(/NG0201: No provider for DirectiveB found in NodeInjector/);
+        expect(() => TestBed.createComponent(MyComp)).toThrowError(
+          /NG0201: No provider for DirectiveB found in NodeInjector/,
+        );
       });
 
       describe('SkipSelf', () => {
@@ -1168,24 +1391,32 @@ describe('di', () => {
             @Component({
               selector: 'parent',
               template: '<child></child>',
-              providers: [{
-                provide: 'token',
-                useValue: 'PARENT',
-              }]
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'PARENT',
+                },
+              ],
+              standalone: false,
             })
-            class ParentComponent {
-            }
+            class ParentComponent {}
 
             @Component({
               selector: 'child',
               template: '...',
-              providers: [{
-                provide: 'token',
-                useValue: 'CHILD',
-              }]
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'CHILD',
+                },
+              ],
+              standalone: false,
             })
             class ChildComponent {
-              constructor(public injector: Injector, @SkipSelf() public parentInjector: Injector) {}
+              constructor(
+                public injector: Injector,
+                @SkipSelf() public parentInjector: Injector,
+              ) {}
             }
 
             TestBed.configureTestingModule({
@@ -1194,263 +1425,297 @@ describe('di', () => {
             const fixture = TestBed.createComponent(ParentComponent);
             fixture.detectChanges();
 
-            const childComponent =
-                fixture.debugElement.query(By.directive(ChildComponent)).componentInstance;
+            const childComponent = fixture.debugElement.query(
+              By.directive(ChildComponent),
+            ).componentInstance;
             expect(childComponent.injector.get('token')).toBe('CHILD');
             expect(childComponent.parentInjector.get('token')).toBe('PARENT');
           });
 
-          it('should lookup module injector in case @SkipSelf is used and no suitable Injector found in element injector tree',
-             () => {
-               let componentInjector: Injector;
-               let moduleInjector: Injector;
-               @Component({
-                 selector: 'child',
-                 template: '...',
-                 providers: [{
-                   provide: 'token',
-                   useValue: 'CHILD',
-                 }]
-               })
-               class MyComponent {
-                 constructor(@SkipSelf() public injector: Injector) {
-                   componentInjector = injector;
-                 }
-               }
+          it('should lookup module injector in case @SkipSelf is used and no suitable Injector found in element injector tree', () => {
+            let componentInjector: Injector;
+            let moduleInjector: Injector;
+            @Component({
+              selector: 'child',
+              template: '...',
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'CHILD',
+                },
+              ],
+              standalone: false,
+            })
+            class MyComponent {
+              constructor(@SkipSelf() public injector: Injector) {
+                componentInjector = injector;
+              }
+            }
 
-               @NgModule({
-                 declarations: [MyComponent],
-                 providers: [{
-                   provide: 'token',
-                   useValue: 'NG_MODULE',
-                 }]
-               })
-               class MyModule {
-                 constructor(public injector: Injector) {
-                   moduleInjector = injector;
-                 }
-               }
+            @NgModule({
+              declarations: [MyComponent],
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'NG_MODULE',
+                },
+              ],
+            })
+            class MyModule {
+              constructor(public injector: Injector) {
+                moduleInjector = injector;
+              }
+            }
 
-               TestBed.configureTestingModule({
-                 imports: [MyModule],
-               });
-               const fixture = TestBed.createComponent(MyComponent);
-               fixture.detectChanges();
+            TestBed.configureTestingModule({
+              imports: [MyModule],
+            });
+            const fixture = TestBed.createComponent(MyComponent);
+            fixture.detectChanges();
 
-               expect(componentInjector!.get('token')).toBe('NG_MODULE');
-               expect(moduleInjector!.get('token')).toBe('NG_MODULE');
-             });
+            expect(componentInjector!.get('token')).toBe('NG_MODULE');
+            expect(moduleInjector!.get('token')).toBe('NG_MODULE');
+          });
 
-          it('should respect @Host in case @SkipSelf is used and no suitable Injector found in element injector tree',
-             () => {
-               let componentInjector: Injector;
-               let moduleInjector: Injector;
-               @Component({
-                 selector: 'child',
-                 template: '...',
-                 providers: [{
-                   provide: 'token',
-                   useValue: 'CHILD',
-                 }]
-               })
-               class MyComponent {
-                 constructor(@Host() @SkipSelf() public injector: Injector) {
-                   componentInjector = injector;
-                 }
-               }
+          it('should respect @Host in case @SkipSelf is used and no suitable Injector found in element injector tree', () => {
+            let componentInjector: Injector;
+            let moduleInjector: Injector;
+            @Component({
+              selector: 'child',
+              template: '...',
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'CHILD',
+                },
+              ],
+              standalone: false,
+            })
+            class MyComponent {
+              constructor(@Host() @SkipSelf() public injector: Injector) {
+                componentInjector = injector;
+              }
+            }
 
-               @NgModule({
-                 declarations: [MyComponent],
-                 providers: [{
-                   provide: 'token',
-                   useValue: 'NG_MODULE',
-                 }]
-               })
-               class MyModule {
-                 constructor(public injector: Injector) {
-                   moduleInjector = injector;
-                 }
-               }
+            @NgModule({
+              declarations: [MyComponent],
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'NG_MODULE',
+                },
+              ],
+            })
+            class MyModule {
+              constructor(public injector: Injector) {
+                moduleInjector = injector;
+              }
+            }
 
-               TestBed.configureTestingModule({
-                 imports: [MyModule],
-               });
+            TestBed.configureTestingModule({
+              imports: [MyModule],
+            });
 
-               expect(() => TestBed.createComponent(MyComponent))
-                   .toThrowError(/NG0201: No provider for Injector found in NodeInjector/);
-             });
+            expect(() => TestBed.createComponent(MyComponent)).toThrowError(
+              /NG0201: No provider for Injector found in NodeInjector/,
+            );
+          });
 
-          it('should throw when injecting Injectors using @SkipSelf and @Host and no Injectors are available in a current view',
-             () => {
-               @Component({
-                 selector: 'parent',
-                 template: '<child></child>',
-                 providers: [{
-                   provide: 'token',
-                   useValue: 'PARENT',
-                 }]
-               })
-               class ParentComponent {
-               }
+          it('should throw when injecting Injectors using @SkipSelf and @Host and no Injectors are available in a current view', () => {
+            @Component({
+              selector: 'parent',
+              template: '<child></child>',
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'PARENT',
+                },
+              ],
+              standalone: false,
+            })
+            class ParentComponent {}
 
-               @Component({
-                 selector: 'child',
-                 template: '...',
-                 providers: [{
-                   provide: 'token',
-                   useValue: 'CHILD',
-                 }]
-               })
-               class ChildComponent {
-                 constructor(@Host() @SkipSelf() public injector: Injector) {}
-               }
+            @Component({
+              selector: 'child',
+              template: '...',
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'CHILD',
+                },
+              ],
+              standalone: false,
+            })
+            class ChildComponent {
+              constructor(@Host() @SkipSelf() public injector: Injector) {}
+            }
 
-               TestBed.configureTestingModule({
-                 declarations: [ParentComponent, ChildComponent],
-               });
+            TestBed.configureTestingModule({
+              declarations: [ParentComponent, ChildComponent],
+            });
 
-               const expectedErrorMessage =
-                   /NG0201: No provider for Injector found in NodeInjector/;
-               expect(() => TestBed.createComponent(ParentComponent))
-                   .toThrowError(expectedErrorMessage);
-             });
+            const expectedErrorMessage = /NG0201: No provider for Injector found in NodeInjector/;
+            expect(() => TestBed.createComponent(ParentComponent)).toThrowError(
+              expectedErrorMessage,
+            );
+          });
 
-          it('should not throw when injecting Injectors using @SkipSelf, @Host, and @Optional and no Injectors are available in a current view',
-             () => {
-               @Component({
-                 selector: 'parent',
-                 template: '<child></child>',
-                 providers: [{
-                   provide: 'token',
-                   useValue: 'PARENT',
-                 }]
-               })
-               class ParentComponent {
-               }
+          it('should not throw when injecting Injectors using @SkipSelf, @Host, and @Optional and no Injectors are available in a current view', () => {
+            @Component({
+              selector: 'parent',
+              template: '<child></child>',
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'PARENT',
+                },
+              ],
+              standalone: false,
+            })
+            class ParentComponent {}
 
-               @Component({
-                 selector: 'child',
-                 template: '...',
-                 providers: [{
-                   provide: 'token',
-                   useValue: 'CHILD',
-                 }]
-               })
-               class ChildComponent {
-                 constructor(@Host() @SkipSelf() @Optional() public injector: Injector) {}
-               }
+            @Component({
+              selector: 'child',
+              template: '...',
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'CHILD',
+                },
+              ],
+              standalone: false,
+            })
+            class ChildComponent {
+              constructor(@Host() @SkipSelf() @Optional() public injector: Injector) {}
+            }
 
-               TestBed.configureTestingModule({
-                 declarations: [ParentComponent, ChildComponent],
-               });
+            TestBed.configureTestingModule({
+              declarations: [ParentComponent, ChildComponent],
+            });
 
-               const expectedErrorMessage =
-                   /NG0201: No provider for Injector found in NodeInjector/;
-               expect(() => TestBed.createComponent(ParentComponent))
-                   .not.toThrowError(expectedErrorMessage);
-             });
+            const expectedErrorMessage = /NG0201: No provider for Injector found in NodeInjector/;
+            expect(() => TestBed.createComponent(ParentComponent)).not.toThrowError(
+              expectedErrorMessage,
+            );
+          });
         });
 
         describe('ElementRef', () => {
           // While tokens like `ElementRef` make sense only in a context of a NodeInjector,
           // ViewEngine also used `ModuleInjector` tree to lookup such tokens. In Ivy we replicate
           // this behavior for now to avoid breaking changes.
-          it('should lookup module injector in case @SkipSelf is used for `ElementRef` token and Component has no parent',
-             () => {
-               let componentElement: ElementRef;
-               let moduleElement: ElementRef;
-               @Component({template: '<div>component</div>'})
-               class MyComponent {
-                 constructor(@SkipSelf() public el: ElementRef) {
-                   componentElement = el;
-                 }
-               }
+          it('should lookup module injector in case @SkipSelf is used for `ElementRef` token and Component has no parent', () => {
+            let componentElement: ElementRef;
+            let moduleElement: ElementRef;
+            @Component({
+              template: '<div>component</div>',
+              standalone: false,
+            })
+            class MyComponent {
+              constructor(@SkipSelf() public el: ElementRef) {
+                componentElement = el;
+              }
+            }
 
-               @NgModule({
-                 declarations: [MyComponent],
-                 providers: [{
-                   provide: ElementRef,
-                   useValue: {from: 'NG_MODULE'},
-                 }]
-               })
-               class MyModule {
-                 constructor(public el: ElementRef) {
-                   moduleElement = el;
-                 }
-               }
+            @NgModule({
+              declarations: [MyComponent],
+              providers: [
+                {
+                  provide: ElementRef,
+                  useValue: {from: 'NG_MODULE'},
+                },
+              ],
+            })
+            class MyModule {
+              constructor(public el: ElementRef) {
+                moduleElement = el;
+              }
+            }
 
-               TestBed.configureTestingModule({
-                 imports: [MyModule],
-               });
-               const fixture = TestBed.createComponent(MyComponent);
-               fixture.detectChanges();
+            TestBed.configureTestingModule({
+              imports: [MyModule],
+            });
+            const fixture = TestBed.createComponent(MyComponent);
+            fixture.detectChanges();
 
-               expect((moduleElement! as any).from).toBe('NG_MODULE');
-               expect((componentElement! as any).from).toBe('NG_MODULE');
-             });
+            expect((moduleElement! as any).from).toBe('NG_MODULE');
+            expect((componentElement! as any).from).toBe('NG_MODULE');
+          });
 
-          it('should return host node when @SkipSelf is used for `ElementRef` token and Component has no parent node',
-             () => {
-               let parentElement: ElementRef;
-               let componentElement: ElementRef;
-               @Component({selector: 'child', template: '...'})
-               class MyComponent {
-                 constructor(@SkipSelf() public el: ElementRef) {
-                   componentElement = el;
-                 }
-               }
+          it('should return host node when @SkipSelf is used for `ElementRef` token and Component has no parent node', () => {
+            let parentElement: ElementRef;
+            let componentElement: ElementRef;
+            @Component({
+              selector: 'child',
+              template: '...',
+              standalone: false,
+            })
+            class MyComponent {
+              constructor(@SkipSelf() public el: ElementRef) {
+                componentElement = el;
+              }
+            }
 
-               @Component({
-                 template: '<child></child>',
-               })
-               class ParentComponent {
-                 constructor(public el: ElementRef) {
-                   parentElement = el;
-                 }
-               }
+            @Component({
+              template: '<child></child>',
+              standalone: false,
+            })
+            class ParentComponent {
+              constructor(public el: ElementRef) {
+                parentElement = el;
+              }
+            }
 
-               TestBed.configureTestingModule({
-                 imports: [CommonModule],
-                 declarations: [ParentComponent, MyComponent],
-               });
-               const fixture = TestBed.createComponent(ParentComponent);
-               fixture.detectChanges();
+            TestBed.configureTestingModule({
+              imports: [CommonModule],
+              declarations: [ParentComponent, MyComponent],
+            });
+            const fixture = TestBed.createComponent(ParentComponent);
+            fixture.detectChanges();
 
-               expect(componentElement!).toEqual(parentElement!);
-             });
+            expect(componentElement!).toEqual(parentElement!);
+          });
 
-          it('should @SkipSelf on child directive node when injecting ElementRef on nested parent directive',
-             () => {
-               let parentRef: ElementRef;
-               let childRef: ElementRef;
+          it('should @SkipSelf on child directive node when injecting ElementRef on nested parent directive', () => {
+            let parentRef: ElementRef;
+            let childRef: ElementRef;
 
-               @Directive({selector: '[parent]'})
-               class ParentDirective {
-                 constructor(elementRef: ElementRef) {
-                   parentRef = elementRef;
-                 }
-               }
+            @Directive({
+              selector: '[parent]',
+              standalone: false,
+            })
+            class ParentDirective {
+              constructor(elementRef: ElementRef) {
+                parentRef = elementRef;
+              }
+            }
 
-               @Directive({selector: '[child]'})
-               class ChildDirective {
-                 constructor(@SkipSelf() elementRef: ElementRef) {
-                   childRef = elementRef;
-                 }
-               }
+            @Directive({
+              selector: '[child]',
+              standalone: false,
+            })
+            class ChildDirective {
+              constructor(@SkipSelf() elementRef: ElementRef) {
+                childRef = elementRef;
+              }
+            }
 
-               @Component({template: '<div parent>parent <span child>child</span></div>'})
-               class MyComp {
-               }
+            @Component({
+              template: '<div parent>parent <span child>child</span></div>',
+              standalone: false,
+            })
+            class MyComp {}
 
-               TestBed.configureTestingModule(
-                   {declarations: [ParentDirective, ChildDirective, MyComp]});
-               const fixture = TestBed.createComponent(MyComp);
-               fixture.detectChanges();
+            TestBed.configureTestingModule({
+              declarations: [ParentDirective, ChildDirective, MyComp],
+            });
+            const fixture = TestBed.createComponent(MyComp);
+            fixture.detectChanges();
 
-               // Assert against the `nativeElement` since Ivy always returns a new ElementRef.
-               expect(childRef!.nativeElement).toBe(parentRef!.nativeElement);
-               expect(childRef!.nativeElement.tagName).toBe('DIV');
-             });
+            // Assert against the `nativeElement` since Ivy always returns a new ElementRef.
+            expect(childRef!.nativeElement).toBe(parentRef!.nativeElement);
+            expect(childRef!.nativeElement.tagName).toBe('DIV');
+          });
         });
 
         describe('@SkipSelf when parent contains embedded views', () => {
@@ -1459,6 +1724,7 @@ describe('di', () => {
             @Component({
               selector: 'child',
               template: '...',
+              standalone: false,
             })
             class ChildComponent {
               constructor(@SkipSelf() public elementRef: ElementRef) {
@@ -1468,9 +1734,9 @@ describe('di', () => {
             @Component({
               selector: 'root',
               template: '<div><child *ngIf="true"></child></div>',
+              standalone: false,
             })
-            class ParentComponent {
-            }
+            class ParentComponent {}
 
             TestBed.configureTestingModule({
               imports: [CommonModule],
@@ -1488,6 +1754,7 @@ describe('di', () => {
             @Component({
               selector: 'child',
               template: '...',
+              standalone: false,
             })
             class ChildComponent {
               constructor(@SkipSelf() public elementRef: ElementRef) {
@@ -1497,9 +1764,9 @@ describe('di', () => {
             @Component({
               selector: 'root',
               template: '<div><ng-template [ngIf]="true"><child></child></ng-template></div>',
+              standalone: false,
             })
-            class ParentComponent {
-            }
+            class ParentComponent {}
 
             TestBed.configureTestingModule({
               imports: [CommonModule],
@@ -1517,6 +1784,7 @@ describe('di', () => {
             @Component({
               selector: 'child',
               template: '...',
+              standalone: false,
             })
             class ChildComponent {
               constructor(@SkipSelf() public ref: ViewContainerRef) {
@@ -1527,9 +1795,9 @@ describe('di', () => {
             @Component({
               selector: 'root',
               template: '<div><child *ngIf="true"></child></div>',
+              standalone: false,
             })
-            class ParentComponent {
-            }
+            class ParentComponent {}
 
             TestBed.configureTestingModule({
               imports: [CommonModule],
@@ -1547,6 +1815,7 @@ describe('di', () => {
             @Component({
               selector: 'child',
               template: '...',
+              standalone: false,
             })
             class ChildComponent {
               constructor(@SkipSelf() public changeDetectorRef: ChangeDetectorRef) {
@@ -1557,9 +1826,9 @@ describe('di', () => {
             @Component({
               selector: 'root',
               template: '<child *ngIf="true"></child>',
+              standalone: false,
             })
-            class ParentComponent {
-            }
+            class ParentComponent {}
 
             TestBed.configureTestingModule({
               imports: [CommonModule],
@@ -1579,10 +1848,13 @@ describe('di', () => {
             @Component({
               selector: 'parent',
               template: '<child *ngIf="true"></child>',
-              providers: [{
-                provide: 'token',
-                useValue: 'PARENT',
-              }]
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'PARENT',
+                },
+              ],
+              standalone: false,
             })
             class ParentComponent {
               constructor(public injector: Injector) {
@@ -1593,10 +1865,13 @@ describe('di', () => {
             @Component({
               selector: 'child',
               template: '...',
-              providers: [{
-                provide: 'token',
-                useValue: 'CHILD',
-              }]
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'CHILD',
+                },
+              ],
+              standalone: false,
             })
             class ChildComponent {
               constructor(@SkipSelf() public injector: Injector) {
@@ -1610,8 +1885,9 @@ describe('di', () => {
             const fixture = TestBed.createComponent(ParentComponent);
             fixture.detectChanges();
 
-            expect(childComponentInjector!.get('token'))
-                .toBe(parentComponentInjector!.get('token'));
+            expect(childComponentInjector!.get('token')).toBe(
+              parentComponentInjector!.get('token'),
+            );
           });
 
           it('should work for Injectors with expanded *ngIf', () => {
@@ -1620,10 +1896,13 @@ describe('di', () => {
             @Component({
               selector: 'parent',
               template: '<ng-template [ngIf]="true"><child></child></ng-template>',
-              providers: [{
-                provide: 'token',
-                useValue: 'PARENT',
-              }]
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'PARENT',
+                },
+              ],
+              standalone: false,
             })
             class ParentComponent {
               constructor(public injector: Injector) {
@@ -1634,10 +1913,13 @@ describe('di', () => {
             @Component({
               selector: 'child',
               template: '...',
-              providers: [{
-                provide: 'token',
-                useValue: 'CHILD',
-              }]
+              providers: [
+                {
+                  provide: 'token',
+                  useValue: 'CHILD',
+                },
+              ],
+              standalone: false,
             })
             class ChildComponent {
               constructor(@SkipSelf() public injector: Injector) {
@@ -1651,8 +1933,9 @@ describe('di', () => {
             const fixture = TestBed.createComponent(ParentComponent);
             fixture.detectChanges();
 
-            expect(childComponentInjector!.get('token'))
-                .toBe(parentComponentInjector!.get('token'));
+            expect(childComponentInjector!.get('token')).toBe(
+              parentComponentInjector!.get('token'),
+            );
           });
         });
 
@@ -1662,12 +1945,20 @@ describe('di', () => {
           // a child component on a nested `<ng-template>` only when a component/directive
           // on a parent `<ng-template>` is initialized.
           it('should throw when using @SkipSelf for TemplateRef', () => {
-            @Directive({selector: '[dir]', exportAs: 'dir'})
+            @Directive({
+              selector: '[dir]',
+              exportAs: 'dir',
+              standalone: false,
+            })
             class MyDir {
               constructor(@SkipSelf() public templateRef: TemplateRef<any>) {}
             }
 
-            @Component({selector: '[child]', template: '<ng-template dir></ng-template>'})
+            @Component({
+              selector: '[child]',
+              template: '<ng-template dir></ng-template>',
+              standalone: false,
+            })
             class ChildComp {
               constructor(public templateRef: TemplateRef<any>) {}
               @ViewChild(MyDir) directive!: MyDir;
@@ -1676,6 +1967,7 @@ describe('di', () => {
             @Component({
               selector: 'root',
               template: '<div child></div>',
+              standalone: false,
             })
             class MyComp {
               @ViewChild(ChildComp) child!: ChildComp;
@@ -1693,7 +1985,11 @@ describe('di', () => {
           });
 
           it('should throw when SkipSelf and no parent TemplateRef', () => {
-            @Directive({selector: '[dirA]', exportAs: 'dirA'})
+            @Directive({
+              selector: '[dirA]',
+              exportAs: 'dirA',
+              standalone: false,
+            })
             class DirA {
               constructor(@SkipSelf() public templateRef: TemplateRef<any>) {}
             }
@@ -1701,9 +1997,9 @@ describe('di', () => {
             @Component({
               selector: 'root',
               template: '<ng-template dirA></ng-template>',
+              standalone: false,
             })
-            class MyComp {
-            }
+            class MyComp {}
 
             TestBed.configureTestingModule({
               imports: [CommonModule],
@@ -1718,7 +2014,11 @@ describe('di', () => {
 
           it('should not throw when SkipSelf and Optional', () => {
             let directiveTemplateRef;
-            @Directive({selector: '[dirA]', exportAs: 'dirA'})
+            @Directive({
+              selector: '[dirA]',
+              exportAs: 'dirA',
+              standalone: false,
+            })
             class DirA {
               constructor(@SkipSelf() @Optional() templateRef: TemplateRef<any>) {
                 directiveTemplateRef = templateRef;
@@ -1728,9 +2028,9 @@ describe('di', () => {
             @Component({
               selector: 'root',
               template: '<ng-template dirA></ng-template>',
+              standalone: false,
             })
-            class MyComp {
-            }
+            class MyComp {}
 
             TestBed.configureTestingModule({
               imports: [CommonModule],
@@ -1744,7 +2044,11 @@ describe('di', () => {
           });
 
           it('should not throw when SkipSelf, Optional, and Host', () => {
-            @Directive({selector: '[dirA]', exportAs: 'dirA'})
+            @Directive({
+              selector: '[dirA]',
+              exportAs: 'dirA',
+              standalone: false,
+            })
             class DirA {
               constructor(@SkipSelf() @Optional() @Host() public templateRef: TemplateRef<any>) {}
             }
@@ -1752,9 +2056,9 @@ describe('di', () => {
             @Component({
               selector: 'root',
               template: '<ng-template dirA></ng-template>',
+              standalone: false,
             })
-            class MyComp {
-            }
+            class MyComp {}
 
             TestBed.configureTestingModule({
               imports: [CommonModule],
@@ -1770,32 +2074,42 @@ describe('di', () => {
             let parentViewContainer: ViewContainerRef;
             let childViewContainer: ViewContainerRef;
 
-            @Directive({selector: '[parent]'})
+            @Directive({
+              selector: '[parent]',
+              standalone: false,
+            })
             class ParentDirective {
               constructor(vc: ViewContainerRef) {
                 parentViewContainer = vc;
               }
             }
 
-            @Directive({selector: '[child]'})
+            @Directive({
+              selector: '[child]',
+              standalone: false,
+            })
             class ChildDirective {
               constructor(@SkipSelf() vc: ViewContainerRef) {
                 childViewContainer = vc;
               }
             }
 
-            @Component({template: '<div parent>parent <span child>child</span></div>'})
-            class MyComp {
-            }
+            @Component({
+              template: '<div parent>parent <span child>child</span></div>',
+              standalone: false,
+            })
+            class MyComp {}
 
-            TestBed.configureTestingModule(
-                {declarations: [ParentDirective, ChildDirective, MyComp]});
+            TestBed.configureTestingModule({
+              declarations: [ParentDirective, ChildDirective, MyComp],
+            });
             const fixture = TestBed.createComponent(MyComp);
             fixture.detectChanges();
 
             // Assert against the `element` since Ivy always returns a new ViewContainerRef.
-            expect(childViewContainer!.element.nativeElement)
-                .toBe(parentViewContainer!.element.nativeElement);
+            expect(childViewContainer!.element.nativeElement).toBe(
+              parentViewContainer!.element.nativeElement,
+            );
             expect(parentViewContainer!.element.nativeElement.tagName).toBe('DIV');
           });
 
@@ -1803,48 +2117,63 @@ describe('di', () => {
             let parentViewContainer: ViewContainerRef;
             let childViewContainer: ViewContainerRef;
 
-            @Directive({selector: '[parent]'})
+            @Directive({
+              selector: '[parent]',
+              standalone: false,
+            })
             class ParentDirective {
               constructor(vc: ViewContainerRef) {
                 parentViewContainer = vc;
               }
             }
 
-            @Directive({selector: '[child]'})
+            @Directive({
+              selector: '[child]',
+              standalone: false,
+            })
             class ChildDirective {
               constructor(@SkipSelf() @Host() vc: ViewContainerRef) {
                 childViewContainer = vc;
               }
             }
 
-            @Component({template: '<div parent>parent <span child>child</span></div>'})
-            class MyComp {
-            }
+            @Component({
+              template: '<div parent>parent <span child>child</span></div>',
+              standalone: false,
+            })
+            class MyComp {}
 
-            TestBed.configureTestingModule(
-                {declarations: [ParentDirective, ChildDirective, MyComp]});
+            TestBed.configureTestingModule({
+              declarations: [ParentDirective, ChildDirective, MyComp],
+            });
 
             const fixture = TestBed.createComponent(MyComp);
             fixture.detectChanges();
 
-            expect(childViewContainer!.element.nativeElement)
-                .toBe(parentViewContainer!.element.nativeElement);
+            expect(childViewContainer!.element.nativeElement).toBe(
+              parentViewContainer!.element.nativeElement,
+            );
             expect(parentViewContainer!.element.nativeElement.tagName).toBe('DIV');
           });
 
           it('should get ViewContainerRef using @SkipSelf and @Host on parent', () => {
             let parentViewContainer: ViewContainerRef;
 
-            @Directive({selector: '[parent]'})
+            @Directive({
+              selector: '[parent]',
+              standalone: false,
+            })
             class ParentDirective {
               constructor(@SkipSelf() vc: ViewContainerRef) {
                 parentViewContainer = vc;
               }
             }
 
-            @Component({template: '<div parent>parent</div>'})
-            class MyComp {
-            }
+            @Component({
+              template: '<div parent>parent</div>',
+              standalone: false,
+            })
+            class MyComp {}
 
             TestBed.configureTestingModule({declarations: [ParentDirective, MyComp]});
 
@@ -1854,64 +2183,84 @@ describe('di', () => {
             expect(parentViewContainer!.element.nativeElement.tagName).toBe('DIV');
           });
 
-          it('should throw when injecting ViewContainerRef using @SkipSelf and no ViewContainerRef are available in a current view',
-             () => {
-               @Component({template: '<span>component</span>'})
-               class MyComp {
-                 constructor(@SkipSelf() vc: ViewContainerRef) {}
-               }
+          it('should throw when injecting ViewContainerRef using @SkipSelf and no ViewContainerRef are available in a current view', () => {
+            @Component({
+              template: '<span>component</span>',
+              standalone: false,
+            })
+            class MyComp {
+              constructor(@SkipSelf() vc: ViewContainerRef) {}
+            }
 
-               TestBed.configureTestingModule({declarations: [MyComp]});
+            TestBed.configureTestingModule({declarations: [MyComp]});
 
-               expect(() => TestBed.createComponent(MyComp))
-                   .toThrowError(/No provider for ViewContainerRef/);
-             });
+            expect(() => TestBed.createComponent(MyComp)).toThrowError(
+              /No provider for ViewContainerRef/,
+            );
+          });
         });
 
         describe('ChangeDetectorRef', () => {
           it('should support @SkipSelf when injecting ChangeDetectorRef', () => {
-            let parentRef: ChangeDetectorRef|undefined;
-            let childRef: ChangeDetectorRef|undefined;
+            let parentRef: ChangeDetectorRef | undefined;
+            let childRef: ChangeDetectorRef | undefined;
 
-            @Directive({selector: '[parent]'})
+            @Directive({
+              selector: '[parent]',
+              standalone: false,
+            })
             class ParentDirective {
               constructor(cdr: ChangeDetectorRef) {
                 parentRef = cdr;
               }
             }
 
-            @Directive({selector: '[child]'})
+            @Directive({
+              selector: '[child]',
+              standalone: false,
+            })
             class ChildDirective {
               constructor(@SkipSelf() cdr: ChangeDetectorRef) {
                 childRef = cdr;
               }
             }
 
-            @Component({template: '<div parent>parent <span child>child</span></div>'})
-            class MyComp {
-            }
+            @Component({
+              template: '<div parent>parent <span child>child</span></div>',
+              standalone: false,
+            })
+            class MyComp {}
 
-            TestBed.configureTestingModule(
-                {declarations: [ParentDirective, ChildDirective, MyComp]});
+            TestBed.configureTestingModule({
+              declarations: [ParentDirective, ChildDirective, MyComp],
+            });
             const fixture = TestBed.createComponent(MyComp);
             fixture.detectChanges();
 
             // Assert against the `rootNodes` since Ivy always returns a new ChangeDetectorRef.
-            expect((parentRef as ViewRefInternal<any>).rootNodes)
-                .toEqual((childRef as ViewRefInternal<any>).rootNodes);
+            expect((parentRef as ViewRefInternal<any>).rootNodes).toEqual(
+              (childRef as ViewRefInternal<any>).rootNodes,
+            );
           });
 
           it('should inject host component ChangeDetectorRef when @SkipSelf', () => {
-            let childRef: ChangeDetectorRef|undefined;
+            let childRef: ChangeDetectorRef | undefined;
 
-            @Component({selector: 'child', template: '...'})
+            @Component({
+              selector: 'child',
+              template: '...',
+              standalone: false,
+            })
             class ChildComp {
               constructor(@SkipSelf() cdr: ChangeDetectorRef) {
                 childRef = cdr;
               }
             }
 
-            @Component({template: '<div><child></child></div>'})
+            @Component({
+              template: '<div><child></child></div>',
+              standalone: false,
+            })
             class MyComp {
               constructor(public cdr: ChangeDetectorRef) {}
             }
@@ -1921,12 +2270,16 @@ describe('di', () => {
             fixture.detectChanges();
 
             // Assert against the `rootNodes` since Ivy always returns a new ChangeDetectorRef.
-            expect((childRef as ViewRefInternal<any>).rootNodes)
-                .toEqual((fixture.componentInstance.cdr as ViewRefInternal<any>).rootNodes);
+            expect((childRef as ViewRefInternal<any>).rootNodes).toEqual(
+              (fixture.componentInstance.cdr as ViewRefInternal<any>).rootNodes,
+            );
           });
 
           it('should throw when ChangeDetectorRef and @SkipSelf and not found', () => {
-            @Component({template: '<div></div>'})
+            @Component({
+              template: '<div></div>',
+              standalone: false,
+            })
             class MyComponent {
               constructor(@SkipSelf() public injector: ChangeDetectorRef) {}
             }
@@ -1934,50 +2287,55 @@ describe('di', () => {
             @NgModule({
               declarations: [MyComponent],
             })
-            class MyModule {
-            }
+            class MyModule {}
 
             TestBed.configureTestingModule({
               imports: [MyModule],
             });
 
-            expect(() => TestBed.createComponent(MyComponent))
-                .toThrowError(/No provider for ChangeDetectorRef/);
+            expect(() => TestBed.createComponent(MyComponent)).toThrowError(
+              /No provider for ChangeDetectorRef/,
+            );
           });
 
-          it('should lookup module injector in case @SkipSelf is used for `ChangeDetectorRef` token and Component has no parent',
-             () => {
-               let componentCDR: ChangeDetectorRef;
-               let moduleCDR: ChangeDetectorRef;
-               @Component({selector: 'child', template: '...'})
-               class MyComponent {
-                 constructor(@SkipSelf() public injector: ChangeDetectorRef) {
-                   componentCDR = injector;
-                 }
-               }
+          it('should lookup module injector in case @SkipSelf is used for `ChangeDetectorRef` token and Component has no parent', () => {
+            let componentCDR: ChangeDetectorRef;
+            let moduleCDR: ChangeDetectorRef;
+            @Component({
+              selector: 'child',
+              template: '...',
+              standalone: false,
+            })
+            class MyComponent {
+              constructor(@SkipSelf() public injector: ChangeDetectorRef) {
+                componentCDR = injector;
+              }
+            }
 
-               @NgModule({
-                 declarations: [MyComponent],
-                 providers: [{
-                   provide: ChangeDetectorRef,
-                   useValue: {from: 'NG_MODULE'},
-                 }]
-               })
-               class MyModule {
-                 constructor(public injector: ChangeDetectorRef) {
-                   moduleCDR = injector;
-                 }
-               }
+            @NgModule({
+              declarations: [MyComponent],
+              providers: [
+                {
+                  provide: ChangeDetectorRef,
+                  useValue: {from: 'NG_MODULE'},
+                },
+              ],
+            })
+            class MyModule {
+              constructor(public injector: ChangeDetectorRef) {
+                moduleCDR = injector;
+              }
+            }
 
-               TestBed.configureTestingModule({
-                 imports: [MyModule],
-               });
-               const fixture = TestBed.createComponent(MyComponent);
-               fixture.detectChanges();
+            TestBed.configureTestingModule({
+              imports: [MyModule],
+            });
+            const fixture = TestBed.createComponent(MyComponent);
+            fixture.detectChanges();
 
-               expect((moduleCDR! as any).from).toBe('NG_MODULE');
-               expect((componentCDR! as any).from).toBe('NG_MODULE');
-             });
+            expect((moduleCDR! as any).from).toBe('NG_MODULE');
+            expect((componentCDR! as any).from).toBe('NG_MODULE');
+          });
         });
 
         describe('viewProviders', () => {
@@ -1989,13 +2347,14 @@ describe('di', () => {
               viewProviders: [
                 {provide: 'Foo', useValue: 'Foo as ViewProvider'},
                 {provide: 'Bar', useValue: 'Bar as ViewProvider'},
-              ]
+              ],
+              standalone: false,
             })
             class Child {
               constructor(
-                  @Inject('Blah') public blah: String,
-                  @Inject('Foo') public foo: String,
-                  @SkipSelf() @Inject('Bar') public bar: String,
+                @Inject('Blah') public blah: String,
+                @Inject('Foo') public foo: String,
+                @SkipSelf() @Inject('Bar') public bar: String,
               ) {}
             }
 
@@ -2009,12 +2368,16 @@ describe('di', () => {
               viewProviders: [
                 {provide: 'Foo', useValue: 'Foo as ViewProvider'},
                 {provide: 'Bar', useValue: 'Bar as ViewProvider'},
-              ]
+              ],
+              standalone: false,
             })
-            class Parent {
-            }
+            class Parent {}
 
-            @Component({selector: 'my-app', template: '<parent><child></child></parent>'})
+            @Component({
+              selector: 'my-app',
+              template: '<parent><child></child></parent>',
+              standalone: false,
+            })
             class MyApp {
               @ViewChild(Parent) parent!: Parent;
               @ViewChild(Child) child!: Child;
@@ -2036,13 +2399,14 @@ describe('di', () => {
               viewProviders: [
                 {provide: 'Foo', useValue: 'Foo as ViewProvider'},
                 {provide: 'Bar', useValue: 'Bar as ViewProvider'},
-              ]
+              ],
+              standalone: false,
             })
             class Child {
               constructor(
-                  @Inject('Blah') public blah: String,
-                  @Inject('Foo') public foo: String,
-                  @SkipSelf() @Inject('Bar') public bar: String,
+                @Inject('Blah') public blah: String,
+                @Inject('Foo') public foo: String,
+                @SkipSelf() @Inject('Bar') public bar: String,
               ) {}
             }
 
@@ -2053,69 +2417,81 @@ describe('di', () => {
               viewProviders: [
                 {provide: 'Foo', useValue: 'Foo as ViewProvider'},
                 {provide: 'Bar', useValue: 'Bar as ViewProvider'},
-              ]
+              ],
+              standalone: false,
             })
-            class Parent {
-            }
+            class Parent {}
 
-            @Component({selector: 'my-app', template: '<parent><child></child></parent>'})
-            class MyApp {
-            }
+            @Component({
+              selector: 'my-app',
+              template: '<parent><child></child></parent>',
+              standalone: false,
+            })
+            class MyApp {}
 
             TestBed.configureTestingModule({declarations: [Child, Parent, MyApp]});
 
             expect(() => TestBed.createComponent(MyApp)).toThrowError(/No provider for Bar/);
           });
 
-          it('should not throw when @SkipSelf and @Optional with no accessible viewProvider',
-             () => {
-               @Component({
-                 selector: 'child',
-                 template: '{{ blah | json }}<br />{{ foo | json }}<br />{{ bar | json }}',
-                 providers: [{provide: 'Blah', useValue: 'Blah as Provider'}],
-                 viewProviders: [
-                   {provide: 'Foo', useValue: 'Foo as ViewProvider'},
-                   {provide: 'Bar', useValue: 'Bar as ViewProvider'},
-                 ]
-               })
-               class Child {
-                 constructor(
-                     @Inject('Blah') public blah: String,
-                     @Inject('Foo') public foo: String,
-                     @SkipSelf() @Optional() @Inject('Bar') public bar: String,
-                 ) {}
-               }
+          it('should not throw when @SkipSelf and @Optional with no accessible viewProvider', () => {
+            @Component({
+              selector: 'child',
+              template: '{{ blah | json }}<br />{{ foo | json }}<br />{{ bar | json }}',
+              providers: [{provide: 'Blah', useValue: 'Blah as Provider'}],
+              viewProviders: [
+                {provide: 'Foo', useValue: 'Foo as ViewProvider'},
+                {provide: 'Bar', useValue: 'Bar as ViewProvider'},
+              ],
+              standalone: false,
+            })
+            class Child {
+              constructor(
+                @Inject('Blah') public blah: String,
+                @Inject('Foo') public foo: String,
+                @SkipSelf() @Optional() @Inject('Bar') public bar: String,
+              ) {}
+            }
 
-               @Component({
-                 selector: 'parent',
-                 template: '<ng-content></ng-content>',
-                 providers: [{provide: 'Blah', useValue: 'Blah as provider'}],
-                 viewProviders: [
-                   {provide: 'Foo', useValue: 'Foo as ViewProvider'},
-                   {provide: 'Bar', useValue: 'Bar as ViewProvider'},
-                 ]
-               })
-               class Parent {
-               }
+            @Component({
+              selector: 'parent',
+              template: '<ng-content></ng-content>',
+              providers: [{provide: 'Blah', useValue: 'Blah as provider'}],
+              viewProviders: [
+                {provide: 'Foo', useValue: 'Foo as ViewProvider'},
+                {provide: 'Bar', useValue: 'Bar as ViewProvider'},
+              ],
+              standalone: false,
+            })
+            class Parent {}
 
-               @Component({selector: 'my-app', template: '<parent><child></child></parent>'})
-               class MyApp {
-               }
+            @Component({
+              selector: 'my-app',
+              template: '<parent><child></child></parent>',
+              standalone: false,
+            })
+            class MyApp {}
 
-               TestBed.configureTestingModule({declarations: [Child, Parent, MyApp]});
+            TestBed.configureTestingModule({declarations: [Child, Parent, MyApp]});
 
-               expect(() => TestBed.createComponent(MyApp)).not.toThrowError(/No provider for Bar/);
-             });
+            expect(() => TestBed.createComponent(MyApp)).not.toThrowError(/No provider for Bar/);
+          });
         });
       });
 
       describe('@Host', () => {
-        @Directive({selector: '[dirA]'})
+        @Directive({
+          selector: '[dirA]',
+          standalone: false,
+        })
         class DirectiveA {
           constructor(@Host() public dirB: DirectiveB) {}
         }
 
-        @Directive({selector: '[dirString]'})
+        @Directive({
+          selector: '[dirString]',
+          standalone: false,
+        })
         class DirectiveString {
           constructor(@Host() public s: String) {}
         }
@@ -2124,13 +2500,17 @@ describe('di', () => {
           @Component({
             selector: 'my-comp',
             template: '<div dirString></div>',
-            viewProviders: [{provide: String, useValue: 'Foo'}]
+            viewProviders: [{provide: String, useValue: 'Foo'}],
+            standalone: false,
           })
           class MyComp {
             @ViewChild(DirectiveString) dirString!: DirectiveString;
           }
 
-          @Component({template: '<my-comp></my-comp>'})
+          @Component({
+            template: '<my-comp></my-comp>',
+            standalone: false,
+          })
           class MyApp {
             @ViewChild(MyComp) myComp!: MyComp;
           }
@@ -2147,45 +2527,57 @@ describe('di', () => {
           @Component({
             selector: 'my-comp',
             template: '<div dirString></div>',
-            providers: [{provide: String, useValue: 'Foo'}]
+            providers: [{provide: String, useValue: 'Foo'}],
+            standalone: false,
           })
-          class MyComp {
-          }
+          class MyComp {}
 
-          @Component({template: '<my-comp></my-comp>'})
-          class MyApp {
-          }
+          @Component({
+            template: '<my-comp></my-comp>',
+            standalone: false,
+          })
+          class MyApp {}
 
           TestBed.configureTestingModule({declarations: [DirectiveString, MyComp, MyApp]});
-          expect(() => TestBed.createComponent(MyApp))
-              .toThrowError(
-                  'NG0201: No provider for String found in NodeInjector. Find more at https://angular.io/errors/NG0201');
+          expect(() => TestBed.createComponent(MyApp)).toThrowError(
+            'NG0201: No provider for String found in NodeInjector. Find more at https://angular.dev/errors/NG0201',
+          );
         });
 
         it('should not find other directives on the host itself', () => {
-          @Component({selector: 'my-comp', template: '<div dirA></div>'})
-          class MyComp {
-          }
+          @Component({
+            selector: 'my-comp',
+            template: '<div dirA></div>',
+            standalone: false,
+          })
+          class MyComp {}
 
-          @Component({template: '<my-comp dirB></my-comp>'})
-          class MyApp {
-          }
+          @Component({
+            template: '<my-comp dirB></my-comp>',
+            standalone: false,
+          })
+          class MyApp {}
 
           TestBed.configureTestingModule({declarations: [DirectiveA, DirectiveB, MyComp, MyApp]});
-          expect(() => TestBed.createComponent(MyApp))
-              .toThrowError(/NG0201: No provider for DirectiveB found in NodeInjector/);
+          expect(() => TestBed.createComponent(MyApp)).toThrowError(
+            /NG0201: No provider for DirectiveB found in NodeInjector/,
+          );
         });
 
         it('should not find providers on the host itself if in inline view', () => {
           @Component({
             selector: 'my-comp',
-            template: '<ng-container *ngIf="showing"><div dirA></div></ng-container>'
+            template: '<ng-container *ngIf="showing"><div dirA></div></ng-container>',
+            standalone: false,
           })
           class MyComp {
             showing = false;
           }
 
-          @Component({template: '<my-comp dirB></my-comp>'})
+          @Component({
+            template: '<my-comp dirB></my-comp>',
+            standalone: false,
+          })
           class MyApp {
             @ViewChild(MyComp) myComp!: MyComp;
           }
@@ -2200,7 +2592,10 @@ describe('di', () => {
         });
 
         it('should find providers across embedded views if not passing component boundary', () => {
-          @Component({template: '<div dirB><div *ngIf="showing" dirA></div></div>'})
+          @Component({
+            template: '<div dirB><div *ngIf="showing" dirA></div></div>',
+            standalone: false,
+          })
           class MyApp {
             showing = false;
             @ViewChild(DirectiveA) dirA!: DirectiveA;
@@ -2219,122 +2614,153 @@ describe('di', () => {
         });
 
         it('should not find component above the host', () => {
-          @Component({template: '<my-comp></my-comp>'})
-          class MyApp {
-          }
+          @Component({
+            template: '<my-comp></my-comp>',
+            standalone: false,
+          })
+          class MyApp {}
 
-          @Directive({selector: '[dirComp]'})
+          @Directive({
+            selector: '[dirComp]',
+            standalone: false,
+          })
           class DirectiveComp {
             constructor(@Host() public comp: MyApp) {}
           }
 
-          @Component({selector: 'my-comp', template: '<div dirComp></div>'})
-          class MyComp {
-          }
+          @Component({
+            selector: 'my-comp',
+            template: '<div dirComp></div>',
+            standalone: false,
+          })
+          class MyComp {}
 
           TestBed.configureTestingModule({declarations: [DirectiveComp, MyComp, MyApp]});
-          expect(() => TestBed.createComponent(MyApp))
-              .toThrowError(
-                  'NG0201: No provider for MyApp found in NodeInjector. Find more at https://angular.io/errors/NG0201');
+          expect(() => TestBed.createComponent(MyApp)).toThrowError(
+            'NG0201: No provider for MyApp found in NodeInjector. Find more at https://angular.dev/errors/NG0201',
+          );
         });
 
         describe('regression', () => {
           // based on https://stackblitz.com/edit/angular-riss8k?file=src/app/app.component.ts
-          it('should allow directives with Host flag to inject view providers from containing component',
-             () => {
-               class ControlContainer {}
-               let controlContainers: ControlContainer[] = [];
-               let injectedControlContainer: ControlContainer|null = null;
+          it('should allow directives with Host flag to inject view providers from containing component', () => {
+            class ControlContainer {}
+            let controlContainers: ControlContainer[] = [];
+            let injectedControlContainer: ControlContainer | null = null;
 
-               @Directive({
-                 selector: '[group]',
-                 providers: [{provide: ControlContainer, useExisting: GroupDirective}]
-               })
-               class GroupDirective {
-                 constructor() {
-                   controlContainers.push(this);
-                 }
-               }
+            @Directive({
+              selector: '[group]',
+              providers: [{provide: ControlContainer, useExisting: GroupDirective}],
+              standalone: false,
+            })
+            class GroupDirective {
+              constructor() {
+                controlContainers.push(this);
+              }
+            }
 
-               @Directive({selector: '[control]'})
-               class ControlDirective {
-                 constructor(@Host() @SkipSelf() @Inject(ControlContainer) parent:
-                                 ControlContainer) {
-                   injectedControlContainer = parent;
-                 }
-               }
+            @Directive({
+              selector: '[control]',
+              standalone: false,
+            })
+            class ControlDirective {
+              constructor(@Host() @SkipSelf() @Inject(ControlContainer) parent: ControlContainer) {
+                injectedControlContainer = parent;
+              }
+            }
 
-               @Component({
-                 selector: 'my-comp',
-                 template: '<input control>',
-                 viewProviders: [{provide: ControlContainer, useExisting: GroupDirective}]
-               })
-               class MyComp {
-               }
+            @Component({
+              selector: 'my-comp',
+              template: '<input control>',
+              viewProviders: [{provide: ControlContainer, useExisting: GroupDirective}],
+              standalone: false,
+            })
+            class MyComp {}
 
-               @Component({
-                 template: `
+            @Component({
+              template: `
                    <div group>
                      <my-comp></my-comp>
                    </div>
-                 `
-               })
-               class MyApp {
-               }
+                 `,
+              standalone: false,
+            })
+            class MyApp {}
 
-               TestBed.configureTestingModule(
-                   {declarations: [GroupDirective, ControlDirective, MyComp, MyApp]});
-               const fixture = TestBed.createComponent(MyApp);
-               expect(fixture.nativeElement.innerHTML)
-                   .toBe('<div group=""><my-comp><input control=""></my-comp></div>');
-               expect(controlContainers).toEqual([injectedControlContainer!]);
-             });
+            TestBed.configureTestingModule({
+              declarations: [GroupDirective, ControlDirective, MyComp, MyApp],
+            });
+            const fixture = TestBed.createComponent(MyApp);
+            expect(fixture.nativeElement.innerHTML).toBe(
+              '<div group=""><my-comp><input control=""></my-comp></div>',
+            );
+            expect(controlContainers).toEqual([injectedControlContainer!]);
+          });
         });
       });
 
       describe('`InjectFlags` support in NodeInjector', () => {
         it('should support Optional flag in NodeInjector', () => {
           const NON_EXISTING_PROVIDER = new InjectionToken<string>('non-existing');
-          @Component({template: '...'})
+          @Component({
+            template: '...',
+            standalone: false,
+          })
           class MyComp {
-            tokenViaInjector = this.injector.get(NON_EXISTING_PROVIDER, null, InjectFlags.Optional);
+            tokenViaInjector;
             constructor(
-                public injector: Injector,
-                @Inject(NON_EXISTING_PROVIDER) @Optional() public tokenViaConstructor: string) {}
+              public injector: Injector,
+              @Inject(NON_EXISTING_PROVIDER) @Optional() public tokenViaConstructor: string,
+            ) {
+              this.tokenViaInjector = this.injector.get(
+                NON_EXISTING_PROVIDER,
+                null,
+                InjectFlags.Optional,
+              );
+            }
           }
           TestBed.configureTestingModule({declarations: [MyComp]});
           const fixture = TestBed.createComponent(MyComp);
           fixture.detectChanges();
           expect(fixture.componentInstance.tokenViaInjector).toBe(null);
-          expect(fixture.componentInstance.tokenViaInjector)
-              .toBe(fixture.componentInstance.tokenViaConstructor);
+          expect(fixture.componentInstance.tokenViaInjector).toBe(
+            fixture.componentInstance.tokenViaConstructor,
+          );
         });
         it('should support SkipSelf flag in NodeInjector', () => {
           const TOKEN = new InjectionToken<string>('token');
           @Component({
             selector: 'parent',
             template: '<child></child>',
-            providers: [{
-              provide: TOKEN,
-              useValue: 'PARENT',
-            }]
+            providers: [
+              {
+                provide: TOKEN,
+                useValue: 'PARENT',
+              },
+            ],
+            standalone: false,
           })
-          class ParentComponent {
-          }
+          class ParentComponent {}
 
           @Component({
             selector: 'child',
             template: '...',
-            providers: [{
-              provide: TOKEN,
-              useValue: 'CHILD',
-            }]
+            providers: [
+              {
+                provide: TOKEN,
+                useValue: 'CHILD',
+              },
+            ],
+            standalone: false,
           })
           class ChildComponent {
-            tokenViaInjector = this.injector.get(TOKEN, null, InjectFlags.SkipSelf);
+            tokenViaInjector;
             constructor(
-                public injector: Injector,
-                @Inject(TOKEN) @SkipSelf() public tokenViaConstructor: string) {}
+              public injector: Injector,
+              @Inject(TOKEN) @SkipSelf() public tokenViaConstructor: string,
+            ) {
+              this.tokenViaInjector = this.injector.get(TOKEN, null, InjectFlags.SkipSelf);
+            }
           }
 
           TestBed.configureTestingModule({
@@ -2343,24 +2769,32 @@ describe('di', () => {
           const fixture = TestBed.createComponent(ParentComponent);
           fixture.detectChanges();
 
-          const childComponent =
-              fixture.debugElement.query(By.directive(ChildComponent)).componentInstance;
+          const childComponent = fixture.debugElement.query(
+            By.directive(ChildComponent),
+          ).componentInstance;
           expect(childComponent.tokenViaInjector).toBe('PARENT');
           expect(childComponent.tokenViaConstructor).toBe(childComponent.tokenViaInjector);
         });
         it('should support Host flag in NodeInjector', () => {
           const TOKEN = new InjectionToken<string>('token');
-          @Directive({selector: '[dirString]'})
+          @Directive({
+            selector: '[dirString]',
+            standalone: false,
+          })
           class DirectiveString {
-            tokenViaInjector = this.injector.get(TOKEN, null, InjectFlags.Host);
+            tokenViaInjector;
             constructor(
-                public injector: Injector,
-                @Inject(TOKEN) @Host() public tokenViaConstructor: string) {}
+              public injector: Injector,
+              @Inject(TOKEN) @Host() public tokenViaConstructor: string,
+            ) {
+              this.tokenViaInjector = this.injector.get(TOKEN, null, InjectFlags.Host);
+            }
           }
 
           @Component({
             template: '<div dirString></div>',
-            viewProviders: [{provide: TOKEN, useValue: 'Foo'}]
+            viewProviders: [{provide: TOKEN, useValue: 'Foo'}],
+            standalone: false,
           })
           class MyComp {
             @ViewChild(DirectiveString) dirString!: DirectiveString;
@@ -2375,23 +2809,40 @@ describe('di', () => {
           expect(dirString.tokenViaConstructor).toBe(dirString.tokenViaInjector!);
         });
         it('should support multiple flags in NodeInjector', () => {
-          @Directive({selector: '[dirA]'})
-          class DirectiveA {
-          }
-          @Directive({selector: '[dirB]'})
+          @Directive({
+            selector: '[dirA]',
+            standalone: false,
+          })
+          class DirectiveA {}
+          @Directive({
+            selector: '[dirB]',
+            standalone: false,
+          })
           class DirectiveB {
-            public tokenSelfViaInjector =
-                this.injector.get(DirectiveA, null, InjectFlags.Self|InjectFlags.Optional);
-            public tokenHostViaInjector =
-                this.injector.get(DirectiveA, null, InjectFlags.Host|InjectFlags.Optional);
+            tokenSelfViaInjector;
+            tokenHostViaInjector;
             constructor(
-                public injector: Injector,
-                @Inject(DirectiveA) @Self() @Optional() public tokenSelfViaConstructor: DirectiveA,
-                @Inject(DirectiveA) @Host() @Optional() public tokenHostViaConstructor:
-                    DirectiveA) {}
+              public injector: Injector,
+              @Inject(DirectiveA) @Self() @Optional() public tokenSelfViaConstructor: DirectiveA,
+              @Inject(DirectiveA) @Host() @Optional() public tokenHostViaConstructor: DirectiveA,
+            ) {
+              this.tokenSelfViaInjector = this.injector.get(
+                DirectiveA,
+                null,
+                InjectFlags.Self | InjectFlags.Optional,
+              );
+              this.tokenHostViaInjector = this.injector.get(
+                DirectiveA,
+                null,
+                InjectFlags.Host | InjectFlags.Optional,
+              );
+            }
           }
 
-          @Component({template: '<div dirB></div>'})
+          @Component({
+            template: '<div dirB></div>',
+            standalone: false,
+          })
           class MyComp {
             @ViewChild(DirectiveB) dirB!: DirectiveB;
           }
@@ -2428,7 +2879,7 @@ describe('di', () => {
       }
 
       const testBedInjector: Injector = TestBed.get(Injector);
-      const childInjector = Injector.create([], testBedInjector);
+      const childInjector = Injector.create({providers: [], parent: testBedInjector});
 
       const anyService = childInjector.get(AnyService);
       expect(anyService.injector).toBe(childInjector);
@@ -2450,18 +2901,22 @@ describe('di', () => {
 
       @Injectable({providedIn: forwardRef(() => Module)})
       class Provider {
-        constructor(private _dep: ProviderDep) {}
-        value = this._dep.getNumber() + 2;
+        constructor(private _dep: ProviderDep) {
+          this.value = this._dep.getNumber() + 2;
+        }
+        value;
       }
 
-      @Component({template: ''})
+      @Component({
+        template: '',
+        standalone: false,
+      })
       class Comp {
         constructor(public provider: Provider) {}
       }
 
       @NgModule({declarations: [Comp], exports: [Comp], providers: [ProviderDep]})
-      class Module {
-      }
+      class Module {}
 
       TestBed.configureTestingModule({imports: [Module]});
       const fixture = TestBed.createComponent(Comp);
@@ -2475,7 +2930,10 @@ describe('di', () => {
       class MyService {
         value = 'MyService';
       }
-      @Component({template: '<div>{{myService.value}}</div>'})
+      @Component({
+        template: '<div>{{myService.value}}</div>',
+        standalone: false,
+      })
       class MyComp {
         constructor(public myService: MyService) {}
       }
@@ -2489,8 +2947,7 @@ describe('di', () => {
 
     it('should support sub-classes with no @Injectable decorator', () => {
       @Injectable()
-      class Dependency {
-      }
+      class Dependency {}
 
       @Injectable()
       class SuperClass {
@@ -2501,13 +2958,16 @@ describe('di', () => {
       class SubClass extends SuperClass {}
       class SubSubClass extends SubClass {}
 
-      @Component({template: ''})
+      @Component({
+        template: '',
+        standalone: false,
+      })
       class MyComp {
         constructor(public myService: SuperClass) {}
       }
       TestBed.configureTestingModule({
         declarations: [MyComp],
-        providers: [{provide: SuperClass, useClass: SubSubClass}, Dependency]
+        providers: [{provide: SuperClass, useClass: SubSubClass}, Dependency],
       });
 
       const warnSpy = spyOn(console, 'warn');
@@ -2515,8 +2975,9 @@ describe('di', () => {
       expect(fixture.componentInstance.myService.dep instanceof Dependency).toBe(true);
 
       expect(warnSpy).toHaveBeenCalledWith(
-          `DEPRECATED: DI is instantiating a token "SubSubClass" that inherits its @Injectable decorator but does not provide one itself.\n` +
-          `This will become an error in a future version of Angular. Please add @Injectable() to the "SubSubClass" class.`);
+        `DEPRECATED: DI is instantiating a token "SubSubClass" that inherits its @Injectable decorator but does not provide one itself.\n` +
+          `This will become an error in a future version of Angular. Please add @Injectable() to the "SubSubClass" class.`,
+      );
     });
 
     it('should instantiate correct class when undecorated class extends an injectable', () => {
@@ -2529,9 +2990,11 @@ describe('di', () => {
         override id = 2;
       }
 
-      @Component({template: ''})
-      class App {
-      }
+      @Component({
+        template: '',
+        standalone: false,
+      })
+      class App {}
 
       TestBed.configureTestingModule({declarations: [App], providers: [MyRootService]});
       const warnSpy = spyOn(console, 'warn');
@@ -2544,24 +3007,28 @@ describe('di', () => {
       expect(provider.id).toBe(2);
 
       expect(warnSpy).toHaveBeenCalledWith(
-          `DEPRECATED: DI is instantiating a token "MyRootService" that inherits its @Injectable decorator but does not provide one itself.\n` +
-          `This will become an error in a future version of Angular. Please add @Injectable() to the "MyRootService" class.`);
+        `DEPRECATED: DI is instantiating a token "MyRootService" that inherits its @Injectable decorator but does not provide one itself.\n` +
+          `This will become an error in a future version of Angular. Please add @Injectable() to the "MyRootService" class.`,
+      );
     });
 
     it('should inject services in constructor with overloads', () => {
       @Injectable({providedIn: 'root'})
-      class MyService {
-      }
+      class MyService {}
 
       @Injectable({providedIn: 'root'})
-      class MyOtherService {
-      }
+      class MyOtherService {}
 
-      @Component({template: ''})
+      @Component({
+        template: '',
+        standalone: false,
+      })
       class MyComp {
         constructor(myService: MyService);
         constructor(
-            public myService: MyService, @Optional() public myOtherService?: MyOtherService) {}
+          public myService: MyService,
+          @Optional() public myOtherService?: MyOtherService,
+        ) {}
       }
       TestBed.configureTestingModule({declarations: [MyComp]});
       const fixture = TestBed.createComponent(MyComp);
@@ -2600,9 +3067,12 @@ describe('di', () => {
     }
 
     it('should use @Injectable useClass config when token is not provided', () => {
-      let provider: FooService|BarService;
+      let provider: FooService | BarService;
 
-      @Component({template: ''})
+      @Component({
+        template: '',
+        standalone: false,
+      })
       class App {
         constructor(service: FooService) {
           provider = service;
@@ -2617,31 +3087,37 @@ describe('di', () => {
       expect(provider!.dep.name).toBe('BarServiceDep');
     });
 
-    it('should use constructor config directly when token is explicitly provided via useClass',
-       () => {
-         let provider: FooService|BarService;
+    it('should use constructor config directly when token is explicitly provided via useClass', () => {
+      let provider: FooService | BarService;
 
-         @Component({template: ''})
-         class App {
-           constructor(service: FooService) {
-             provider = service;
-           }
-         }
+      @Component({
+        template: '',
+        standalone: false,
+      })
+      class App {
+        constructor(service: FooService) {
+          provider = service;
+        }
+      }
 
-         TestBed.configureTestingModule(
-             {declarations: [App], providers: [{provide: FooService, useClass: FooService}]});
-         const fixture = TestBed.createComponent(App);
-         fixture.detectChanges();
+      TestBed.configureTestingModule({
+        declarations: [App],
+        providers: [{provide: FooService, useClass: FooService}],
+      });
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
 
-         expect(provider!.getMessage()).toBe('foo');
-       });
-
+      expect(provider!.getMessage()).toBe('foo');
+    });
 
     it('should inject correct provider when re-providing an injectable that has useClass', () => {
-      let directProvider: FooService|BarService;
-      let overriddenProvider: FooService|BarService;
+      let directProvider: FooService | BarService;
+      let overriddenProvider: FooService | BarService;
 
-      @Component({template: ''})
+      @Component({
+        template: '',
+        standalone: false,
+      })
       class App {
         constructor(@Inject('stringToken') overriddenService: FooService, service: FooService) {
           overriddenProvider = overriddenService;
@@ -2649,8 +3125,10 @@ describe('di', () => {
         }
       }
 
-      TestBed.configureTestingModule(
-          {declarations: [App], providers: [{provide: 'stringToken', useClass: FooService}]});
+      TestBed.configureTestingModule({
+        declarations: [App],
+        providers: [{provide: 'stringToken', useClass: FooService}],
+      });
       const fixture = TestBed.createComponent(App);
       fixture.detectChanges();
 
@@ -2660,33 +3138,41 @@ describe('di', () => {
       expect(overriddenProvider!.dep.name).toBe('FooServiceDep');
     });
 
-    it('should use constructor config directly when token is explicitly provided as a type provider',
-       () => {
-         let provider: FooService|BarService;
+    it('should use constructor config directly when token is explicitly provided as a type provider', () => {
+      let provider: FooService | BarService;
 
-         @Component({template: ''})
-         class App {
-           constructor(service: FooService) {
-             provider = service;
-           }
-         }
+      @Component({
+        template: '',
+        standalone: false,
+      })
+      class App {
+        constructor(service: FooService) {
+          provider = service;
+        }
+      }
 
-         TestBed.configureTestingModule({declarations: [App], providers: [FooService]});
-         const fixture = TestBed.createComponent(App);
-         fixture.detectChanges();
+      TestBed.configureTestingModule({declarations: [App], providers: [FooService]});
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
 
-         expect(provider!.getMessage()).toBe('foo');
-         expect(provider!.dep.name).toBe('FooServiceDep');
-       });
+      expect(provider!.getMessage()).toBe('foo');
+      expect(provider!.dep.name).toBe('FooServiceDep');
+    });
   });
 
   describe('inject', () => {
     it('should inject from parent view', () => {
-      @Directive({selector: '[parentDir]'})
-      class ParentDirective {
-      }
+      @Directive({
+        selector: '[parentDir]',
+        standalone: false,
+      })
+      class ParentDirective {}
 
-      @Directive({selector: '[childDir]', exportAs: 'childDir'})
+      @Directive({
+        selector: '[childDir]',
+        exportAs: 'childDir',
+        standalone: false,
+      })
       class ChildDirective {
         value: string;
         constructor(public parent: ParentDirective) {
@@ -2694,7 +3180,11 @@ describe('di', () => {
         }
       }
 
-      @Directive({selector: '[child2Dir]', exportAs: 'child2Dir'})
+      @Directive({
+        selector: '[child2Dir]',
+        exportAs: 'child2Dir',
+        standalone: false,
+      })
       class Child2Directive {
         value: boolean;
         constructor(parent: ParentDirective, child: ChildDirective) {
@@ -2707,13 +3197,15 @@ describe('di', () => {
           <ng-container *ngIf="showing">
             <span childDir child2Dir #child1="childDir" #child2="child2Dir">{{ child1.value }}-{{ child2.value }}</span>
           </ng-container>
-        </div>`
+        </div>`,
+        standalone: false,
       })
       class MyComp {
         showing = true;
       }
-      TestBed.configureTestingModule(
-          {declarations: [ParentDirective, ChildDirective, Child2Directive, MyComp]});
+      TestBed.configureTestingModule({
+        declarations: [ParentDirective, ChildDirective, Child2Directive, MyComp],
+      });
       const fixture = TestBed.createComponent(MyComp);
       fixture.detectChanges();
 
@@ -2725,17 +3217,29 @@ describe('di', () => {
   describe('Special tokens', () => {
     describe('Injector', () => {
       it('should inject the injector', () => {
-        @Directive({selector: '[injectorDir]'})
+        @Directive({
+          selector: '[injectorDir]',
+          standalone: false,
+        })
         class InjectorDir {
           constructor(public injector: Injector) {}
         }
 
-        @Directive({selector: '[otherInjectorDir]'})
+        @Directive({
+          selector: '[otherInjectorDir]',
+          standalone: false,
+        })
         class OtherInjectorDir {
-          constructor(public otherDir: InjectorDir, public injector: Injector) {}
+          constructor(
+            public otherDir: InjectorDir,
+            public injector: Injector,
+          ) {}
         }
 
-        @Component({template: '<div injectorDir otherInjectorDir></div>'})
+        @Component({
+          template: '<div injectorDir otherInjectorDir></div>',
+          standalone: false,
+        })
         class MyComp {
           @ViewChild(InjectorDir) injectorDir!: InjectorDir;
           @ViewChild(OtherInjectorDir) otherInjectorDir!: OtherInjectorDir;
@@ -2756,12 +3260,18 @@ describe('di', () => {
       });
 
       it('should inject INJECTOR', () => {
-        @Directive({selector: '[injectorDir]'})
+        @Directive({
+          selector: '[injectorDir]',
+          standalone: false,
+        })
         class InjectorDir {
           constructor(@Inject(INJECTOR) public injector: Injector) {}
         }
 
-        @Component({template: '<div injectorDir></div>'})
+        @Component({
+          template: '<div injectorDir></div>',
+          standalone: false,
+        })
         class MyComp {
           @ViewChild(InjectorDir) injectorDir!: InjectorDir;
         }
@@ -2781,7 +3291,10 @@ describe('di', () => {
 
     describe('ElementRef', () => {
       it('should create directive with ElementRef dependencies', () => {
-        @Directive({selector: '[dir]'})
+        @Directive({
+          selector: '[dir]',
+          standalone: false,
+        })
         class MyDir {
           value: string;
           constructor(public elementRef: ElementRef) {
@@ -2789,15 +3302,24 @@ describe('di', () => {
           }
         }
 
-        @Directive({selector: '[otherDir]'})
+        @Directive({
+          selector: '[otherDir]',
+          standalone: false,
+        })
         class MyOtherDir {
           isSameInstance: boolean;
-          constructor(public elementRef: ElementRef, public directive: MyDir) {
+          constructor(
+            public elementRef: ElementRef,
+            public directive: MyDir,
+          ) {
             this.isSameInstance = elementRef === directive.elementRef;
           }
         }
 
-        @Component({template: '<div dir otherDir></div>'})
+        @Component({
+          template: '<div dir otherDir></div>',
+          standalone: false,
+        })
         class MyComp {
           @ViewChild(MyDir) directive!: MyDir;
           @ViewChild(MyOtherDir) otherDirective!: MyOtherDir;
@@ -2819,31 +3341,36 @@ describe('di', () => {
         expect(otherDirective.isSameInstance).toBe(false);
       });
 
-      it('should create ElementRef with comment if requesting directive is on <ng-template> node',
-         () => {
-           @Directive({selector: '[dir]'})
-           class MyDir {
-             value: string;
-             constructor(public elementRef: ElementRef<Node>) {
-               this.value = (elementRef.constructor as any).name;
-             }
-           }
+      it('should create ElementRef with comment if requesting directive is on <ng-template> node', () => {
+        @Directive({
+          selector: '[dir]',
+          standalone: false,
+        })
+        class MyDir {
+          value: string;
+          constructor(public elementRef: ElementRef<Node>) {
+            this.value = (elementRef.constructor as any).name;
+          }
+        }
 
-           @Component({template: '<ng-template dir></ng-template>'})
-           class MyComp {
-             @ViewChild(MyDir) directive!: MyDir;
-           }
+        @Component({
+          template: '<ng-template dir></ng-template>',
+          standalone: false,
+        })
+        class MyComp {
+          @ViewChild(MyDir) directive!: MyDir;
+        }
 
-           TestBed.configureTestingModule({declarations: [MyDir, MyComp]});
-           const fixture = TestBed.createComponent(MyComp);
-           fixture.detectChanges();
+        TestBed.configureTestingModule({declarations: [MyDir, MyComp]});
+        const fixture = TestBed.createComponent(MyComp);
+        fixture.detectChanges();
 
-           const directive = fixture.componentInstance.directive;
+        const directive = fixture.componentInstance.directive;
 
-           expect(directive.value).toContain('ElementRef');
-           // the nativeElement should be a comment
-           expect(directive.elementRef.nativeElement.nodeType).toEqual(Node.COMMENT_NODE);
-         });
+        expect(directive.value).toContain('ElementRef');
+        // the nativeElement should be a comment
+        expect(directive.elementRef.nativeElement.nodeType).toEqual(Node.COMMENT_NODE);
+      });
 
       it('should be available if used in conjunction with other tokens', () => {
         @Injectable()
@@ -2858,14 +3385,21 @@ describe('di', () => {
           }
         }
 
-        @Directive({selector: '[dir]'})
+        @Directive({
+          selector: '[dir]',
+          standalone: false,
+        })
         class DirectiveA {
-          constructor(public service: ServiceA, public elementRef: ElementRef) {}
+          constructor(
+            public service: ServiceA,
+            public elementRef: ElementRef,
+          ) {}
         }
 
         @Component({
           selector: 'child',
           template: `<div id="test-id" dir></div>`,
+          standalone: false,
         })
         class ChildComp {
           @ViewChild(DirectiveA) directive!: DirectiveA;
@@ -2874,16 +3408,15 @@ describe('di', () => {
         @Component({
           selector: 'root',
           template: '...',
+          standalone: false,
         })
         class RootComp {
           public childCompRef!: ComponentRef<ChildComp>;
 
-          constructor(
-              public factoryResolver: ComponentFactoryResolver, public vcr: ViewContainerRef) {}
+          constructor(public vcr: ViewContainerRef) {}
 
           create() {
-            const factory = this.factoryResolver.resolveComponentFactory(ChildComp);
-            this.childCompRef = this.vcr.createComponent(factory);
+            this.childCompRef = this.vcr.createComponent(ChildComp);
             this.childCompRef.changeDetectorRef.detectChanges();
           }
         }
@@ -2904,7 +3437,11 @@ describe('di', () => {
     });
 
     describe('TemplateRef', () => {
-      @Directive({selector: '[dir]', exportAs: 'dir'})
+      @Directive({
+        selector: '[dir]',
+        exportAs: 'dir',
+        standalone: false,
+      })
       class MyDir {
         value: string;
         constructor(public templateRef: TemplateRef<any>) {
@@ -2913,16 +3450,25 @@ describe('di', () => {
       }
 
       it('should create directive with TemplateRef dependencies', () => {
-        @Directive({selector: '[otherDir]', exportAs: 'otherDir'})
+        @Directive({
+          selector: '[otherDir]',
+          exportAs: 'otherDir',
+          standalone: false,
+        })
         class MyOtherDir {
           isSameInstance: boolean;
-          constructor(public templateRef: TemplateRef<any>, public directive: MyDir) {
+          constructor(
+            public templateRef: TemplateRef<any>,
+            public directive: MyDir,
+          ) {
             this.isSameInstance = templateRef === directive.templateRef;
           }
         }
 
-        @Component(
-            {template: '<ng-template dir otherDir #dir="dir" #otherDir="otherDir"></ng-template>'})
+        @Component({
+          template: '<ng-template dir otherDir #dir="dir" #otherDir="otherDir"></ng-template>',
+          standalone: false,
+        })
         class MyComp {
           @ViewChild(MyDir) directive!: MyDir;
           @ViewChild(MyOtherDir) otherDirective!: MyOtherDir;
@@ -2944,29 +3490,40 @@ describe('di', () => {
       });
 
       it('should throw if injected on an element', () => {
-        @Component({template: '<div dir></div>'})
-        class MyComp {
-        }
+        @Component({
+          template: '<div dir></div>',
+          standalone: false,
+        })
+        class MyComp {}
 
         TestBed.configureTestingModule({declarations: [MyDir, MyComp]});
         expect(() => TestBed.createComponent(MyComp)).toThrowError(/No provider for TemplateRef/);
       });
 
       it('should throw if injected on an ng-container', () => {
-        @Component({template: '<ng-container dir></ng-container>'})
-        class MyComp {
-        }
+        @Component({
+          template: '<ng-container dir></ng-container>',
+          standalone: false,
+        })
+        class MyComp {}
 
         TestBed.configureTestingModule({declarations: [MyDir, MyComp]});
         expect(() => TestBed.createComponent(MyComp)).toThrowError(/No provider for TemplateRef/);
       });
 
       it('should NOT throw if optional and injected on an element', () => {
-        @Directive({selector: '[optionalDir]', exportAs: 'optionalDir'})
+        @Directive({
+          selector: '[optionalDir]',
+          exportAs: 'optionalDir',
+          standalone: false,
+        })
         class OptionalDir {
           constructor(@Optional() public templateRef: TemplateRef<any>) {}
         }
-        @Component({template: '<div optionalDir></div>'})
+        @Component({
+          template: '<div optionalDir></div>',
+          standalone: false,
+        })
         class MyComp {
           @ViewChild(OptionalDir) directive!: OptionalDir;
         }
@@ -2980,21 +3537,35 @@ describe('di', () => {
 
     describe('ViewContainerRef', () => {
       it('should create directive with ViewContainerRef dependencies', () => {
-        @Directive({selector: '[dir]', exportAs: 'dir'})
+        @Directive({
+          selector: '[dir]',
+          exportAs: 'dir',
+          standalone: false,
+        })
         class MyDir {
           value: string;
           constructor(public viewContainerRef: ViewContainerRef) {
             this.value = (viewContainerRef.constructor as any).name;
           }
         }
-        @Directive({selector: '[otherDir]', exportAs: 'otherDir'})
+        @Directive({
+          selector: '[otherDir]',
+          exportAs: 'otherDir',
+          standalone: false,
+        })
         class MyOtherDir {
           isSameInstance: boolean;
-          constructor(public viewContainerRef: ViewContainerRef, public directive: MyDir) {
+          constructor(
+            public viewContainerRef: ViewContainerRef,
+            public directive: MyDir,
+          ) {
             this.isSameInstance = viewContainerRef === directive.viewContainerRef;
           }
         }
-        @Component({template: '<div dir otherDir #dir="dir" #otherDir="otherDir"></div>'})
+        @Component({
+          template: '<div dir otherDir #dir="dir" #otherDir="otherDir"></div>',
+          standalone: false,
+        })
         class MyComp {
           @ViewChild(MyDir) directive!: MyDir;
           @ViewChild(MyOtherDir) otherDirective!: MyOtherDir;
@@ -3019,11 +3590,15 @@ describe('di', () => {
         @Component({
           selector: 'root',
           template: `<ng-template #tmpl>Test</ng-template>`,
+          standalone: false,
         })
         class Root {
           @ViewChild(TemplateRef, {static: true}) tmpl!: TemplateRef<any>;
 
-          constructor(public vcr: ViewContainerRef, public vcr2: ViewContainerRef) {}
+          constructor(
+            public vcr: ViewContainerRef,
+            public vcr2: ViewContainerRef,
+          ) {}
 
           ngOnInit(): void {
             this.vcr.createEmbeddedView(this.tmpl);
@@ -3049,18 +3624,30 @@ describe('di', () => {
     });
 
     describe('ChangeDetectorRef', () => {
-      @Directive({selector: '[dir]', exportAs: 'dir'})
+      @Directive({
+        selector: '[dir]',
+        exportAs: 'dir',
+        standalone: false,
+      })
       class MyDir {
         value: string;
         constructor(public cdr: ChangeDetectorRef) {
           this.value = (cdr.constructor as any).name;
         }
       }
-      @Directive({selector: '[otherDir]', exportAs: 'otherDir'})
+      @Directive({
+        selector: '[otherDir]',
+        exportAs: 'otherDir',
+        standalone: false,
+      })
       class MyOtherDir {
         constructor(public cdr: ChangeDetectorRef) {}
       }
-      @Component({selector: 'my-comp', template: '<ng-content></ng-content>'})
+      @Component({
+        selector: 'my-comp',
+        template: '<ng-content></ng-content>',
+        standalone: false,
+      })
       class MyComp {
         constructor(public cdr: ChangeDetectorRef) {}
       }
@@ -3068,7 +3655,10 @@ describe('di', () => {
       it('should inject host component ChangeDetectorRef into directives on templates', () => {
         let pipeInstance: MyPipe;
 
-        @Pipe({name: 'pipe'})
+        @Pipe({
+          name: 'pipe',
+          standalone: false,
+        })
         class MyPipe implements PipeTransform {
           constructor(public cdr: ChangeDetectorRef) {
             pipeInstance = this;
@@ -3082,6 +3672,7 @@ describe('di', () => {
         @Component({
           selector: 'my-app',
           template: `<div *ngIf="showing | pipe">Visible</div>`,
+          standalone: false,
         })
         class MyApp {
           showing = true;
@@ -3092,88 +3683,96 @@ describe('di', () => {
         TestBed.configureTestingModule({declarations: [MyApp, MyPipe], imports: [CommonModule]});
         const fixture = TestBed.createComponent(MyApp);
         fixture.detectChanges();
-        expect((pipeInstance!.cdr as ViewRefInternal<MyApp>).context)
-            .toBe(fixture.componentInstance);
+        expect((pipeInstance!.cdr as ViewRefInternal<MyApp>).context).toBe(
+          fixture.componentInstance,
+        );
       });
 
-      it('should inject current component ChangeDetectorRef into directives on the same node as components',
-         () => {
-           @Component({selector: 'my-app', template: '<my-comp dir otherDir #dir="dir"></my-comp>'})
-           class MyApp {
-             @ViewChild(MyComp) component!: MyComp;
-             @ViewChild(MyDir) directive!: MyDir;
-             @ViewChild(MyOtherDir) otherDirective!: MyOtherDir;
-           }
-           TestBed.configureTestingModule({declarations: [MyApp, MyComp, MyDir, MyOtherDir]});
-           const fixture = TestBed.createComponent(MyApp);
-           fixture.detectChanges();
-           const app = fixture.componentInstance;
-           const comp = fixture.componentInstance.component;
-           expect((comp!.cdr as ViewRefInternal<MyComp>).context).toBe(comp);
-           // ChangeDetectorRef is the token, ViewRef has historically been the constructor
-           expect(app.directive.value).toContain('ViewRef');
+      it('should inject current component ChangeDetectorRef into directives on the same node as components', () => {
+        @Component({
+          selector: 'my-app',
+          template: '<my-comp dir otherDir #dir="dir"></my-comp>',
+          standalone: false,
+        })
+        class MyApp {
+          @ViewChild(MyComp) component!: MyComp;
+          @ViewChild(MyDir) directive!: MyDir;
+          @ViewChild(MyOtherDir) otherDirective!: MyOtherDir;
+        }
+        TestBed.configureTestingModule({declarations: [MyApp, MyComp, MyDir, MyOtherDir]});
+        const fixture = TestBed.createComponent(MyApp);
+        fixture.detectChanges();
+        const app = fixture.componentInstance;
+        const comp = fixture.componentInstance.component;
+        expect((comp!.cdr as ViewRefInternal<MyComp>).context).toBe(comp);
+        // ChangeDetectorRef is the token, ViewRef has historically been the constructor
+        expect(app.directive.value).toContain('ViewRef');
 
-           // Each ChangeDetectorRef instance should be unique
-           expect(app.directive!.cdr).not.toBe(comp!.cdr);
-           expect(app.directive!.cdr).not.toBe(app.otherDirective!.cdr);
-         });
+        // Each ChangeDetectorRef instance should be unique
+        expect(app.directive!.cdr).not.toBe(comp!.cdr);
+        expect(app.directive!.cdr).not.toBe(app.otherDirective!.cdr);
+      });
 
-      it('should inject host component ChangeDetectorRef into directives on normal elements',
-         () => {
-           @Component({selector: 'my-comp', template: '<div dir otherDir #dir="dir"></div>'})
-           class MyComp {
-             constructor(public cdr: ChangeDetectorRef) {}
-             @ViewChild(MyDir) directive!: MyDir;
-             @ViewChild(MyOtherDir) otherDirective!: MyOtherDir;
-           }
-           TestBed.configureTestingModule({declarations: [MyComp, MyDir, MyOtherDir]});
-           const fixture = TestBed.createComponent(MyComp);
-           fixture.detectChanges();
-           const comp = fixture.componentInstance;
-           expect((comp!.cdr as ViewRefInternal<MyComp>).context).toBe(comp);
-           // ChangeDetectorRef is the token, ViewRef has historically been the constructor
-           expect(comp.directive.value).toContain('ViewRef');
+      it('should inject host component ChangeDetectorRef into directives on normal elements', () => {
+        @Component({
+          selector: 'my-comp',
+          template: '<div dir otherDir #dir="dir"></div>',
+          standalone: false,
+        })
+        class MyComp {
+          constructor(public cdr: ChangeDetectorRef) {}
+          @ViewChild(MyDir) directive!: MyDir;
+          @ViewChild(MyOtherDir) otherDirective!: MyOtherDir;
+        }
+        TestBed.configureTestingModule({declarations: [MyComp, MyDir, MyOtherDir]});
+        const fixture = TestBed.createComponent(MyComp);
+        fixture.detectChanges();
+        const comp = fixture.componentInstance;
+        expect((comp!.cdr as ViewRefInternal<MyComp>).context).toBe(comp);
+        // ChangeDetectorRef is the token, ViewRef has historically been the constructor
+        expect(comp.directive.value).toContain('ViewRef');
 
-           // Each ChangeDetectorRef instance should be unique
-           expect(comp.directive!.cdr).not.toBe(comp.cdr);
-           expect(comp.directive!.cdr).not.toBe(comp.otherDirective!.cdr);
-         });
+        // Each ChangeDetectorRef instance should be unique
+        expect(comp.directive!.cdr).not.toBe(comp.cdr);
+        expect(comp.directive!.cdr).not.toBe(comp.otherDirective!.cdr);
+      });
 
-      it('should inject host component ChangeDetectorRef into directives in a component\'s ContentChildren',
-         () => {
-           @Component({
-             selector: 'my-app',
-             template: `<my-comp>
+      it("should inject host component ChangeDetectorRef into directives in a component's ContentChildren", () => {
+        @Component({
+          selector: 'my-app',
+          template: `<my-comp>
                <div dir otherDir #dir="dir"></div>
              </my-comp>
-              `
-           })
-           class MyApp {
-             constructor(public cdr: ChangeDetectorRef) {}
-             @ViewChild(MyComp) component!: MyComp;
-             @ViewChild(MyDir) directive!: MyDir;
-             @ViewChild(MyOtherDir) otherDirective!: MyOtherDir;
-           }
-           TestBed.configureTestingModule({declarations: [MyApp, MyComp, MyDir, MyOtherDir]});
-           const fixture = TestBed.createComponent(MyApp);
-           fixture.detectChanges();
-           const app = fixture.componentInstance;
-           expect((app!.cdr as ViewRefInternal<MyApp>).context).toBe(app);
-           const comp = fixture.componentInstance.component;
-           // ChangeDetectorRef is the token, ViewRef has historically been the constructor
-           expect(app.directive.value).toContain('ViewRef');
+              `,
+          standalone: false,
+        })
+        class MyApp {
+          constructor(public cdr: ChangeDetectorRef) {}
+          @ViewChild(MyComp) component!: MyComp;
+          @ViewChild(MyDir) directive!: MyDir;
+          @ViewChild(MyOtherDir) otherDirective!: MyOtherDir;
+        }
+        TestBed.configureTestingModule({declarations: [MyApp, MyComp, MyDir, MyOtherDir]});
+        const fixture = TestBed.createComponent(MyApp);
+        fixture.detectChanges();
+        const app = fixture.componentInstance;
+        expect((app!.cdr as ViewRefInternal<MyApp>).context).toBe(app);
+        const comp = fixture.componentInstance.component;
+        // ChangeDetectorRef is the token, ViewRef has historically been the constructor
+        expect(app.directive.value).toContain('ViewRef');
 
-           // Each ChangeDetectorRef instance should be unique
-           expect(app.directive!.cdr).not.toBe(comp.cdr);
-           expect(app.directive!.cdr).not.toBe(app.otherDirective!.cdr);
-         });
+        // Each ChangeDetectorRef instance should be unique
+        expect(app.directive!.cdr).not.toBe(comp.cdr);
+        expect(app.directive!.cdr).not.toBe(app.otherDirective!.cdr);
+      });
 
       it('should inject host component ChangeDetectorRef into directives in embedded views', () => {
         @Component({
           selector: 'my-comp',
           template: `<ng-container *ngIf="showing">
             <div dir otherDir #dir="dir" *ngIf="showing"></div>
-          </ng-container>`
+          </ng-container>`,
+          standalone: false,
         })
         class MyComp {
           showing = true;
@@ -3196,8 +3795,11 @@ describe('di', () => {
       });
 
       it('should inject host component ChangeDetectorRef into directives on containers', () => {
-        @Component(
-            {selector: 'my-comp', template: '<div dir otherDir #dir="dir" *ngIf="showing"></div>'})
+        @Component({
+          selector: 'my-comp',
+          template: '<div dir otherDir #dir="dir" *ngIf="showing"></div>',
+          standalone: false,
+        })
         class MyComp {
           showing = true;
           constructor(public cdr: ChangeDetectorRef) {}
@@ -3221,7 +3823,10 @@ describe('di', () => {
       it('should inject host component ChangeDetectorRef into directives on ng-container', () => {
         let dirInstance: MyDirective;
 
-        @Directive({selector: '[getCDR]'})
+        @Directive({
+          selector: '[getCDR]',
+          standalone: false,
+        })
         class MyDirective {
           constructor(public cdr: ChangeDetectorRef) {
             dirInstance = this;
@@ -3231,6 +3836,7 @@ describe('di', () => {
         @Component({
           selector: 'my-app',
           template: `<ng-container getCDR>Visible</ng-container>`,
+          standalone: false,
         })
         class MyApp {
           constructor(public cdr: ChangeDetectorRef) {}
@@ -3239,20 +3845,28 @@ describe('di', () => {
         TestBed.configureTestingModule({declarations: [MyApp, MyDirective]});
         const fixture = TestBed.createComponent(MyApp);
         fixture.detectChanges();
-        expect((dirInstance!.cdr as ViewRefInternal<MyApp>).context)
-            .toBe(fixture.componentInstance);
+        expect((dirInstance!.cdr as ViewRefInternal<MyApp>).context).toBe(
+          fixture.componentInstance,
+        );
       });
     });
   });
 
   describe('string tokens', () => {
     it('should be able to provide a string token', () => {
-      @Directive({selector: '[injectorDir]', providers: [{provide: 'test', useValue: 'provided'}]})
+      @Directive({
+        selector: '[injectorDir]',
+        providers: [{provide: 'test', useValue: 'provided'}],
+        standalone: false,
+      })
       class InjectorDir {
         constructor(@Inject('test') public value: string) {}
       }
 
-      @Component({template: '<div injectorDir></div>'})
+      @Component({
+        template: '<div injectorDir></div>',
+        standalone: false,
+      })
       class MyComp {
         @ViewChild(InjectorDir) injectorDirInstance!: InjectorDir;
       }
@@ -3276,17 +3890,23 @@ describe('di', () => {
       @Component({
         selector: 'my-comp',
         template: '...',
-        providers: [{
-          provide: TOKEN,
-          deps: [[new Attribute('token')]],
-          useFactory: factory,
-        }]
+        providers: [
+          {
+            provide: TOKEN,
+            deps: [[new Attribute('token')]],
+            useFactory: factory,
+          },
+        ],
+        standalone: false,
       })
       class MyComp {
         constructor(@Inject(TOKEN) readonly token: string) {}
       }
 
-      @Component({template: `<my-comp token='token'></my-comp>`})
+      @Component({
+        template: `<my-comp token='token'></my-comp>`,
+        standalone: false,
+      })
       class WrapperComp {
         @ViewChild(MyComp) myComp!: MyComp;
       }
@@ -3346,7 +3966,6 @@ describe('di', () => {
       fixture.detectChanges();
       expect(fixture.nativeElement.innerHTML).toEqual('injected value');
     });
-
 
     it('should be able to inject special tokens like ChangeDetectorRef', () => {
       const TOKEN = new InjectionToken<string>('TOKEN');
@@ -3518,8 +4137,7 @@ describe('di', () => {
           providers: [{provide: TOKEN, useValue: 'from parent'}],
           encapsulation: ViewEncapsulation.None,
         })
-        class ParentCmp {
-        }
+        class ParentCmp {}
 
         const fixture = TestBed.createComponent(ParentCmp);
         fixture.detectChanges();
@@ -3671,7 +4289,7 @@ describe('di', () => {
         class ChildCmp {
           nodeInjector = inject(Injector);
           a = this.nodeInjector.get(TOKEN, 'not found', {host: true, optional: true});
-          b = this.nodeInjector.get(TOKEN, 'not found', InjectFlags.Host|InjectFlags.Optional);
+          b = this.nodeInjector.get(TOKEN, 'not found', InjectFlags.Host | InjectFlags.Optional);
         }
 
         @Component({
@@ -3681,13 +4299,173 @@ describe('di', () => {
           providers: [{provide: TOKEN, useValue: 'from parent'}],
           encapsulation: ViewEncapsulation.None,
         })
-        class ParentCmp {
-        }
+        class ParentCmp {}
 
         const fixture = TestBed.createComponent(ParentCmp);
         fixture.detectChanges();
         expect(fixture.nativeElement.innerHTML).toEqual('<child>not found|not found</child>');
       });
+    });
+  });
+
+  describe('runInInjectionContext', () => {
+    it("should return the function's return value", () => {
+      const injector = TestBed.inject(EnvironmentInjector);
+      const returnValue = runInInjectionContext(injector, () => 3);
+      expect(returnValue).toBe(3);
+    });
+
+    it('should work with an NgModuleRef injector', () => {
+      const ref = TestBed.inject(NgModuleRef);
+      const returnValue = runInInjectionContext(ref.injector, () => 3);
+      expect(returnValue).toBe(3);
+    });
+
+    it('should return correct injector reference', () => {
+      const ngModuleRef = TestBed.inject(NgModuleRef);
+      const ref1 = runInInjectionContext(ngModuleRef.injector, () => inject(Injector));
+      const ref2 = ngModuleRef.injector.get(Injector);
+      expect(ref1).toBe(ref2);
+    });
+
+    it('should make inject() available', () => {
+      const TOKEN = new InjectionToken<string>('TOKEN');
+      const injector = createEnvironmentInjector(
+        [{provide: TOKEN, useValue: 'from injector'}],
+        TestBed.inject(EnvironmentInjector),
+      );
+
+      const result = runInInjectionContext(injector, () => inject(TOKEN));
+      expect(result).toEqual('from injector');
+    });
+
+    it('should properly clean up after the function returns', () => {
+      const TOKEN = new InjectionToken<string>('TOKEN');
+      const injector = TestBed.inject(EnvironmentInjector);
+      runInInjectionContext(injector, () => {});
+      expect(() => inject(TOKEN, InjectFlags.Optional)).toThrow();
+    });
+
+    it('should properly clean up after the function throws', () => {
+      const TOKEN = new InjectionToken<string>('TOKEN');
+      const injector = TestBed.inject(EnvironmentInjector);
+      expect(() =>
+        runInInjectionContext(injector, () => {
+          throw new Error('crashes!');
+        }),
+      ).toThrow();
+      expect(() => inject(TOKEN, InjectFlags.Optional)).toThrow();
+    });
+
+    it('should set the correct inject implementation', () => {
+      const TOKEN = new InjectionToken<string>('TOKEN', {
+        providedIn: 'root',
+        factory: () => 'from root',
+      });
+
+      @Component({
+        standalone: true,
+        template: '',
+        providers: [{provide: TOKEN, useValue: 'from component'}],
+      })
+      class TestCmp {
+        envInjector = inject(EnvironmentInjector);
+
+        tokenFromComponent = inject(TOKEN);
+        tokenFromEnvContext = runInInjectionContext(this.envInjector, () => inject(TOKEN));
+
+        // Attempt to inject ViewContainerRef within the environment injector's context. This should
+        // not be available, so the result should be `null`.
+        vcrFromEnvContext = runInInjectionContext(this.envInjector, () =>
+          inject(ViewContainerRef, InjectFlags.Optional),
+        );
+      }
+
+      const instance = TestBed.createComponent(TestCmp).componentInstance;
+      expect(instance.tokenFromComponent).toEqual('from component');
+      expect(instance.tokenFromEnvContext).toEqual('from root');
+      expect(instance.vcrFromEnvContext).toBeNull();
+    });
+
+    it('should support node injectors', () => {
+      @Component({
+        standalone: true,
+        template: '',
+      })
+      class TestCmp {
+        injector = inject(Injector);
+
+        vcrFromEnvContext = runInInjectionContext(this.injector, () =>
+          inject(ViewContainerRef, {optional: true}),
+        );
+      }
+
+      const instance = TestBed.createComponent(TestCmp).componentInstance;
+      expect(instance.vcrFromEnvContext).not.toBeNull();
+    });
+
+    it('should be reentrant', () => {
+      const TOKEN = new InjectionToken<string>('TOKEN', {
+        providedIn: 'root',
+        factory: () => 'from root',
+      });
+
+      const parentInjector = TestBed.inject(EnvironmentInjector);
+      const childInjector = createEnvironmentInjector(
+        [{provide: TOKEN, useValue: 'from child'}],
+        parentInjector,
+      );
+
+      const results = runInInjectionContext(parentInjector, () => {
+        const fromParentBefore = inject(TOKEN);
+        const fromChild = runInInjectionContext(childInjector, () => inject(TOKEN));
+        const fromParentAfter = inject(TOKEN);
+        return {fromParentBefore, fromChild, fromParentAfter};
+      });
+
+      expect(results.fromParentBefore).toEqual('from root');
+      expect(results.fromChild).toEqual('from child');
+      expect(results.fromParentAfter).toEqual('from root');
+    });
+
+    it('should not function on a destroyed injector', () => {
+      const injector = createEnvironmentInjector([], TestBed.inject(EnvironmentInjector));
+      injector.destroy();
+      expect(() => runInInjectionContext(injector, () => {})).toThrow();
+    });
+  });
+
+  describe('assertInInjectionContext', () => {
+    function placeholder() {}
+
+    it('should throw if not in an injection context', () => {
+      expect(() => assertInInjectionContext(placeholder)).toThrowMatching(
+        (e: Error) =>
+          e instanceof RuntimeError && e.code === RuntimeErrorCode.MISSING_INJECTION_CONTEXT,
+      );
+    });
+
+    it('should not throw if in an EnvironmentInjector context', () => {
+      expect(() => {
+        TestBed.runInInjectionContext(() => {
+          assertInInjectionContext(placeholder);
+        });
+      }).not.toThrow();
+    });
+
+    it('should not throw if in an element injector context', () => {
+      expect(() => {
+        @Component({
+          template: '',
+          standalone: false,
+        })
+        class EmptyCmp {}
+
+        const fixture = TestBed.createComponent(EmptyCmp);
+        runInInjectionContext(fixture.componentRef.injector, () => {
+          assertInInjectionContext(placeholder);
+        });
+      }).not.toThrow();
     });
   });
 
@@ -3700,22 +4478,27 @@ describe('di', () => {
     @Component({
       selector: 'root',
       template: '<comp></comp>',
-      viewProviders: [{
-        provide: 'A',
-        useValue: 'A from Root',
-      }]
+      viewProviders: [
+        {
+          provide: 'A',
+          useValue: 'A from Root',
+        },
+      ],
+      standalone: false,
     })
-    class Root {
-    }
+    class Root {}
 
     @Component({
       selector: 'comp',
       template: '{{ token }}',
-      viewProviders: [{
-        provide: 'B',
-        deps: [[new Inject('A'), new Host()]],
-        useFactory: (token: string) => `${token} (processed by useFactory)`,
-      }]
+      viewProviders: [
+        {
+          provide: 'B',
+          deps: [[new Inject('A'), new Host()]],
+          useFactory: (token: string) => `${token} (processed by useFactory)`,
+        },
+      ],
+      standalone: false,
     })
     class Comp {
       constructor(@Inject('B') readonly token: string) {}
@@ -3723,9 +4506,9 @@ describe('di', () => {
 
     @Component({
       template: `<root></root>`,
+      standalone: false,
     })
-    class App {
-    }
+    class App {}
 
     TestBed.configureTestingModule({declarations: [Root, Comp, App]});
 
@@ -3746,30 +4529,35 @@ describe('di', () => {
     @Component({
       selector: 'root',
       template: '<intermediate></intermediate>',
-      viewProviders: [{
-        provide: 'A',
-        useValue: 'A from Root',
-      }]
+      viewProviders: [
+        {
+          provide: 'A',
+          useValue: 'A from Root',
+        },
+      ],
+      standalone: false,
     })
-    class Root {
-    }
+    class Root {}
 
     @Component({
       selector: 'intermediate',
       template: '<comp></comp>',
+      standalone: false,
     })
-    class Intermediate {
-    }
+    class Intermediate {}
 
     @Component({
       selector: 'comp',
       template: '{{ token }}',
-      viewProviders: [{
-        provide: 'B',
-        deps: [[new Inject('A'), new Host(), new Optional()]],
-        useFactory: (token: string) =>
+      viewProviders: [
+        {
+          provide: 'B',
+          deps: [[new Inject('A'), new Host(), new Optional()]],
+          useFactory: (token: string) =>
             token ? `${token} (processed by useFactory)` : 'No token A found',
-      }]
+        },
+      ],
+      standalone: false,
     })
     class Comp {
       constructor(@Inject('B') readonly token: string) {}
@@ -3777,9 +4565,9 @@ describe('di', () => {
 
     @Component({
       template: `<root></root>`,
+      standalone: false,
     })
-    class App {
-    }
+    class App {}
 
     TestBed.configureTestingModule({declarations: [Root, Comp, App, Intermediate]});
 
@@ -3795,14 +4583,17 @@ describe('di', () => {
     @Component({
       selector: 'my-comp',
       template: '...',
-      providers: [{
-        provide: LOCALE_ID,
-        useFactory: () => 'ja-JP',
-        // Note: `LOCALE_ID` is also provided within APPLICATION_MODULE_PROVIDERS, so we use it
-        // here as a dep and making sure it doesn't cause cyclic dependency (since @SkipSelf is
-        // present)
-        deps: [[new Inject(LOCALE_ID), new Optional(), new SkipSelf()]]
-      }]
+      providers: [
+        {
+          provide: LOCALE_ID,
+          useFactory: () => 'ja-JP',
+          // Note: `LOCALE_ID` is also provided within APPLICATION_MODULE_PROVIDERS, so we use it
+          // here as a dep and making sure it doesn't cause cyclic dependency (since @SkipSelf is
+          // present)
+          deps: [[new Inject(LOCALE_ID), new Optional(), new SkipSelf()]],
+        },
+      ],
+      standalone: false,
     })
     class MyComp {
       constructor(@Inject(LOCALE_ID) public localeId: string) {}
@@ -3818,10 +4609,13 @@ describe('di', () => {
     @Component({
       selector: 'my-comp',
       template: '...',
-      providers: [{
-        provide: 'LOCALE_ID_DEP',  //
-        useValue: 'LOCALE_ID_DEP_VALUE'
-      }]
+      providers: [
+        {
+          provide: 'LOCALE_ID_DEP', //
+          useValue: 'LOCALE_ID_DEP_VALUE',
+        },
+      ],
+      standalone: false,
     })
     class MyComp {
       constructor(@Inject(LOCALE_ID) public localeId: string) {}
@@ -3829,12 +4623,14 @@ describe('di', () => {
 
     TestBed.configureTestingModule({
       declarations: [MyComp],
-      providers: [{
-        provide: LOCALE_ID,
-        // we expect `localeDepValue` to be undefined, since it's not provided at a module level
-        useFactory: (localeDepValue: any) => localeDepValue || 'en-GB',
-        deps: [[new Inject('LOCALE_ID_DEP'), new Optional()]]
-      }]
+      providers: [
+        {
+          provide: LOCALE_ID,
+          // we expect `localeDepValue` to be undefined, since it's not provided at a module level
+          useFactory: (localeDepValue: any) => localeDepValue || 'en-GB',
+          deps: [[new Inject('LOCALE_ID_DEP'), new Optional()]],
+        },
+      ],
     });
     const fixture = TestBed.createComponent(MyComp);
     fixture.detectChanges();
@@ -3845,7 +4641,8 @@ describe('di', () => {
     @Component({
       selector: 'my-comp',
       template: '...',
-      providers: [{provide: LOCALE_ID, useFactory: () => 'en-GB'}]
+      providers: [{provide: LOCALE_ID, useFactory: () => 'en-GB'}],
+      standalone: false,
     })
     class MyComp {
       constructor(@SkipSelf() @Inject(LOCALE_ID) public localeId: string) {}
@@ -3860,8 +4657,9 @@ describe('di', () => {
 
   it('should work when injecting dependency in Directives', () => {
     @Directive({
-      selector: '[dir]',  //
-      providers: [{provide: LOCALE_ID, useValue: 'ja-JP'}]
+      selector: '[dir]', //
+      providers: [{provide: LOCALE_ID, useValue: 'ja-JP'}],
+      standalone: false,
     })
     class MyDir {
       constructor(@SkipSelf() @Inject(LOCALE_ID) public localeId: string) {}
@@ -3869,7 +4667,8 @@ describe('di', () => {
     @Component({
       selector: 'my-comp',
       template: '<div dir></div>',
-      providers: [{provide: LOCALE_ID, useValue: 'en-GB'}]
+      providers: [{provide: LOCALE_ID, useValue: 'en-GB'}],
+      standalone: false,
     })
     class MyComp {
       @ViewChild(MyDir) myDir!: MyDir;
@@ -3884,14 +4683,21 @@ describe('di', () => {
 
   describe('@Attribute', () => {
     it('should inject attributes', () => {
-      @Directive({selector: '[dir]'})
+      @Directive({
+        selector: '[dir]',
+        standalone: false,
+      })
       class MyDir {
         constructor(
-            @Attribute('exist') public exist: string,
-            @Attribute('nonExist') public nonExist: string) {}
+          @Attribute('exist') public exist: string,
+          @Attribute('nonExist') public nonExist: string,
+        ) {}
       }
 
-      @Component({template: '<div dir exist="existValue" other="ignore"></div>'})
+      @Component({
+        template: '<div dir exist="existValue" other="ignore"></div>',
+        standalone: false,
+      })
       class MyComp {
         @ViewChild(MyDir) directiveInstance!: MyDir;
       }
@@ -3907,15 +4713,21 @@ describe('di', () => {
     });
 
     it('should inject attributes on <ng-template>', () => {
-      @Directive({selector: '[dir]'})
+      @Directive({
+        selector: '[dir]',
+        standalone: false,
+      })
       class MyDir {
         constructor(
-            @Attribute('exist') public exist: string,
-            @Attribute('dir') public myDirectiveAttrValue: string) {}
+          @Attribute('exist') public exist: string,
+          @Attribute('dir') public myDirectiveAttrValue: string,
+        ) {}
       }
 
-      @Component(
-          {template: '<ng-template dir="initial" exist="existValue" other="ignore"></ng-template>'})
+      @Component({
+        template: '<ng-template dir="initial" exist="existValue" other="ignore"></ng-template>',
+        standalone: false,
+      })
       class MyComp {
         @ViewChild(MyDir) directiveInstance!: MyDir;
       }
@@ -3931,15 +4743,20 @@ describe('di', () => {
     });
 
     it('should inject attributes on <ng-container>', () => {
-      @Directive({selector: '[dir]'})
+      @Directive({
+        selector: '[dir]',
+        standalone: false,
+      })
       class MyDir {
         constructor(
-            @Attribute('exist') public exist: string,
-            @Attribute('dir') public myDirectiveAttrValue: string) {}
+          @Attribute('exist') public exist: string,
+          @Attribute('dir') public myDirectiveAttrValue: string,
+        ) {}
       }
 
       @Component({
-        template: '<ng-container dir="initial" exist="existValue" other="ignore"></ng-container>'
+        template: '<ng-container dir="initial" exist="existValue" other="ignore"></ng-container>',
+        standalone: false,
       })
       class MyComp {
         @ViewChild(MyDir) directiveInstance!: MyDir;
@@ -3956,17 +4773,22 @@ describe('di', () => {
     });
 
     it('should be able to inject different kinds of attributes', () => {
-      @Directive({selector: '[dir]'})
+      @Directive({
+        selector: '[dir]',
+        standalone: false,
+      })
       class MyDir {
         constructor(
-            @Attribute('class') public className: string,
-            @Attribute('style') public inlineStyles: string,
-            @Attribute('other-attr') public otherAttr: string) {}
+          @Attribute('class') public className: string,
+          @Attribute('style') public inlineStyles: string,
+          @Attribute('other-attr') public otherAttr: string,
+        ) {}
       }
 
       @Component({
         template:
-            '<div dir style="margin: 1px; color: red;" class="hello there" other-attr="value"></div>'
+          '<div dir style="margin: 1px; color: red;" class="hello there" other-attr="value"></div>',
+        standalone: false,
       })
       class MyComp {
         @ViewChild(MyDir) directiveInstance!: MyDir;
@@ -3985,16 +4807,22 @@ describe('di', () => {
     });
 
     it('should not inject attributes with namespace', () => {
-      @Directive({selector: '[dir]'})
+      @Directive({
+        selector: '[dir]',
+        standalone: false,
+      })
       class MyDir {
         constructor(
-            @Attribute('exist') public exist: string,
-            @Attribute('svg:exist') public namespacedExist: string,
-            @Attribute('other') public other: string) {}
+          @Attribute('exist') public exist: string,
+          @Attribute('svg:exist') public namespacedExist: string,
+          @Attribute('other') public other: string,
+        ) {}
       }
 
       @Component({
-        template: '<div dir exist="existValue" svg:exist="testExistValue" other="otherValue"></div>'
+        template:
+          '<div dir exist="existValue" svg:exist="testExistValue" other="otherValue"></div>',
+        standalone: false,
       })
       class MyComp {
         @ViewChild(MyDir) directiveInstance!: MyDir;
@@ -4012,20 +4840,25 @@ describe('di', () => {
     });
 
     it('should not inject attributes representing bindings and outputs', () => {
-      @Directive({selector: '[dir]'})
+      @Directive({
+        selector: '[dir]',
+        standalone: false,
+      })
       class MyDir {
         @Input() binding!: string;
         @Output() output = new EventEmitter();
         constructor(
-            @Attribute('exist') public exist: string,
-            @Attribute('binding') public bindingAttr: string,
-            @Attribute('output') public outputAttr: string,
-            @Attribute('other') public other: string) {}
+          @Attribute('exist') public exist: string,
+          @Attribute('binding') public bindingAttr: string,
+          @Attribute('output') public outputAttr: string,
+          @Attribute('other') public other: string,
+        ) {}
       }
 
       @Component({
         template:
-            '<div dir exist="existValue" [binding]="bindingValue" (output)="outputValue" other="otherValue" ignore="ignoreValue"></div>'
+          '<div dir exist="existValue" [binding]="bindingValue" (output)="outputValue" other="otherValue" ignore="ignoreValue"></div>',
+        standalone: false,
       })
       class MyComp {
         @ViewChild(MyDir) directiveInstance!: MyDir;
@@ -4044,12 +4877,18 @@ describe('di', () => {
     });
 
     it('should inject `null` for attributes with data bindings', () => {
-      @Directive({selector: '[dir]'})
+      @Directive({
+        selector: '[dir]',
+        standalone: false,
+      })
       class MyDir {
         constructor(@Attribute('title') public attrValue: string) {}
       }
 
-      @Component({template: '<div dir title="title {{ value }}"></div>'})
+      @Component({
+        template: '<div dir title="title {{ value }}"></div>',
+        standalone: false,
+      })
       class MyComp {
         @ViewChild(MyDir) directiveInstance!: MyDir;
         value = 'value';
@@ -4064,6 +4903,388 @@ describe('di', () => {
     });
   });
 
+  describe('HostAttributeToken', () => {
+    it('should inject an attribute on an element node', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        value = inject(new HostAttributeToken('some-attr'));
+      }
+
+      @Component({
+        standalone: true,
+        template: '<div dir some-attr="foo" other="ignore"></div>',
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.dir.value).toBe('foo');
+    });
+
+    it('should inject an attribute on <ng-template>', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        value = inject(new HostAttributeToken('some-attr'));
+      }
+
+      @Component({
+        standalone: true,
+        template: '<ng-template dir some-attr="foo" other="ignore"></ng-template>',
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.dir.value).toBe('foo');
+    });
+
+    it('should inject an attribute on <ng-container>', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        value = inject(new HostAttributeToken('some-attr'));
+      }
+
+      @Component({
+        standalone: true,
+        template: '<ng-container dir some-attr="foo" other="ignore"></ng-container>',
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.dir.value).toBe('foo');
+    });
+
+    it('should be able to inject different kinds of attributes', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        className = inject(new HostAttributeToken('class'));
+        inlineStyles = inject(new HostAttributeToken('style'));
+        value = inject(new HostAttributeToken('some-attr'));
+      }
+
+      @Component({
+        standalone: true,
+        template: `
+          <div
+            dir
+            style="margin: 1px; color: red;"
+            class="hello there"
+            some-attr="foo"
+            other="ignore"></div>
+        `,
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+
+      const directive = fixture.componentInstance.dir;
+      expect(directive.className).toBe('hello there');
+      expect(directive.inlineStyles).toMatch(/color:\s*red/);
+      expect(directive.inlineStyles).toMatch(/margin:\s*1px/);
+      expect(directive.value).toBe('foo');
+    });
+
+    it('should throw a DI error when injecting a non-existent attribute', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        value = inject(new HostAttributeToken('some-attr'));
+      }
+
+      @Component({
+        standalone: true,
+        template: '<div dir other="ignore"></div>',
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      expect(() => TestBed.createComponent(TestCmp)).toThrowError(
+        /No provider for HostAttributeToken some-attr found/,
+      );
+    });
+
+    it('should not throw a DI error when injecting a non-existent attribute with optional: true', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        value = inject(new HostAttributeToken('some-attr'), {optional: true});
+      }
+
+      @Component({
+        standalone: true,
+        template: '<div dir other="ignore"></div>',
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.dir.value).toBe(null);
+    });
+
+    it('should not inject attributes with namespace', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        value = inject(new HostAttributeToken('some-attr'), {optional: true});
+        namespaceExists = inject(new HostAttributeToken('svg:exist'), {optional: true});
+        other = inject(new HostAttributeToken('other'), {optional: true});
+      }
+
+      @Component({
+        standalone: true,
+        template: `
+          <div dir some-attr="foo" svg:exists="testExistValue" other="otherValue"></div>
+        `,
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+
+      const directive = fixture.componentInstance.dir;
+      expect(directive.value).toBe('foo');
+      expect(directive.namespaceExists).toBe(null);
+      expect(directive.other).toBe('otherValue');
+    });
+
+    it('should not inject attributes representing bindings and outputs', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        @Input() binding!: string;
+        @Output() output = new EventEmitter();
+
+        exists = inject(new HostAttributeToken('exists'));
+        bindingAttr = inject(new HostAttributeToken('binding'), {optional: true});
+        outputAttr = inject(new HostAttributeToken('output'), {optional: true});
+        other = inject(new HostAttributeToken('other'));
+      }
+
+      @Component({
+        standalone: true,
+        imports: [Dir],
+        template: `
+          <div
+            dir
+            exists="existsValue"
+            [binding]="bindingValue"
+            (output)="noop()"
+            other="otherValue"
+            ignore="ignoreValue"></div>`,
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+        bindingValue = 'hello';
+        noop() {}
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+
+      const directive = fixture.componentInstance.dir;
+      expect(directive.exists).toBe('existsValue');
+      expect(directive.bindingAttr).toBe(null);
+      expect(directive.outputAttr).toBe(null);
+      expect(directive.other).toBe('otherValue');
+    });
+
+    it('should not inject data-bound attributes', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        value = inject(new HostAttributeToken('title'), {optional: true});
+      }
+
+      @Component({
+        standalone: true,
+        template: '<div dir title="foo {{value}}" other="ignore"></div>',
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+        value = 123;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.dir.value).toBe(null);
+      expect(fixture.nativeElement.querySelector('[dir]').getAttribute('title')).toBe('foo 123');
+    });
+
+    it('should inject an attribute using @Inject', () => {
+      const TOKEN = new HostAttributeToken('some-attr');
+
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        constructor(@Inject(TOKEN) readonly value: string) {}
+      }
+
+      @Component({
+        standalone: true,
+        template: '<div dir some-attr="foo" other="ignore"></div>',
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.dir.value).toBe('foo');
+    });
+
+    it('should throw when injecting a non-existent attribute using @Inject', () => {
+      const TOKEN = new HostAttributeToken('some-attr');
+
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        constructor(@Inject(TOKEN) readonly value: string) {}
+      }
+
+      @Component({
+        standalone: true,
+        template: '<div dir other="ignore"></div>',
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      expect(() => TestBed.createComponent(TestCmp)).toThrowError(
+        /No provider for HostAttributeToken some-attr found/,
+      );
+    });
+
+    it('should not throw when injecting a non-existent attribute using @Inject @Optional', () => {
+      const TOKEN = new HostAttributeToken('some-attr');
+
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        constructor(@Inject(TOKEN) @Optional() readonly value: string | null) {}
+      }
+
+      @Component({
+        standalone: true,
+        template: '<div dir other="ignore"></div>',
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.dir.value).toBe(null);
+    });
+  });
+
+  describe('HOST_TAG_NAME', () => {
+    it('should inject the tag name on an element node', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        value = inject(HOST_TAG_NAME);
+      }
+
+      @Component({
+        standalone: true,
+        template: `
+          <div dir #v1></div>
+          <span dir #v2></span>
+          <svg dir #v3></svg>
+          <custom-component dir #v4></custom-component>
+          <video dir #v5></video>
+        `,
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild('v1', {read: Dir}) value1!: Dir;
+        @ViewChild('v2', {read: Dir}) value2!: Dir;
+        @ViewChild('v3', {read: Dir}) value3!: Dir;
+        @ViewChild('v4', {read: Dir}) value4!: Dir;
+        @ViewChild('v5', {read: Dir}) value5!: Dir;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.value1.value).toBe('div');
+      expect(fixture.componentInstance.value2.value).toBe('span');
+      expect(fixture.componentInstance.value3.value).toBe('svg');
+      expect(fixture.componentInstance.value4.value).toBe('custom-component');
+      expect(fixture.componentInstance.value5.value).toBe('video');
+    });
+
+    it('should throw a DI error when injecting into non-DOM nodes', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        value = inject(HOST_TAG_NAME);
+      }
+
+      @Component({
+        standalone: true,
+        template: '<ng-container dir></ng-container>',
+        imports: [Dir],
+      })
+      class TestNgContainer {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      @Component({
+        standalone: true,
+        template: '<ng-template dir></ng-template>',
+        imports: [Dir],
+      })
+      class TestNgTemplate {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      expect(() => TestBed.createComponent(TestNgContainer)).toThrowError(
+        /HOST_TAG_NAME was used on an <ng-container> which doesn't have an underlying element in the DOM/,
+      );
+
+      expect(() => TestBed.createComponent(TestNgTemplate)).toThrowError(
+        /HOST_TAG_NAME was used on an <ng-template> which doesn't have an underlying element in the DOM/,
+      );
+    });
+
+    it('should not throw a DI error when injecting into non-DOM nodes with optional: true', () => {
+      @Directive({selector: '[dir]', standalone: true})
+      class Dir {
+        value = inject(HOST_TAG_NAME, {optional: true});
+      }
+
+      @Component({
+        standalone: true,
+        template: '<ng-container dir></ng-container>',
+        imports: [Dir],
+      })
+      class TestCmp {
+        @ViewChild(Dir) dir!: Dir;
+      }
+
+      const fixture = TestBed.createComponent(TestCmp);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.dir.value).toBe(null);
+    });
+  });
+
   it('should support dependencies in Pipes used inside ICUs', () => {
     @Injectable()
     class MyService {
@@ -4072,7 +5293,10 @@ describe('di', () => {
       }
     }
 
-    @Pipe({name: 'somePipe'})
+    @Pipe({
+      name: 'somePipe',
+      standalone: false,
+    })
     class MyPipe {
       constructor(private service: MyService) {}
       transform(value: any): any {
@@ -4087,7 +5311,8 @@ describe('di', () => {
           =1 {One}
           other {Other value is: {{count | somePipe}}}
         }</div>
-      `
+      `,
+      standalone: false,
     })
     class MyComp {
       count = '2';
@@ -4111,7 +5336,10 @@ describe('di', () => {
       }
     }
 
-    @Pipe({name: 'somePipe'})
+    @Pipe({
+      name: 'somePipe',
+      standalone: false,
+    })
     class MyPipe {
       constructor(private service: MyService) {}
       transform(value: any): any {
@@ -4125,7 +5353,8 @@ describe('di', () => {
           {{count | somePipe}} <span>items</span>
         </ng-template>
         <ng-container #target></ng-container>
-      `
+      `,
+      standalone: false,
     })
     class MyComp {
       count = '2';
@@ -4154,41 +5383,56 @@ describe('di', () => {
   // TODO: https://angular-team.atlassian.net/browse/FW-1779
   it('should prioritize useFactory over useExisting', () => {
     abstract class Base {}
-    @Directive({selector: '[dirA]'})
-    class DirA implements Base {
-    }
-    @Directive({selector: '[dirB]'})
-    class DirB implements Base {
-    }
+    @Directive({
+      selector: '[dirA]',
+      standalone: false,
+    })
+    class DirA implements Base {}
+    @Directive({
+      selector: '[dirB]',
+      standalone: false,
+    })
+    class DirB implements Base {}
 
     const PROVIDER = {provide: Base, useExisting: DirA, useFactory: () => new DirB()};
 
-    @Component({selector: 'child', template: '', providers: [PROVIDER]})
+    @Component({
+      selector: 'child',
+      template: '',
+      providers: [PROVIDER],
+      standalone: false,
+    })
     class Child {
       constructor(readonly base: Base) {}
     }
 
-    @Component({template: `<div dirA> <child></child> </div>`})
+    @Component({
+      template: `<div dirA> <child></child> </div>`,
+      standalone: false,
+    })
     class App {
       @ViewChild(DirA) dirA!: DirA;
       @ViewChild(Child) child!: Child;
     }
 
-    const fixture = TestBed.configureTestingModule({declarations: [DirA, DirB, App, Child]})
-                        .createComponent(App);
+    const fixture = TestBed.configureTestingModule({
+      declarations: [DirA, DirB, App, Child],
+    }).createComponent(App);
     fixture.detectChanges();
-    expect(fixture.componentInstance.dirA)
-        .not.toEqual(
-            fixture.componentInstance.child.base,
-            'should not get dirA from parent, but create new dirB from the useFactory provider');
+    expect(fixture.componentInstance.dirA).not.toEqual(
+      fixture.componentInstance.child.base,
+      'should not get dirA from parent, but create new dirB from the useFactory provider',
+    );
   });
-
 
   describe('provider access on the same node', () => {
     const token = new InjectionToken<number>('token');
 
     it('pipes should access providers from the component they are on', () => {
-      @Pipe({name: 'token'})
+      @Pipe({
+        name: 'token',
+        standalone: false,
+      })
       class TokenPipe {
         constructor(@Inject(token) private _token: string) {}
 
@@ -4200,7 +5444,8 @@ describe('di', () => {
       @Component({
         selector: 'child-comp',
         template: '{{value}}',
-        providers: [{provide: token, useValue: 'child'}]
+        providers: [{provide: token, useValue: 'child'}],
+        standalone: false,
       })
       class ChildComp {
         @Input() value: any;
@@ -4208,10 +5453,10 @@ describe('di', () => {
 
       @Component({
         template: `<child-comp [value]="'' | token"></child-comp>`,
-        providers: [{provide: token, useValue: 'parent'}]
+        providers: [{provide: token, useValue: 'parent'}],
+        standalone: false,
       })
-      class App {
-      }
+      class App {}
 
       TestBed.configureTestingModule({declarations: [App, ChildComp, TokenPipe]});
       const fixture = TestBed.createComponent(App);
@@ -4221,7 +5466,10 @@ describe('di', () => {
     });
 
     it('pipes should not access viewProviders from the component they are on', () => {
-      @Pipe({name: 'token'})
+      @Pipe({
+        name: 'token',
+        standalone: false,
+      })
       class TokenPipe {
         constructor(@Inject(token) private _token: string) {}
 
@@ -4233,7 +5481,8 @@ describe('di', () => {
       @Component({
         selector: 'child-comp',
         template: '{{value}}',
-        viewProviders: [{provide: token, useValue: 'child'}]
+        viewProviders: [{provide: token, useValue: 'child'}],
+        standalone: false,
       })
       class ChildComp {
         @Input() value: any;
@@ -4241,10 +5490,10 @@ describe('di', () => {
 
       @Component({
         template: `<child-comp [value]="'' | token"></child-comp>`,
-        viewProviders: [{provide: token, useValue: 'parent'}]
+        viewProviders: [{provide: token, useValue: 'parent'}],
+        standalone: false,
       })
-      class App {
-      }
+      class App {}
 
       TestBed.configureTestingModule({declarations: [App, ChildComp, TokenPipe]});
       const fixture = TestBed.createComponent(App);
@@ -4254,7 +5503,10 @@ describe('di', () => {
     });
 
     it('directives should access providers from the component they are on', () => {
-      @Directive({selector: '[dir]'})
+      @Directive({
+        selector: '[dir]',
+        standalone: false,
+      })
       class Dir {
         constructor(@Inject(token) public token: string) {}
       }
@@ -4263,13 +5515,14 @@ describe('di', () => {
         selector: 'child-comp',
         template: '',
         providers: [{provide: token, useValue: 'child'}],
+        standalone: false,
       })
-      class ChildComp {
-      }
+      class ChildComp {}
 
       @Component({
         template: '<child-comp dir></child-comp>',
-        providers: [{provide: token, useValue: 'parent'}]
+        providers: [{provide: token, useValue: 'parent'}],
+        standalone: false,
       })
       class App {
         @ViewChild(Dir) dir!: Dir;
@@ -4283,7 +5536,10 @@ describe('di', () => {
     });
 
     it('directives should not access viewProviders from the component they are on', () => {
-      @Directive({selector: '[dir]'})
+      @Directive({
+        selector: '[dir]',
+        standalone: false,
+      })
       class Dir {
         constructor(@Inject(token) public token: string) {}
       }
@@ -4291,14 +5547,15 @@ describe('di', () => {
       @Component({
         selector: 'child-comp',
         template: '',
-        viewProviders: [{provide: token, useValue: 'child'}]
+        viewProviders: [{provide: token, useValue: 'child'}],
+        standalone: false,
       })
-      class ChildComp {
-      }
+      class ChildComp {}
 
       @Component({
         template: '<child-comp dir></child-comp>',
-        viewProviders: [{provide: token, useValue: 'parent'}]
+        viewProviders: [{provide: token, useValue: 'parent'}],
+        standalone: false,
       })
       class App {
         @ViewChild(Dir) dir!: Dir;
@@ -4313,7 +5570,10 @@ describe('di', () => {
   });
 
   it('should not be able to inject ViewRef', () => {
-    @Component({template: ''})
+    @Component({
+      template: '',
+      standalone: false,
+    })
     class App {
       constructor(_viewRef: ViewRef) {}
     }
@@ -4325,19 +5585,25 @@ describe('di', () => {
   describe('injector when creating embedded view', () => {
     const token = new InjectionToken<string>('greeting');
 
-    @Directive({selector: 'menu-trigger'})
+    @Directive({
+      selector: 'menu-trigger',
+      standalone: false,
+    })
     class MenuTrigger {
       @Input('triggerFor') menu!: TemplateRef<unknown>;
 
       constructor(private viewContainerRef: ViewContainerRef) {}
 
-      open(injector: Injector|undefined) {
+      open(injector: Injector | undefined) {
         this.viewContainerRef.createEmbeddedView(this.menu, undefined, {injector});
       }
     }
 
     it('should be able to provide an injection token through a custom injector', () => {
-      @Directive({selector: 'menu'})
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
       class Menu {
         constructor(@Inject(token) public tokenValue: string) {}
       }
@@ -4348,7 +5614,8 @@ describe('di', () => {
           <ng-template #menuTemplate>
             <menu></menu>
           </ng-template>
-      `
+      `,
+        standalone: false,
       })
       class App {
         @ViewChild(MenuTrigger) trigger!: MenuTrigger;
@@ -4366,15 +5633,52 @@ describe('di', () => {
       expect(fixture.componentInstance.menu.tokenValue).toBe('hello');
     });
 
-    it('should be able to provide an injection token to a nested template through a custom injector',
-       () => {
-         @Directive({selector: 'menu'})
-         class Menu {
-           constructor(@Inject(token) public tokenValue: string) {}
-         }
+    it('should check only the current node with @Self when providing an injection token through an embedded view injector', () => {
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
+      class Menu {
+        constructor(@Inject(token) @Self() @Optional() public tokenValue: string) {}
+      }
 
-         @Component({
-           template: `
+      @Component({
+        template: `
+          <menu-trigger [triggerFor]="menuTemplate"></menu-trigger>
+          <ng-template #menuTemplate>
+            <menu></menu>
+          </ng-template>
+        `,
+        providers: [{provide: token, useValue: 'root'}],
+        standalone: false,
+      })
+      class App {
+        @ViewChild(MenuTrigger) trigger!: MenuTrigger;
+        @ViewChild(Menu) menu!: Menu;
+      }
+
+      TestBed.configureTestingModule({declarations: [App, MenuTrigger, Menu]});
+      const injector = Injector.create({providers: [{provide: token, useValue: 'hello'}]});
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
+
+      fixture.componentInstance.trigger.open(injector);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.menu.tokenValue).toBeNull();
+    });
+
+    it('should be able to provide an injection token to a nested template through a custom injector', () => {
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
+      class Menu {
+        constructor(@Inject(token) public tokenValue: string) {}
+      }
+
+      @Component({
+        template: `
             <menu-trigger #outerTrigger [triggerFor]="outerTemplate"></menu-trigger>
             <ng-template #outerTemplate>
               <menu></menu>
@@ -4384,37 +5688,41 @@ describe('di', () => {
                 <menu #innerMenu></menu>
               </ng-template>
             </ng-template>
-          `
-         })
-         class App {
-           @ViewChild('outerTrigger', {read: MenuTrigger}) outerTrigger!: MenuTrigger;
-           @ViewChild('innerTrigger', {read: MenuTrigger}) innerTrigger!: MenuTrigger;
-           @ViewChild('innerMenu', {read: Menu}) innerMenu!: Menu;
-         }
+          `,
+        standalone: false,
+      })
+      class App {
+        @ViewChild('outerTrigger', {read: MenuTrigger}) outerTrigger!: MenuTrigger;
+        @ViewChild('innerTrigger', {read: MenuTrigger}) innerTrigger!: MenuTrigger;
+        @ViewChild('innerMenu', {read: Menu}) innerMenu!: Menu;
+      }
 
-         TestBed.configureTestingModule({declarations: [App, MenuTrigger, Menu]});
-         const fixture = TestBed.createComponent(App);
-         fixture.detectChanges();
+      TestBed.configureTestingModule({declarations: [App, MenuTrigger, Menu]});
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
 
-         fixture.componentInstance.outerTrigger.open(
-             Injector.create({providers: [{provide: token, useValue: 'hello'}]}));
-         fixture.detectChanges();
+      fixture.componentInstance.outerTrigger.open(
+        Injector.create({providers: [{provide: token, useValue: 'hello'}]}),
+      );
+      fixture.detectChanges();
 
-         fixture.componentInstance.innerTrigger.open(undefined);
-         fixture.detectChanges();
+      fixture.componentInstance.innerTrigger.open(undefined);
+      fixture.detectChanges();
 
-         expect(fixture.componentInstance.innerMenu.tokenValue).toBe('hello');
-       });
+      expect(fixture.componentInstance.innerMenu.tokenValue).toBe('hello');
+    });
 
-    it('should be able to resolve a token from a custom grandparent injector if the token is not provided in the parent',
-       () => {
-         @Directive({selector: 'menu'})
-         class Menu {
-           constructor(@Inject(token) public tokenValue: string) {}
-         }
+    it('should be able to resolve a token from a custom grandparent injector if the token is not provided in the parent', () => {
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
+      class Menu {
+        constructor(@Inject(token) public tokenValue: string) {}
+      }
 
-         @Component({
-           template: `
+      @Component({
+        template: `
             <menu-trigger #grandparentTrigger [triggerFor]="grandparentTemplate"></menu-trigger>
             <ng-template #grandparentTemplate>
               <menu></menu>
@@ -4429,34 +5737,39 @@ describe('di', () => {
                 </ng-template>
               </ng-template>
             </ng-template>
-          `
-         })
-         class App {
-           @ViewChild('grandparentTrigger', {read: MenuTrigger}) grandparentTrigger!: MenuTrigger;
-           @ViewChild('parentTrigger', {read: MenuTrigger}) parentTrigger!: MenuTrigger;
-           @ViewChild('childTrigger', {read: MenuTrigger}) childTrigger!: MenuTrigger;
-           @ViewChild('childMenu', {read: Menu}) childMenu!: Menu;
-         }
+          `,
+        standalone: false,
+      })
+      class App {
+        @ViewChild('grandparentTrigger', {read: MenuTrigger}) grandparentTrigger!: MenuTrigger;
+        @ViewChild('parentTrigger', {read: MenuTrigger}) parentTrigger!: MenuTrigger;
+        @ViewChild('childTrigger', {read: MenuTrigger}) childTrigger!: MenuTrigger;
+        @ViewChild('childMenu', {read: Menu}) childMenu!: Menu;
+      }
 
-         TestBed.configureTestingModule({declarations: [App, MenuTrigger, Menu]});
-         const fixture = TestBed.createComponent(App);
-         fixture.detectChanges();
+      TestBed.configureTestingModule({declarations: [App, MenuTrigger, Menu]});
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
 
-         fixture.componentInstance.grandparentTrigger.open(
-             Injector.create({providers: [{provide: token, useValue: 'hello'}]}));
-         fixture.detectChanges();
+      fixture.componentInstance.grandparentTrigger.open(
+        Injector.create({providers: [{provide: token, useValue: 'hello'}]}),
+      );
+      fixture.detectChanges();
 
-         fixture.componentInstance.parentTrigger.open(Injector.create({providers: []}));
-         fixture.detectChanges();
+      fixture.componentInstance.parentTrigger.open(Injector.create({providers: []}));
+      fixture.detectChanges();
 
-         fixture.componentInstance.childTrigger.open(undefined);
-         fixture.detectChanges();
+      fixture.componentInstance.childTrigger.open(undefined);
+      fixture.detectChanges();
 
-         expect(fixture.componentInstance.childMenu.tokenValue).toBe('hello');
-       });
+      expect(fixture.componentInstance.childMenu.tokenValue).toBe('hello');
+    });
 
     it('should resolve value from node injector if it is lower than embedded view injector', () => {
-      @Directive({selector: 'menu'})
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
       class Menu {
         constructor(@Inject(token) public tokenValue: string) {}
       }
@@ -4469,7 +5782,8 @@ describe('di', () => {
           <ng-template #menuTemplate>
             <menu></menu>
           </ng-template>
-        `
+        `,
+        standalone: false,
       })
       class Wrapper {
         @ViewChild(MenuTrigger) trigger!: MenuTrigger;
@@ -4482,7 +5796,8 @@ describe('di', () => {
           <ng-template #menuTemplate>
             <wrapper></wrapper>
           </ng-template>
-        `
+        `,
+        standalone: false,
       })
       class App {
         @ViewChild(MenuTrigger) trigger!: MenuTrigger;
@@ -4494,7 +5809,8 @@ describe('di', () => {
       fixture.detectChanges();
 
       fixture.componentInstance.trigger.open(
-          Injector.create({providers: [{provide: token, useValue: 'hello from injector'}]}));
+        Injector.create({providers: [{provide: token, useValue: 'hello from injector'}]}),
+      );
       fixture.detectChanges();
 
       fixture.componentInstance.wrapper.trigger.open(undefined);
@@ -4504,7 +5820,10 @@ describe('di', () => {
     });
 
     it('should be able to inject a value provided at the module level', () => {
-      @Directive({selector: 'menu'})
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
       class Menu {
         constructor(@Inject(token) public tokenValue: string) {}
       }
@@ -4515,7 +5834,8 @@ describe('di', () => {
           <ng-template #menuTemplate>
             <menu></menu>
           </ng-template>
-      `
+      `,
+        standalone: false,
       })
       class App {
         @ViewChild(MenuTrigger) trigger!: MenuTrigger;
@@ -4525,10 +5845,9 @@ describe('di', () => {
       @NgModule({
         declarations: [App, MenuTrigger, Menu],
         exports: [App, MenuTrigger, Menu],
-        providers: [{provide: token, useValue: 'hello'}]
+        providers: [{provide: token, useValue: 'hello'}],
       })
-      class Module {
-      }
+      class Module {}
 
       TestBed.configureTestingModule({imports: [Module]});
       const injector = Injector.create({providers: []});
@@ -4542,46 +5861,10 @@ describe('di', () => {
     });
 
     it('should have value from custom injector take precedence over module injector', () => {
-      @Directive({selector: 'menu'})
-      class Menu {
-        constructor(@Inject(token) public tokenValue: string) {}
-      }
-
-      @Component({
-        template: `
-          <menu-trigger [triggerFor]="menuTemplate"></menu-trigger>
-          <ng-template #menuTemplate>
-            <menu></menu>
-          </ng-template>
-      `
+      @Directive({
+        selector: 'menu',
+        standalone: false,
       })
-      class App {
-        @ViewChild(MenuTrigger) trigger!: MenuTrigger;
-        @ViewChild(Menu) menu!: Menu;
-      }
-
-      @NgModule({
-        declarations: [App, MenuTrigger, Menu],
-        exports: [App, MenuTrigger, Menu],
-        providers: [{provide: token, useValue: 'hello from module'}]
-      })
-      class Module {
-      }
-
-      TestBed.configureTestingModule({imports: [Module]});
-      const injector =
-          Injector.create({providers: [{provide: token, useValue: 'hello from injector'}]});
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
-
-      fixture.componentInstance.trigger.open(injector);
-      fixture.detectChanges();
-
-      expect(fixture.componentInstance.menu.tokenValue).toBe('hello from injector');
-    });
-
-    it('should have value from custom injector take precedence over parent injector', () => {
-      @Directive({selector: 'menu'})
       class Menu {
         constructor(@Inject(token) public tokenValue: string) {}
       }
@@ -4593,7 +5876,51 @@ describe('di', () => {
             <menu></menu>
           </ng-template>
       `,
-        providers: [{provide: token, useValue: 'hello from parent'}]
+        standalone: false,
+      })
+      class App {
+        @ViewChild(MenuTrigger) trigger!: MenuTrigger;
+        @ViewChild(Menu) menu!: Menu;
+      }
+
+      @NgModule({
+        declarations: [App, MenuTrigger, Menu],
+        exports: [App, MenuTrigger, Menu],
+        providers: [{provide: token, useValue: 'hello from module'}],
+      })
+      class Module {}
+
+      TestBed.configureTestingModule({imports: [Module]});
+      const injector = Injector.create({
+        providers: [{provide: token, useValue: 'hello from injector'}],
+      });
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
+
+      fixture.componentInstance.trigger.open(injector);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.menu.tokenValue).toBe('hello from injector');
+    });
+
+    it('should have value from custom injector take precedence over parent injector', () => {
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
+      class Menu {
+        constructor(@Inject(token) public tokenValue: string) {}
+      }
+
+      @Component({
+        template: `
+          <menu-trigger [triggerFor]="menuTemplate"></menu-trigger>
+          <ng-template #menuTemplate>
+            <menu></menu>
+          </ng-template>
+      `,
+        providers: [{provide: token, useValue: 'hello from parent'}],
+        standalone: false,
       })
       class App {
         @ViewChild(MenuTrigger) trigger!: MenuTrigger;
@@ -4604,12 +5931,12 @@ describe('di', () => {
         declarations: [App, MenuTrigger, Menu],
         exports: [App, MenuTrigger, Menu],
       })
-      class Module {
-      }
+      class Module {}
 
       TestBed.configureTestingModule({imports: [Module]});
-      const injector =
-          Injector.create({providers: [{provide: token, useValue: 'hello from injector'}]});
+      const injector = Injector.create({
+        providers: [{provide: token, useValue: 'hello from injector'}],
+      });
       const fixture = TestBed.createComponent(App);
       fixture.detectChanges();
 
@@ -4620,9 +5947,15 @@ describe('di', () => {
     });
 
     it('should be able to inject built-in tokens when a custom injector is provided', () => {
-      @Directive({selector: 'menu'})
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
       class Menu {
-        constructor(public elementRef: ElementRef, public changeDetectorRef: ChangeDetectorRef) {}
+        constructor(
+          public elementRef: ElementRef,
+          public changeDetectorRef: ChangeDetectorRef,
+        ) {}
       }
 
       @Component({
@@ -4631,7 +5964,8 @@ describe('di', () => {
           <ng-template #menuTemplate>
             <menu></menu>
           </ng-template>
-      `
+      `,
+        standalone: false,
       })
       class App {
         @ViewChild(MenuTrigger) trigger!: MenuTrigger;
@@ -4646,50 +5980,53 @@ describe('di', () => {
       fixture.componentInstance.trigger.open(injector);
       fixture.detectChanges();
 
-      expect(fixture.componentInstance.menu.elementRef.nativeElement)
-          .toBe(fixture.nativeElement.querySelector('menu'));
+      expect(fixture.componentInstance.menu.elementRef.nativeElement).toBe(
+        fixture.nativeElement.querySelector('menu'),
+      );
       expect(fixture.componentInstance.menu.changeDetectorRef).toBeTruthy();
     });
 
-    it('should have value from parent component injector take precedence over module injector',
-       () => {
-         @Directive({selector: 'menu'})
-         class Menu {
-           constructor(@Inject(token) public tokenValue: string) {}
-         }
+    it('should have value from parent component injector take precedence over module injector', () => {
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
+      class Menu {
+        constructor(@Inject(token) public tokenValue: string) {}
+      }
 
-         @Component({
-           template: `
+      @Component({
+        template: `
             <menu-trigger [triggerFor]="menuTemplate"></menu-trigger>
             <ng-template #menuTemplate>
               <menu></menu>
             </ng-template>
           `,
-           providers: [{provide: token, useValue: 'hello from parent'}]
-         })
-         class App {
-           @ViewChild(MenuTrigger) trigger!: MenuTrigger;
-           @ViewChild(Menu) menu!: Menu;
-         }
+        providers: [{provide: token, useValue: 'hello from parent'}],
+        standalone: false,
+      })
+      class App {
+        @ViewChild(MenuTrigger) trigger!: MenuTrigger;
+        @ViewChild(Menu) menu!: Menu;
+      }
 
-         @NgModule({
-           declarations: [App, MenuTrigger, Menu],
-           exports: [App, MenuTrigger, Menu],
-           providers: [{provide: token, useValue: 'hello from module'}]
-         })
-         class Module {
-         }
+      @NgModule({
+        declarations: [App, MenuTrigger, Menu],
+        exports: [App, MenuTrigger, Menu],
+        providers: [{provide: token, useValue: 'hello from module'}],
+      })
+      class Module {}
 
-         TestBed.configureTestingModule({imports: [Module]});
-         const injector = Injector.create({providers: []});
-         const fixture = TestBed.createComponent(App);
-         fixture.detectChanges();
+      TestBed.configureTestingModule({imports: [Module]});
+      const injector = Injector.create({providers: []});
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
 
-         fixture.componentInstance.trigger.open(injector);
-         fixture.detectChanges();
+      fixture.componentInstance.trigger.open(injector);
+      fixture.detectChanges();
 
-         expect(fixture.componentInstance.menu.tokenValue).toBe('hello from parent');
-       });
+      expect(fixture.componentInstance.menu.tokenValue).toBe('hello from parent');
+    });
 
     it('should be able to inject an injectable with dependencies', () => {
       @Injectable()
@@ -4701,7 +6038,10 @@ describe('di', () => {
         }
       }
 
-      @Directive({selector: 'menu'})
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
       class Menu {
         constructor(public greeter: Greeter) {}
       }
@@ -4712,7 +6052,8 @@ describe('di', () => {
           <ng-template #menuTemplate>
             <menu></menu>
           </ng-template>
-      `
+      `,
+        standalone: false,
       })
       class App {
         @ViewChild(MenuTrigger) trigger!: MenuTrigger;
@@ -4722,17 +6063,16 @@ describe('di', () => {
       @NgModule({
         declarations: [App, MenuTrigger, Menu],
         exports: [App, MenuTrigger, Menu],
-        providers: [{provide: token, useValue: 'module'}]
+        providers: [{provide: token, useValue: 'module'}],
       })
-      class Module {
-      }
+      class Module {}
 
       TestBed.configureTestingModule({imports: [Module]});
       const injector = Injector.create({
         providers: [
           {provide: Greeter, useClass: Greeter},
           {provide: token, useValue: 'injector'},
-        ]
+        ],
       });
       const fixture = TestBed.createComponent(App);
       fixture.detectChanges();
@@ -4743,50 +6083,57 @@ describe('di', () => {
       expect(fixture.componentInstance.menu.greeter.greet()).toBe('hello from injector');
     });
 
-    it('should be able to inject a value from a grandparent component when a custom injector is provided',
-       () => {
-         @Directive({selector: 'menu'})
-         class Menu {
-           constructor(@Inject(token) public tokenValue: string) {}
-         }
+    it('should be able to inject a value from a grandparent component when a custom injector is provided', () => {
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
+      class Menu {
+        constructor(@Inject(token) public tokenValue: string) {}
+      }
 
-         @Component({
-           selector: 'parent',
-           template: `
+      @Component({
+        selector: 'parent',
+        template: `
             <menu-trigger [triggerFor]="menuTemplate"></menu-trigger>
             <ng-template #menuTemplate>
               <menu></menu>
             </ng-template>
-           `
-         })
-         class Parent {
-           @ViewChild(MenuTrigger) trigger!: MenuTrigger;
-           @ViewChild(Menu) menu!: Menu;
-         }
+           `,
+        standalone: false,
+      })
+      class Parent {
+        @ViewChild(MenuTrigger) trigger!: MenuTrigger;
+        @ViewChild(Menu) menu!: Menu;
+      }
 
-         @Component({
-           template: '<parent></parent>',
-           providers: [{provide: token, useValue: 'hello from grandparent'}]
-         })
-         class GrandParent {
-           @ViewChild(Parent) parent!: Parent;
-         }
+      @Component({
+        template: '<parent></parent>',
+        providers: [{provide: token, useValue: 'hello from grandparent'}],
+        standalone: false,
+      })
+      class GrandParent {
+        @ViewChild(Parent) parent!: Parent;
+      }
 
-         TestBed.configureTestingModule({declarations: [GrandParent, Parent, MenuTrigger, Menu]});
-         const injector = Injector.create({providers: []});
-         const fixture = TestBed.createComponent(GrandParent);
-         fixture.detectChanges();
+      TestBed.configureTestingModule({declarations: [GrandParent, Parent, MenuTrigger, Menu]});
+      const injector = Injector.create({providers: []});
+      const fixture = TestBed.createComponent(GrandParent);
+      fixture.detectChanges();
 
-         fixture.componentInstance.parent.trigger.open(injector);
-         fixture.detectChanges();
+      fixture.componentInstance.parent.trigger.open(injector);
+      fixture.detectChanges();
 
-         expect(fixture.componentInstance.parent.menu.tokenValue).toBe('hello from grandparent');
-       });
+      expect(fixture.componentInstance.parent.menu.tokenValue).toBe('hello from grandparent');
+    });
 
     it('should be able to use a custom injector when created through TemplateRef', () => {
-      let injectedValue: string|undefined;
+      let injectedValue: string | undefined;
 
-      @Directive({selector: 'menu'})
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
       class Menu {
         constructor(@Inject(token) tokenValue: string) {
           injectedValue = tokenValue;
@@ -4798,7 +6145,8 @@ describe('di', () => {
           <ng-template>
             <menu></menu>
           </ng-template>
-        `
+        `,
+        standalone: false,
       })
       class App {
         @ViewChild(TemplateRef) template!: TemplateRef<unknown>;
@@ -4807,14 +6155,14 @@ describe('di', () => {
       @NgModule({
         declarations: [App, Menu],
         exports: [App, Menu],
-        providers: [{provide: token, useValue: 'hello from module'}]
+        providers: [{provide: token, useValue: 'hello from module'}],
       })
-      class Module {
-      }
+      class Module {}
 
       TestBed.configureTestingModule({imports: [Module]});
-      const injector =
-          Injector.create({providers: [{provide: token, useValue: 'hello from injector'}]});
+      const injector = Injector.create({
+        providers: [{provide: token, useValue: 'hello from injector'}],
+      });
       const fixture = TestBed.createComponent(App);
       fixture.detectChanges();
 
@@ -4824,77 +6172,85 @@ describe('di', () => {
       expect(injectedValue).toBe('hello from injector');
     });
 
-    it('should use a custom injector when the view is created outside of the declaration view',
-       () => {
-         const declarerToken = new InjectionToken<string>('declarerToken');
-         const creatorToken = new InjectionToken<string>('creatorToken');
+    it('should use a custom injector when the view is created outside of the declaration view', () => {
+      const declarerToken = new InjectionToken<string>('declarerToken');
+      const creatorToken = new InjectionToken<string>('creatorToken');
 
-         @Directive({selector: 'menu'})
-         class Menu {
-           constructor(
-               @Inject(token) public tokenValue: string,
-               @Optional() @Inject(declarerToken) public declarerTokenValue: string,
-               @Optional() @Inject(creatorToken) public creatorTokenValue: string) {}
-         }
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
+      class Menu {
+        constructor(
+          @Inject(token) public tokenValue: string,
+          @Optional() @Inject(declarerToken) public declarerTokenValue: string,
+          @Optional() @Inject(creatorToken) public creatorTokenValue: string,
+        ) {}
+      }
 
-         @Component({
-           selector: 'declarer',
-           template: '<ng-template><menu></menu></ng-template>',
-           providers: [{provide: declarerToken, useValue: 'hello from declarer'}]
-         })
-         class Declarer {
-           @ViewChild(Menu) menu!: Menu;
-           @ViewChild(TemplateRef) template!: TemplateRef<unknown>;
-         }
+      @Component({
+        selector: 'declarer',
+        template: '<ng-template><menu></menu></ng-template>',
+        providers: [{provide: declarerToken, useValue: 'hello from declarer'}],
+        standalone: false,
+      })
+      class Declarer {
+        @ViewChild(Menu) menu!: Menu;
+        @ViewChild(TemplateRef) template!: TemplateRef<unknown>;
+      }
 
-         @Component({
-           selector: 'creator',
-           template: '<menu-trigger></menu-trigger>',
-           providers: [{provide: creatorToken, useValue: 'hello from creator'}]
-         })
-         class Creator {
-           @ViewChild(MenuTrigger) trigger!: MenuTrigger;
-         }
+      @Component({
+        selector: 'creator',
+        template: '<menu-trigger></menu-trigger>',
+        providers: [{provide: creatorToken, useValue: 'hello from creator'}],
+        standalone: false,
+      })
+      class Creator {
+        @ViewChild(MenuTrigger) trigger!: MenuTrigger;
+      }
 
-         @Component({
-           template: `
+      @Component({
+        template: `
               <declarer></declarer>
               <creator></creator>
-            `
-         })
-         class App {
-           @ViewChild(Declarer) declarer!: Declarer;
-           @ViewChild(Creator) creator!: Creator;
-         }
+            `,
+        standalone: false,
+      })
+      class App {
+        @ViewChild(Declarer) declarer!: Declarer;
+        @ViewChild(Creator) creator!: Creator;
+      }
 
-         TestBed.configureTestingModule(
-             {declarations: [App, MenuTrigger, Menu, Declarer, Creator]});
-         const injector = Injector.create({providers: [{provide: token, useValue: 'hello'}]});
-         const fixture = TestBed.createComponent(App);
-         fixture.detectChanges();
-         const {declarer, creator} = fixture.componentInstance;
+      TestBed.configureTestingModule({declarations: [App, MenuTrigger, Menu, Declarer, Creator]});
+      const injector = Injector.create({providers: [{provide: token, useValue: 'hello'}]});
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
+      const {declarer, creator} = fixture.componentInstance;
 
-         creator.trigger.menu = declarer.template;
-         creator.trigger.open(injector);
-         fixture.detectChanges();
+      creator.trigger.menu = declarer.template;
+      creator.trigger.open(injector);
+      fixture.detectChanges();
 
-         expect(declarer.menu.tokenValue).toBe('hello');
-         expect(declarer.menu.declarerTokenValue).toBe('hello from declarer');
-         expect(declarer.menu.creatorTokenValue).toBeNull();
-       });
+      expect(declarer.menu.tokenValue).toBe('hello');
+      expect(declarer.menu.declarerTokenValue).toBe('hello from declarer');
+      expect(declarer.menu.creatorTokenValue).toBeNull();
+    });
 
     it('should give precedence to value provided lower in the tree over custom injector', () => {
-      @Directive({selector: 'menu'})
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
       class Menu {
         constructor(@Inject(token) public tokenValue: string) {}
       }
 
       @Directive({
         selector: '[provide-token]',
-        providers: [{provide: token, useValue: 'hello from directive'}]
+        providers: [{provide: token, useValue: 'hello from directive'}],
+        standalone: false,
       })
-      class ProvideToken {
-      }
+      class ProvideToken {}
 
       @Component({
         template: `
@@ -4907,7 +6263,8 @@ describe('di', () => {
             </section>
           </ng-template>
         `,
-        providers: [{provide: token, useValue: 'hello from parent'}]
+        providers: [{provide: token, useValue: 'hello from parent'}],
+        standalone: false,
       })
       class App {
         @ViewChild(MenuTrigger) trigger!: MenuTrigger;
@@ -4918,12 +6275,12 @@ describe('di', () => {
         declarations: [App, MenuTrigger, Menu, ProvideToken],
         exports: [App, MenuTrigger, Menu, ProvideToken],
       })
-      class Module {
-      }
+      class Module {}
 
       TestBed.configureTestingModule({imports: [Module]});
-      const injector =
-          Injector.create({providers: [{provide: token, useValue: 'hello from injector'}]});
+      const injector = Injector.create({
+        providers: [{provide: token, useValue: 'hello from injector'}],
+      });
       const fixture = TestBed.createComponent(App);
       fixture.detectChanges();
 
@@ -4933,22 +6290,24 @@ describe('di', () => {
       expect(fixture.componentInstance.menu.tokenValue).toBe('hello from directive');
     });
 
-    it('should give precedence to value provided in custom injector over one provided higher',
-       () => {
-         @Directive({selector: 'menu'})
-         class Menu {
-           constructor(@Inject(token) public tokenValue: string) {}
-         }
+    it('should give precedence to value provided in custom injector over one provided higher', () => {
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
+      class Menu {
+        constructor(@Inject(token) public tokenValue: string) {}
+      }
 
-         @Directive({
-           selector: '[provide-token]',
-           providers: [{provide: token, useValue: 'hello from directive'}]
-         })
-         class ProvideToken {
-         }
+      @Directive({
+        selector: '[provide-token]',
+        providers: [{provide: token, useValue: 'hello from directive'}],
+        standalone: false,
+      })
+      class ProvideToken {}
 
-         @Component({
-           template: `
+      @Component({
+        template: `
               <menu-trigger [triggerFor]="menuTemplate"></menu-trigger>
               <div provide-token>
                 <ng-template #menuTemplate>
@@ -4956,53 +6315,60 @@ describe('di', () => {
                 </ng-template>
               </div>
             `,
-           providers: [{provide: token, useValue: 'hello from parent'}]
-         })
-         class App {
-           @ViewChild(MenuTrigger) trigger!: MenuTrigger;
-           @ViewChild(Menu) menu!: Menu;
-         }
+        providers: [{provide: token, useValue: 'hello from parent'}],
+        standalone: false,
+      })
+      class App {
+        @ViewChild(MenuTrigger) trigger!: MenuTrigger;
+        @ViewChild(Menu) menu!: Menu;
+      }
 
-         @NgModule({
-           declarations: [App, MenuTrigger, Menu, ProvideToken],
-           exports: [App, MenuTrigger, Menu, ProvideToken],
-         })
-         class Module {
-         }
+      @NgModule({
+        declarations: [App, MenuTrigger, Menu, ProvideToken],
+        exports: [App, MenuTrigger, Menu, ProvideToken],
+      })
+      class Module {}
 
-         TestBed.configureTestingModule({imports: [Module]});
-         const injector =
-             Injector.create({providers: [{provide: token, useValue: 'hello from injector'}]});
-         const fixture = TestBed.createComponent(App);
-         fixture.detectChanges();
+      TestBed.configureTestingModule({imports: [Module]});
+      const injector = Injector.create({
+        providers: [{provide: token, useValue: 'hello from injector'}],
+      });
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
 
-         fixture.componentInstance.trigger.open(injector);
-         fixture.detectChanges();
+      fixture.componentInstance.trigger.open(injector);
+      fixture.detectChanges();
 
-         expect(fixture.componentInstance.menu.tokenValue).toBe('hello from injector');
-       });
+      expect(fixture.componentInstance.menu.tokenValue).toBe('hello from injector');
+    });
 
-    it('should give precedence to value provided lower in the tree over custom injector when crossing view boundaries',
-       () => {
-         @Directive({selector: 'menu'})
-         class Menu {
-           constructor(@Inject(token) public tokenValue: string) {}
-         }
+    it('should give precedence to value provided lower in the tree over custom injector when crossing view boundaries', () => {
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
+      class Menu {
+        constructor(@Inject(token) public tokenValue: string) {}
+      }
 
-         @Directive({
-           selector: '[provide-token]',
-           providers: [{provide: token, useValue: 'hello from directive'}]
-         })
-         class ProvideToken {
-         }
+      @Directive({
+        selector: '[provide-token]',
+        providers: [{provide: token, useValue: 'hello from directive'}],
+        standalone: false,
+      })
+      class ProvideToken {}
 
-         @Component({selector: 'wrapper', template: `<div><menu></menu></div>`})
-         class Wrapper {
-           @ViewChild(Menu) menu!: Menu;
-         }
+      @Component({
+        selector: 'wrapper',
+        template: `<div><menu></menu></div>`,
+        standalone: false,
+      })
+      class Wrapper {
+        @ViewChild(Menu) menu!: Menu;
+      }
 
-         @Component({
-           template: `
+      @Component({
+        template: `
               <menu-trigger [triggerFor]="menuTemplate"></menu-trigger>
               <ng-template #menuTemplate>
                 <section provide-token>
@@ -5010,54 +6376,60 @@ describe('di', () => {
                 </section>
               </ng-template>
             `,
-           providers: [{provide: token, useValue: 'hello from parent'}]
-         })
-         class App {
-           @ViewChild(MenuTrigger) trigger!: MenuTrigger;
-           @ViewChild(Wrapper) wrapper!: Wrapper;
-         }
+        providers: [{provide: token, useValue: 'hello from parent'}],
+        standalone: false,
+      })
+      class App {
+        @ViewChild(MenuTrigger) trigger!: MenuTrigger;
+        @ViewChild(Wrapper) wrapper!: Wrapper;
+      }
 
-         @NgModule({
-           declarations: [App, MenuTrigger, Menu, ProvideToken, Wrapper],
-           exports: [App, MenuTrigger, Menu, ProvideToken, Wrapper],
-         })
-         class Module {
-         }
+      @NgModule({
+        declarations: [App, MenuTrigger, Menu, ProvideToken, Wrapper],
+        exports: [App, MenuTrigger, Menu, ProvideToken, Wrapper],
+      })
+      class Module {}
 
-         TestBed.configureTestingModule({imports: [Module]});
-         const injector =
-             Injector.create({providers: [{provide: token, useValue: 'hello from injector'}]});
-         const fixture = TestBed.createComponent(App);
-         fixture.detectChanges();
+      TestBed.configureTestingModule({imports: [Module]});
+      const injector = Injector.create({
+        providers: [{provide: token, useValue: 'hello from injector'}],
+      });
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
 
-         fixture.componentInstance.trigger.open(injector);
-         fixture.detectChanges();
+      fixture.componentInstance.trigger.open(injector);
+      fixture.detectChanges();
 
-         expect(fixture.componentInstance.wrapper.menu.tokenValue).toBe('hello from directive');
-       });
+      expect(fixture.componentInstance.wrapper.menu.tokenValue).toBe('hello from directive');
+    });
 
-    it('should give precedence to value provided in custom injector over one provided higher when crossing view boundaries',
-       () => {
-         @Directive({selector: 'menu'})
-         class Menu {
-           constructor(@Inject(token) public tokenValue: string) {}
-         }
+    it('should give precedence to value provided in custom injector over one provided higher when crossing view boundaries', () => {
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
+      class Menu {
+        constructor(@Inject(token) public tokenValue: string) {}
+      }
 
-         @Directive({
-           selector: '[provide-token]',
-           providers: [{provide: token, useValue: 'hello from directive'}]
-         })
-         class ProvideToken {
-         }
+      @Directive({
+        selector: '[provide-token]',
+        providers: [{provide: token, useValue: 'hello from directive'}],
+        standalone: false,
+      })
+      class ProvideToken {}
 
-         @Component({selector: 'wrapper', template: `<div><menu></menu></div>`})
-         class Wrapper {
-           @ViewChild(Menu) menu!: Menu;
-         }
+      @Component({
+        selector: 'wrapper',
+        template: `<div><menu></menu></div>`,
+        standalone: false,
+      })
+      class Wrapper {
+        @ViewChild(Menu) menu!: Menu;
+      }
 
-
-         @Component({
-           template: `
+      @Component({
+        template: `
               <menu-trigger [triggerFor]="menuTemplate"></menu-trigger>
               <div provide-token>
                 <ng-template #menuTemplate>
@@ -5065,44 +6437,48 @@ describe('di', () => {
                 </ng-template>
               </div>
             `,
-           providers: [{provide: token, useValue: 'hello from parent'}]
-         })
-         class App {
-           @ViewChild(MenuTrigger) trigger!: MenuTrigger;
-           @ViewChild(Wrapper) wrapper!: Wrapper;
-         }
+        providers: [{provide: token, useValue: 'hello from parent'}],
+        standalone: false,
+      })
+      class App {
+        @ViewChild(MenuTrigger) trigger!: MenuTrigger;
+        @ViewChild(Wrapper) wrapper!: Wrapper;
+      }
 
-         @NgModule({
-           declarations: [App, MenuTrigger, Menu, ProvideToken, Wrapper],
-           exports: [App, MenuTrigger, Menu, ProvideToken, Wrapper],
-         })
-         class Module {
-         }
+      @NgModule({
+        declarations: [App, MenuTrigger, Menu, ProvideToken, Wrapper],
+        exports: [App, MenuTrigger, Menu, ProvideToken, Wrapper],
+      })
+      class Module {}
 
-         TestBed.configureTestingModule({imports: [Module]});
-         const injector =
-             Injector.create({providers: [{provide: token, useValue: 'hello from injector'}]});
-         const fixture = TestBed.createComponent(App);
-         fixture.detectChanges();
+      TestBed.configureTestingModule({imports: [Module]});
+      const injector = Injector.create({
+        providers: [{provide: token, useValue: 'hello from injector'}],
+      });
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
 
-         fixture.componentInstance.trigger.open(injector);
-         fixture.detectChanges();
+      fixture.componentInstance.trigger.open(injector);
+      fixture.detectChanges();
 
-         expect(fixture.componentInstance.wrapper.menu.tokenValue).toBe('hello from injector');
-       });
+      expect(fixture.componentInstance.wrapper.menu.tokenValue).toBe('hello from injector');
+    });
 
     it('should not resolve value at insertion location', () => {
-      @Directive({selector: 'menu'})
+      @Directive({
+        selector: 'menu',
+        standalone: false,
+      })
       class Menu {
         constructor(@Inject(token) public tokenValue: string) {}
       }
 
       @Directive({
         selector: '[provide-token]',
-        providers: [{provide: token, useValue: 'hello from directive'}]
+        providers: [{provide: token, useValue: 'hello from directive'}],
+        standalone: false,
       })
-      class ProvideToken {
-      }
+      class ProvideToken {}
 
       @Component({
         template: `
@@ -5114,7 +6490,8 @@ describe('di', () => {
             <menu></menu>
           </ng-template>
         `,
-        providers: [{provide: token, useValue: 'hello from parent'}]
+        providers: [{provide: token, useValue: 'hello from parent'}],
+        standalone: false,
       })
       class App {
         @ViewChild(MenuTrigger) trigger!: MenuTrigger;
@@ -5125,8 +6502,7 @@ describe('di', () => {
         declarations: [App, MenuTrigger, Menu, ProvideToken],
         exports: [App, MenuTrigger, Menu, ProvideToken],
       })
-      class Module {
-      }
+      class Module {}
 
       TestBed.configureTestingModule({imports: [Module]});
       // Provide an empty injector so we hit the new code path.
@@ -5145,11 +6521,11 @@ describe('di', () => {
     const token = new InjectionToken('token');
 
     @NgModule({providers: [{provide: token, useValue: 'module'}]})
-    class ModuleWithProvider {
-    }
+    class ModuleWithProvider {}
 
-    const injector =
-        createInjector(ModuleWithProvider, null, [{provide: token, useValue: 'additional'}]);
+    const injector = createInjector(ModuleWithProvider, null, [
+      {provide: token, useValue: 'additional'},
+    ]);
 
     expect(injector.get(token)).toBe('module');
   });

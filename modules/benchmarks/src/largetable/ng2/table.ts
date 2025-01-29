@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, Input, NgModule} from '@angular/core';
@@ -16,13 +16,19 @@ let trustedGreyColor: SafeStyle;
 
 @Component({
   selector: 'largetable',
-  template: `<table><tbody>
-    <tr *ngFor="let row of data; trackBy: trackByIndex">
-      <td *ngFor="let cell of row; trackBy: trackByIndex" [style.backgroundColor]="getColor(cell.row)">
-      {{cell.value}}
-      </td>
-    </tr>
-  </tbody></table>`,
+  template: `<table>
+    <tbody>
+      <tr *ngFor="let row of data; trackBy: trackByIndex">
+        <td
+          *ngFor="let cell of row; trackBy: trackByIndex"
+          [style.backgroundColor]="getColor(cell.row)"
+        >
+          {{ cell.value }}
+        </td>
+      </tr>
+    </tbody>
+  </table>`,
+  standalone: false,
 })
 export class TableComponent {
   @Input() data: TableCell[][] = emptyTable;

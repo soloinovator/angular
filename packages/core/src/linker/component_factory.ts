@@ -3,17 +3,17 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ChangeDetectorRef} from '../change_detection/change_detection';
-import {Injector} from '../di/injector';
-import {EnvironmentInjector} from '../di/r3_injector';
+import type {ChangeDetectorRef} from '../change_detection/change_detection';
+import type {Injector} from '../di/injector';
+import type {EnvironmentInjector} from '../di/r3_injector';
 import {Type} from '../interface/type';
 
-import {ElementRef} from './element_ref';
-import {NgModuleRef} from './ng_module_factory';
-import {ViewRef} from './view_ref';
+import type {ElementRef} from './element_ref';
+import type {NgModuleRef} from './ng_module_factory';
+import type {ViewRef} from './view_ref';
 
 /**
  * Represents a component created by a `ComponentFactory`.
@@ -34,12 +34,12 @@ export abstract class ComponentRef<C> {
   abstract setInput(name: string, value: unknown): void;
 
   /**
-   * The host or anchor [element](guide/glossary#element) for this component instance.
+   * The host or anchor element for this component instance.
    */
   abstract get location(): ElementRef;
 
   /**
-   * The [dependency injector](guide/glossary#injector) for this component instance.
+   * The dependency injector for this component instance.
    */
   abstract get injector(): Injector;
 
@@ -49,7 +49,7 @@ export abstract class ComponentRef<C> {
   abstract get instance(): C;
 
   /**
-   * The [host view](guide/glossary#view-tree) defined by the template
+   * The host view defined by the template
    * for this component instance.
    */
   abstract get hostView(): ViewRef;
@@ -83,8 +83,6 @@ export abstract class ComponentRef<C> {
  * Instantiate a factory for a given type of component with `resolveComponentFactory()`.
  * Use the resulting `ComponentFactory.create()` method to create a component of that type.
  *
- * @see [Dynamic Components](guide/dynamic-component-loader)
- *
  * @publicApi
  *
  * @deprecated Angular no longer requires Component factories. Please use other APIs where
@@ -106,15 +104,23 @@ export abstract class ComponentFactory<C> {
   /**
    * The inputs of the component.
    */
-  abstract get inputs(): {propName: string, templateName: string}[];
+  abstract get inputs(): {
+    propName: string;
+    templateName: string;
+    transform?: (value: any) => any;
+    isSignal: boolean;
+  }[];
   /**
    * The outputs of the component.
    */
-  abstract get outputs(): {propName: string, templateName: string}[];
+  abstract get outputs(): {propName: string; templateName: string}[];
   /**
    * Creates a new component.
    */
   abstract create(
-      injector: Injector, projectableNodes?: any[][], rootSelectorOrNode?: string|any,
-      environmentInjector?: EnvironmentInjector|NgModuleRef<any>): ComponentRef<C>;
+    injector: Injector,
+    projectableNodes?: any[][],
+    rootSelectorOrNode?: string | any,
+    environmentInjector?: EnvironmentInjector | NgModuleRef<any>,
+  ): ComponentRef<C>;
 }

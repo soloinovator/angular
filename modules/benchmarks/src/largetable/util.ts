@@ -3,13 +3,17 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {getIntParameter} from '../util';
 
 export class TableCell {
-  constructor(public row: number, public col: number, public value: string) {}
+  constructor(
+    public row: number,
+    public col: number,
+    public value: string,
+  ) {}
 }
 
 let tableCreateCount: number;

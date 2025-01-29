@@ -3,23 +3,24 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {StaticProvider} from '@angular/core';
 
 import {WebDriverAdapter} from '../web_driver_adapter';
 
-
 /**
  * Adapter for the selenium-webdriver.
  */
 export class SeleniumWebDriverAdapter extends WebDriverAdapter {
-  static PROTRACTOR_PROVIDERS = <StaticProvider[]>[{
-    provide: WebDriverAdapter,
-    useFactory: () => new SeleniumWebDriverAdapter((<any>global).browser),
-    deps: []
-  }];
+  static PROTRACTOR_PROVIDERS = <StaticProvider[]>[
+    {
+      provide: WebDriverAdapter,
+      useFactory: () => new SeleniumWebDriverAdapter((<any>global).browser),
+      deps: [],
+    },
+  ];
 
   constructor(private _driver: any) {
     super();
@@ -51,8 +52,9 @@ export class SeleniumWebDriverAdapter extends WebDriverAdapter {
     // Needed as selenium-webdriver does not forward
     // performance logs in the correct way via manage().logs
     return this._driver.schedule(
-        new Command('getLog').setParameter('type', type),
-        'WebDriver.manage().logs().get(' + type + ')');
+      new Command('getLog').setParameter('type', type),
+      'WebDriver.manage().logs().get(' + type + ')',
+    );
   }
 }
 

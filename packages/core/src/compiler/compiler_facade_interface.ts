@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 /**
@@ -15,7 +15,7 @@
  *  - packages/core/src/compiler/compiler_facade_interface.ts     (replica)
  *
  * Please ensure that the two files are in sync using this command:
- * ```
+ * ```shell
  * cp packages/compiler/src/compiler_facade_interface.ts \
  *    packages/core/src/compiler/compiler_facade_interface.ts
  * ```
@@ -26,61 +26,91 @@ export interface ExportedCompilerFacade {
 }
 
 export interface CompilerFacade {
-  compilePipe(angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3PipeMetadataFacade):
-      any;
+  compilePipe(
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    meta: R3PipeMetadataFacade,
+  ): any;
   compilePipeDeclaration(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string, declaration: R3DeclarePipeFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    declaration: R3DeclarePipeFacade,
+  ): any;
   compileInjectable(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3InjectableMetadataFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    meta: R3InjectableMetadataFacade,
+  ): any;
   compileInjectableDeclaration(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3DeclareInjectableFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    meta: R3DeclareInjectableFacade,
+  ): any;
   compileInjector(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3InjectorMetadataFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    meta: R3InjectorMetadataFacade,
+  ): any;
   compileInjectorDeclaration(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string,
-      declaration: R3DeclareInjectorFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    declaration: R3DeclareInjectorFacade,
+  ): any;
   compileNgModule(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3NgModuleMetadataFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    meta: R3NgModuleMetadataFacade,
+  ): any;
   compileNgModuleDeclaration(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string,
-      declaration: R3DeclareNgModuleFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    declaration: R3DeclareNgModuleFacade,
+  ): any;
   compileDirective(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3DirectiveMetadataFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    meta: R3DirectiveMetadataFacade,
+  ): any;
   compileDirectiveDeclaration(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string,
-      declaration: R3DeclareDirectiveFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    declaration: R3DeclareDirectiveFacade,
+  ): any;
   compileComponent(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3ComponentMetadataFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    meta: R3ComponentMetadataFacade,
+  ): any;
   compileComponentDeclaration(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string,
-      declaration: R3DeclareComponentFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    declaration: R3DeclareComponentFacade,
+  ): any;
   compileFactory(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3FactoryDefMetadataFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    meta: R3FactoryDefMetadataFacade,
+  ): any;
   compileFactoryDeclaration(
-      angularCoreEnv: CoreEnvironment, sourceMapUrl: string, meta: R3DeclareFactoryFacade): any;
+    angularCoreEnv: CoreEnvironment,
+    sourceMapUrl: string,
+    meta: R3DeclareFactoryFacade,
+  ): any;
 
   createParseSourceSpan(kind: string, typeName: string, sourceUrl: string): ParseSourceSpan;
 
   FactoryTarget: typeof FactoryTarget;
   // Note that we do not use `{new(): ResourceLoader}` here because
   // the resource loader class is abstract and not constructable.
-  ResourceLoader: Function&{prototype: ResourceLoader};
+  ResourceLoader: Function & {prototype: ResourceLoader};
 }
 
 export interface CoreEnvironment {
-  [name: string]: Function;
+  [name: string]: unknown;
 }
 
 export type ResourceLoader = {
-  get(url: string): Promise<string>|string;
-};
-
-export type StringMap = {
-  [key: string]: string;
-};
-
-export type StringMapWithRename = {
-  [key: string]: string|[string, string];
+  get(url: string): Promise<string> | string;
 };
 
 export type Provider = unknown;
@@ -97,7 +127,7 @@ export enum FactoryTarget {
 
 export interface R3DependencyMetadataFacade {
   token: OpaqueValue;
-  attribute: string|null;
+  attribute: string | null;
   host: boolean;
   optional: boolean;
   self: boolean;
@@ -125,7 +155,7 @@ export interface R3InjectableMetadataFacade {
   name: string;
   type: Type;
   typeArgumentCount: number;
-  providedIn?: Type|'root'|'platform'|'any'|null;
+  providedIn?: Type | 'root' | 'platform' | 'any' | null;
   useClass?: OpaqueValue;
   useFactory?: OpaqueValue;
   useExisting?: OpaqueValue;
@@ -139,8 +169,8 @@ export interface R3NgModuleMetadataFacade {
   declarations: Function[];
   imports: Function[];
   exports: Function[];
-  schemas: {name: string}[]|null;
-  id: string|null;
+  schemas: {name: string}[] | null;
+  id: string | null;
 }
 
 export interface R3InjectorMetadataFacade {
@@ -160,37 +190,55 @@ export interface R3DirectiveMetadataFacade {
   name: string;
   type: Type;
   typeSourceSpan: ParseSourceSpan;
-  selector: string|null;
+  selector: string | null;
   queries: R3QueryMetadataFacade[];
   host: {[key: string]: string};
   propMetadata: {[key: string]: OpaqueValue[]};
-  lifecycle: {usesOnChanges: boolean;};
-  inputs: string[];
+  lifecycle: {usesOnChanges: boolean};
+  inputs: (string | {name: string; alias?: string; required?: boolean})[];
   outputs: string[];
   usesInheritance: boolean;
-  exportAs: string[]|null;
-  providers: Provider[]|null;
+  exportAs: string[] | null;
+  providers: Provider[] | null;
   viewQueries: R3QueryMetadataFacade[];
   isStandalone: boolean;
-  hostDirectives: R3HostDirectiveMetadataFacade[]|null;
+  isSignal: boolean;
+  hostDirectives: R3HostDirectiveMetadataFacade[] | null;
 }
 
 export interface R3ComponentMetadataFacade extends R3DirectiveMetadataFacade {
   template: string;
   preserveWhitespaces: boolean;
-  animations: OpaqueValue[]|undefined;
+  animations: OpaqueValue[] | undefined;
   declarations: R3TemplateDependencyFacade[];
   styles: string[];
   encapsulation: ViewEncapsulation;
-  viewProviders: Provider[]|null;
+  viewProviders: Provider[] | null;
   interpolation?: [string, string];
   changeDetection?: ChangeDetectionStrategy;
 }
 
+// TODO(legacy-partial-output-inputs): Remove in v18.
+// https://github.com/angular/angular/blob/d4b423690210872b5c32a322a6090beda30b05a3/packages/core/src/compiler/compiler_facade_interface.ts#L197-L199
+export type LegacyInputPartialMapping =
+  | string
+  | [bindingPropertyName: string, classPropertyName: string, transformFunction?: Function];
+
 export interface R3DeclareDirectiveFacade {
   selector?: string;
   type: Type;
-  inputs?: {[classPropertyName: string]: string|[string, string]};
+  version: string;
+  inputs?: {
+    [fieldName: string]:
+      | {
+          classPropertyName: string;
+          publicName: string;
+          isSignal: boolean;
+          isRequired: boolean;
+          transformFunction: Function | null;
+        }
+      | LegacyInputPartialMapping;
+  };
   outputs?: {[classPropertyName: string]: string};
   host?: {
     attributes?: {[key: string]: OpaqueValue};
@@ -206,7 +254,8 @@ export interface R3DeclareDirectiveFacade {
   usesInheritance?: boolean;
   usesOnChanges?: boolean;
   isStandalone?: boolean;
-  hostDirectives?: R3HostDirectiveMetadataFacade[]|null;
+  hostDirectives?: R3HostDirectiveMetadataFacade[] | null;
+  isSignal?: boolean;
 }
 
 export interface R3DeclareComponentFacade extends R3DeclareDirectiveFacade {
@@ -220,9 +269,9 @@ export interface R3DeclareComponentFacade extends R3DeclareDirectiveFacade {
   // Pre-standalone libraries have separate component/directive/pipe fields:
   components?: R3DeclareDirectiveDependencyFacade[];
   directives?: R3DeclareDirectiveDependencyFacade[];
-  pipes?: {[pipeName: string]: OpaqueValue|(() => OpaqueValue)};
+  pipes?: {[pipeName: string]: OpaqueValue | (() => OpaqueValue)};
 
-
+  deferBlockDependencies?: (() => Promise<Type> | null)[];
   viewProviders?: OpaqueValue;
   animations?: OpaqueValue;
   changeDetection?: ChangeDetectionStrategy;
@@ -232,14 +281,17 @@ export interface R3DeclareComponentFacade extends R3DeclareDirectiveFacade {
 }
 
 export type R3DeclareTemplateDependencyFacade = {
-  kind: string
-}&(R3DeclareDirectiveDependencyFacade|R3DeclarePipeDependencyFacade|
-   R3DeclareNgModuleDependencyFacade);
+  kind: string;
+} & (
+  | R3DeclareDirectiveDependencyFacade
+  | R3DeclarePipeDependencyFacade
+  | R3DeclareNgModuleDependencyFacade
+);
 
 export interface R3DeclareDirectiveDependencyFacade {
-  kind?: 'directive'|'component';
+  kind?: 'directive' | 'component';
   selector: string;
-  type: OpaqueValue|(() => OpaqueValue);
+  type: OpaqueValue | (() => OpaqueValue);
   inputs?: string[];
   outputs?: string[];
   exportAs?: string[];
@@ -248,12 +300,12 @@ export interface R3DeclareDirectiveDependencyFacade {
 export interface R3DeclarePipeDependencyFacade {
   kind?: 'pipe';
   name: string;
-  type: OpaqueValue|(() => OpaqueValue);
+  type: OpaqueValue | (() => OpaqueValue);
 }
 
 export interface R3DeclareNgModuleDependencyFacade {
   kind: 'ngmodule';
-  type: OpaqueValue|(() => OpaqueValue);
+  type: OpaqueValue | (() => OpaqueValue);
 }
 
 export enum R3TemplateDependencyKind {
@@ -264,25 +316,25 @@ export enum R3TemplateDependencyKind {
 
 export interface R3TemplateDependencyFacade {
   kind: R3TemplateDependencyKind;
-  type: OpaqueValue|(() => OpaqueValue);
+  type: OpaqueValue | (() => OpaqueValue);
 }
 export interface R3FactoryDefMetadataFacade {
   name: string;
   type: Type;
   typeArgumentCount: number;
-  deps: R3DependencyMetadataFacade[]|null;
+  deps: R3DependencyMetadataFacade[] | null;
   target: FactoryTarget;
 }
 
 export interface R3DeclareFactoryFacade {
   type: Type;
-  deps: R3DeclareDependencyMetadataFacade[]|'invalid'|null;
+  deps: R3DeclareDependencyMetadataFacade[] | 'invalid' | null;
   target: FactoryTarget;
 }
 
 export interface R3DeclareInjectableFacade {
   type: Type;
-  providedIn?: Type|'root'|'platform'|'any'|null;
+  providedIn?: Type | 'root' | 'platform' | 'any' | null;
   useClass?: OpaqueValue;
   useFactory?: OpaqueValue;
   useExisting?: OpaqueValue;
@@ -294,7 +346,7 @@ export enum ViewEncapsulation {
   Emulated = 0,
   // Historically the 1 value was for `Native` encapsulation which has been removed as of v11.
   None = 2,
-  ShadowDom = 3
+  ShadowDom = 3,
 }
 
 export type ChangeDetectionStrategy = number;
@@ -302,21 +354,23 @@ export type ChangeDetectionStrategy = number;
 export interface R3QueryMetadataFacade {
   propertyName: string;
   first: boolean;
-  predicate: OpaqueValue|string[];
+  predicate: OpaqueValue | string[];
   descendants: boolean;
   emitDistinctChangesOnly: boolean;
-  read: OpaqueValue|null;
+  read: OpaqueValue | null;
   static: boolean;
+  isSignal: boolean;
 }
 
 export interface R3DeclareQueryMetadataFacade {
   propertyName: string;
   first?: boolean;
-  predicate: OpaqueValue|string[];
+  predicate: OpaqueValue | string[];
   descendants?: boolean;
   read?: OpaqueValue;
   static?: boolean;
   emitDistinctChangesOnly?: boolean;
+  isSignal?: boolean;
 }
 
 export interface R3DeclareInjectorFacade {
@@ -327,10 +381,10 @@ export interface R3DeclareInjectorFacade {
 
 export interface R3DeclareNgModuleFacade {
   type: Type;
-  bootstrap?: OpaqueValue[]|(() => OpaqueValue[]);
-  declarations?: OpaqueValue[]|(() => OpaqueValue[]);
-  imports?: OpaqueValue[]|(() => OpaqueValue[]);
-  exports?: OpaqueValue[]|(() => OpaqueValue[]);
+  bootstrap?: OpaqueValue[] | (() => OpaqueValue[]);
+  declarations?: OpaqueValue[] | (() => OpaqueValue[]);
+  imports?: OpaqueValue[] | (() => OpaqueValue[]);
+  exports?: OpaqueValue[] | (() => OpaqueValue[]);
   schemas?: OpaqueValue[];
   id?: OpaqueValue;
 }
@@ -338,6 +392,7 @@ export interface R3DeclareNgModuleFacade {
 export interface R3DeclarePipeFacade {
   type: Type;
   name: string;
+  version: string;
   pure?: boolean;
   isStandalone?: boolean;
 }

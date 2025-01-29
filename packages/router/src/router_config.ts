@@ -3,27 +3,12 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {InjectionToken} from '@angular/core';
 
-import {OnSameUrlNavigation} from './models';
-import {UrlSerializer, UrlTree} from './url_tree';
-
-const NG_DEV_MODE = typeof ngDevMode === 'undefined' || !!ngDevMode;
-
-/**
- * Error handler that is invoked when a navigation error occurs.
- *
- * If the handler returns a value, the navigation Promise is resolved with this value.
- * If the handler throws an exception, the navigation Promise is rejected with
- * the exception.
- *
- * @publicApi
- * @deprecated Subscribe to the `Router` events and watch for `NavigationError` instead.
- */
-export type ErrorHandler = (error: any) => any;
+import {OnSameUrlNavigation, QueryParamsHandling, RedirectCommand} from './models';
 
 /**
  * Allowed values in an `ExtraOptions` object that configure
@@ -33,18 +18,19 @@ export type ErrorHandler = (error: any) => any;
  * root component has been created. The bootstrap is not blocked on the completion of the initial
  * navigation.
  * * 'enabledBlocking' - The initial navigation starts before the root component is created.
- * The bootstrap is blocked until the initial navigation is complete. This value is required
- * for [server-side rendering](guide/universal) to work.
+ * The bootstrap is blocked until the initial navigation is complete. This value should be set in
+ * case you use [server-side rendering](guide/ssr), but do not enable [hydration](guide/hydration)
+ * for your application.
  * * 'disabled' - The initial navigation is not performed. The location listener is set up before
  * the root component gets created. Use if there is a reason to have
  * more control over when the router starts its initial navigation due to some complex
  * initialization logic.
  *
- * @see `forRoot()`
+ * @see {@link forRoot()}
  *
  * @publicApi
  */
-export type InitialNavigation = 'disabled'|'enabledBlocking'|'enabledNonBlocking';
+export type InitialNavigation = 'disabled' | 'enabledBlocking' | 'enabledNonBlocking';
 
 /**
  * Extra configuration options that can be used with the `withRouterConfig` function.
@@ -73,21 +59,24 @@ export interface RouterConfigOptions {
    *
    * The default value is `replace` when not set.
    */
-  canceledNavigationResolution?: 'replace'|'computed';
+  canceledNavigationResolution?: 'replace' | 'computed';
 
   /**
    * Configures the default for handling a navigation request to the current URL.
    *
    * If unset, the `Router` will use `'ignore'`.
    *
-   * @see `OnSameUrlNavigation`
+   * @see {@link OnSameUrlNavigation}
    */
   onSameUrlNavigation?: OnSameUrlNavigation;
 
   /**
    * Defines how the router merges parameters, data, and resolved data from parent to child
-   * routes. By default ('emptyOnly'), inherits parent parameters only for
-   * path-less or component-less routes.
+   * routes.
+   *
+   * By default ('emptyOnly'), a route inherits the parent route's parameters when the route itself
+   * has an empty path (meaning its configured with path: '') or when the parent route doesn't have
+   * any component set.
    *
    * Set to 'always' to enable unconditional inheritance of parent parameters.
    *
@@ -98,7 +87,7 @@ export interface RouterConfigOptions {
    * `a;foo=bar/b`.
    *
    */
-  paramsInheritanceStrategy?: 'emptyOnly'|'always';
+  paramsInheritanceStrategy?: 'emptyOnly' | 'always';
 
   /**
    * Defines when the router updates the browser URL. By default ('deferred'),
@@ -107,7 +96,30 @@ export interface RouterConfigOptions {
    * Updating the URL early allows you to handle a failure of navigation by
    * showing an error message with the URL that failed.
    */
-  urlUpdateStrategy?: 'deferred'|'eager';
+  urlUpdateStrategy?: 'deferred' | 'eager';
+
+  /**
+   * The default strategy to use for handling query params in `Router.createUrlTree` when one is not provided.
+   *
+   * The `createUrlTree` method is used internally by `Router.navigate` and `RouterLink`.
+   * Note that `QueryParamsHandling` does not apply to `Router.navigateByUrl`.
+   *
+   * When neither the default nor the queryParamsHandling option is specified in the call to `createUrlTree`,
+   * the current parameters will be replaced by new parameters.
+   *
+   * @see {@link Router#createUrlTree}
+   * @see {@link QueryParamsHandling}
+   */
+  defaultQueryParamsHandling?: QueryParamsHandling;
+
+  /**
+   * When `true`, the `Promise` will instead resolve with `false`, as it does with other failed
+   * navigations (for example, when guards are rejected).
+
+   * Otherwise the `Promise` returned by the Router's navigation with be rejected
+   * if an error occurs.
+   */
+  resolveNavigationPromiseOnError?: boolean;
 }
 
 /**
@@ -124,7 +136,7 @@ export interface InMemoryScrollingOptions {
    * Anchor scrolling does not happen on 'popstate'. Instead, we restore the position
    * that we stored or scroll to the top.
    */
-  anchorScrolling?: 'disabled'|'enabled';
+  anchorScrolling?: 'disabled' | 'enabled';
 
   /**
    * Configures if the scroll position needs to be restored when navigating back.
@@ -138,7 +150,7 @@ export interface InMemoryScrollingOptions {
    * You can implement custom scroll restoration behavior by adapting the enabled behavior as
    * in the following example.
    *
-   * ```typescript
+   * ```ts
    * class AppComponent {
    *   movieData: any;
    *
@@ -160,14 +172,14 @@ export interface InMemoryScrollingOptions {
    * }
    * ```
    */
-  scrollPositionRestoration?: 'disabled'|'enabled'|'top';
+  scrollPositionRestoration?: 'disabled' | 'enabled' | 'top';
 }
 
 /**
  * A set of configuration options for a router module, provided in the
  * `forRoot()` method.
  *
- * @see `forRoot()`
+ * @see {@link forRoot()}
  *
  *
  * @publicApi
@@ -189,8 +201,9 @@ export interface ExtraOptions extends InMemoryScrollingOptions, RouterConfigOpti
    * One of `enabled`, `enabledBlocking`, `enabledNonBlocking` or `disabled`.
    * When set to `enabled` or `enabledBlocking`, the initial navigation starts before the root
    * component is created. The bootstrap is blocked until the initial navigation is complete. This
-   * value is required for [server-side rendering](guide/universal) to work. When set to
-   * `enabledNonBlocking`, the initial navigation starts after the root component has been created.
+   * value should be set in case you use [server-side rendering](guide/ssr), but do not enable
+   * [hydration](guide/hydration) for your application. When set to `enabledNonBlocking`,
+   * the initial navigation starts after the root component has been created.
    * The bootstrap is not blocked on the completion of the initial navigation. When set to
    * `disabled`, the initial navigation is not performed. The location listener is set up before the
    * root component gets created. Use if there is a reason to have more control over when the router
@@ -199,13 +212,29 @@ export interface ExtraOptions extends InMemoryScrollingOptions, RouterConfigOpti
   initialNavigation?: InitialNavigation;
 
   /**
+   * When true, enables binding information from the `Router` state directly to the inputs of the
+   * component in `Route` configurations.
+   */
+  bindToComponentInputs?: boolean;
+
+  /**
+   * When true, enables view transitions in the Router by running the route activation and
+   * deactivation inside of `document.startViewTransition`.
+   *
+   * @see https://developer.chrome.com/docs/web-platform/view-transitions/
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/View_Transitions_API
+   * @experimental
+   */
+  enableViewTransitions?: boolean;
+
+  /**
    * A custom error handler for failed navigations.
    * If the handler returns a value, the navigation Promise is resolved with this value.
    * If the handler throws an exception, the navigation Promise is rejected with the exception.
    *
-   * @deprecated Subscribe to the `Router` events and watch for `NavigationError` instead.
+   * @see RouterConfigOptions
    */
-  errorHandler?: (error: any) => any;
+  errorHandler?: (error: any) => RedirectCommand | any;
 
   /**
    * Configures a preloading strategy.
@@ -221,31 +250,18 @@ export interface ExtraOptions extends InMemoryScrollingOptions, RouterConfigOpti
    * When given a function, the router invokes the function every time
    * it restores scroll position.
    */
-  scrollOffset?: [number, number]|(() => [number, number]);
-
-  /**
-   * A custom handler for malformed URI errors. The handler is invoked when `encodedURI` contains
-   * invalid character sequences.
-   * The default implementation is to redirect to the root URL, dropping
-   * any path or parameter information. The function takes three parameters:
-   *
-   * - `'URIError'` - Error thrown when parsing a bad URL.
-   * - `'UrlSerializer'` - UrlSerializer that’s configured with the router.
-   * - `'url'` -  The malformed URL that caused the URIError
-   *
-   * @deprecated URI parsing errors should be handled in the `UrlSerializer` instead.
-   * */
-  malformedUriErrorHandler?:
-      (error: URIError, urlSerializer: UrlSerializer, url: string) => UrlTree;
+  scrollOffset?: [number, number] | (() => [number, number]);
 }
 
 /**
- * A [DI token](guide/glossary/#di-token) for the router service.
+ * A DI token for the router service.
  *
  * @publicApi
  */
-export const ROUTER_CONFIGURATION =
-    new InjectionToken<ExtraOptions>(NG_DEV_MODE ? 'router config' : '', {
-      providedIn: 'root',
-      factory: () => ({}),
-    });
+export const ROUTER_CONFIGURATION = new InjectionToken<ExtraOptions>(
+  typeof ngDevMode === 'undefined' || ngDevMode ? 'router config' : '',
+  {
+    providedIn: 'root',
+    factory: () => ({}),
+  },
+);

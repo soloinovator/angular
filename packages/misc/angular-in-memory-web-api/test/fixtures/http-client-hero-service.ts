@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
@@ -15,7 +15,7 @@ import {Hero} from './hero';
 import {HeroService} from './hero-service';
 
 const cudOptions = {
-  headers: new HttpHeaders({'Content-Type': 'application/json'})
+  headers: new HttpHeaders({'Content-Type': 'application/json'}),
 };
 
 @Injectable()
@@ -45,11 +45,12 @@ export class HttpClientHeroService extends HeroService {
   override addHero(name: string): Observable<Hero> {
     const hero = {name};
 
-    return this.http.post<Hero>(this.heroesUrl, hero, cudOptions)
-        .pipe(catchError(this.handleError));
+    return this.http
+      .post<Hero>(this.heroesUrl, hero, cudOptions)
+      .pipe(catchError(this.handleError));
   }
 
-  override deleteHero(hero: Hero|number): Observable<Hero> {
+  override deleteHero(hero: Hero | number): Observable<Hero> {
     const id = typeof hero === 'number' ? hero : hero.id;
     const url = `${this.heroesUrl}/${id}`;
 

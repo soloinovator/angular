@@ -10,7 +10,7 @@
         {
           "files": [
             {
-              "expected": "nested_template_context_template.js",
+              "expected": "nested_template_context.js",
               "generated": "nested_template_context.js"
             }
           ],
@@ -78,7 +78,7 @@
         {
           "files": [
             {
-              "expected": "ng_for_parent_context_variables_template.js",
+              "expected": "ng_for_parent_context_variables.js",
               "generated": "ng_for_parent_context_variables.js"
             }
           ],
@@ -205,7 +205,11 @@
       "expectations": [
         {
           "extraChecks": [
-            ["verifyUniqueFunctions", "Template", 16]
+            [
+              "verifyUniqueFunctions",
+              "Template",
+              16
+            ]
           ]
         }
       ]
@@ -218,7 +222,11 @@
       "expectations": [
         {
           "extraChecks": [
-            ["verifyUniqueFunctions", "Template", 4]
+            [
+              "verifyUniqueFunctions",
+              "Template",
+              4
+            ]
           ]
         }
       ]
@@ -231,7 +239,11 @@
       "expectations": [
         {
           "extraChecks": [
-            ["verifyUniqueFunctions", "listener", 3]
+            [
+              "verifyUniqueFunctions",
+              "listener",
+              3
+            ]
           ]
         }
       ]
@@ -288,6 +300,17 @@
       ]
     },
     {
+      "description": "should handle a bindings on plain ng-template elements",
+      "inputFiles": [
+        "ng_template_bindings.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Incorrect template"
+        }
+      ]
+    },
+    {
       "description": "should allow self-closing custom elements in templates",
       "inputFiles": [
         "self_closing_tags.ts"
@@ -317,6 +340,72 @@
               "generated": "self_closing_tags_nested.js"
             }
           ],
+          "failureMessage": "Incorrect template"
+        }
+      ]
+    },
+    {
+      "description": "should handle structural directive on ng-template",
+      "inputFiles": [
+        "template_with_structural_directive.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Incorrect template"
+        }
+      ]
+    },
+    {
+      "description": "should handle self-closing structural directives",
+      "inputFiles": [
+        "self_closing_structural_directives.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Incorrect template"
+        }
+      ]
+    },
+    {
+      "description": "should handle ngFor context variables when used in bindings",
+      "inputFiles": [
+        "ng_for_context_in_attr_binding.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Incorrect template"
+        }
+      ]
+    },
+    {
+      "description": "should handle attribute bindings inside an ng-template",
+      "inputFiles": [
+        "attr_binding_on_structural_inside_ng_template.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Incorrect template"
+        }
+      ]
+    },
+    {
+      "description": "should handle implict contezt in ng-template",
+      "inputFiles": [
+        "ng_template_implicit.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Incorrect template"
+        }
+      ]
+    },
+    {
+      "description": "should break large element creation chains",
+      "inputFiles": [
+        "create_many_elements.ts"
+      ],
+      "expectations": [
+        {
           "failureMessage": "Incorrect template"
         }
       ]

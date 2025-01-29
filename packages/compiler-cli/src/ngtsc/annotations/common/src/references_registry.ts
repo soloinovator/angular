@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Reference} from '../../../imports';
@@ -22,9 +22,7 @@ export interface ReferencesRegistry {
 }
 
 /**
- * This registry does nothing, since ngtsc does not currently need
- * this functionality.
- * The ngcc tool implements a working version for its purposes.
+ * This registry does nothing.
  */
 export class NoopReferencesRegistry implements ReferencesRegistry {
   add(source: DeclarationNode, ...references: Reference<DeclarationNode>[]): void {}

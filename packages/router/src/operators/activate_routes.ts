@@ -3,36 +3,46 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ComponentFactoryResolver, EnvironmentInjector, NgModuleRef} from '@angular/core';
 import {MonoTypeOperatorFunction} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {ActivationEnd, ChildActivationEnd, Event} from '../events';
-import {NavigationTransition} from '../navigation_transition';
-import {DetachedRouteHandleInternal, RouteReuseStrategy} from '../route_reuse_strategy';
-import {ChildrenOutletContexts} from '../router_outlet_context';
+import type {NavigationTransition} from '../navigation_transition';
+import type {DetachedRouteHandleInternal, RouteReuseStrategy} from '../route_reuse_strategy';
+import type {ChildrenOutletContexts} from '../router_outlet_context';
 import {ActivatedRoute, advanceActivatedRoute, RouterState} from '../router_state';
-import {forEach} from '../utils/collection';
-import {getClosestRouteInjector} from '../utils/config';
 import {nodeChildrenAsMap, TreeNode} from '../utils/tree';
 
-export const activateRoutes =
-    (rootContexts: ChildrenOutletContexts, routeReuseStrategy: RouteReuseStrategy,
-     forwardEvent: (evt: Event) => void): MonoTypeOperatorFunction<NavigationTransition> =>
-        map(t => {
-          new ActivateRoutes(
-              routeReuseStrategy, t.targetRouterState!, t.currentRouterState, forwardEvent)
-              .activate(rootContexts);
-          return t;
-        });
+let warnedAboutUnsupportedInputBinding = false;
+
+export const activateRoutes = (
+  rootContexts: ChildrenOutletContexts,
+  routeReuseStrategy: RouteReuseStrategy,
+  forwardEvent: (evt: Event) => void,
+  inputBindingEnabled: boolean,
+): MonoTypeOperatorFunction<NavigationTransition> =>
+  map((t) => {
+    new ActivateRoutes(
+      routeReuseStrategy,
+      t.targetRouterState!,
+      t.currentRouterState,
+      forwardEvent,
+      inputBindingEnabled,
+    ).activate(rootContexts);
+    return t;
+  });
 
 export class ActivateRoutes {
   constructor(
-      private routeReuseStrategy: RouteReuseStrategy, private futureState: RouterState,
-      private currState: RouterState, private forwardEvent: (evt: Event) => void) {}
+    private routeReuseStrategy: RouteReuseStrategy,
+    private futureState: RouterState,
+    private currState: RouterState,
+    private forwardEvent: (evt: Event) => void,
+    private inputBindingEnabled: boolean,
+  ) {}
 
   activate(parentContexts: ChildrenOutletContexts): void {
     const futureRoot = this.futureState._root;
@@ -45,26 +55,30 @@ export class ActivateRoutes {
 
   // De-activate the child route that are not re-used for the future state
   private deactivateChildRoutes(
-      futureNode: TreeNode<ActivatedRoute>, currNode: TreeNode<ActivatedRoute>|null,
-      contexts: ChildrenOutletContexts): void {
+    futureNode: TreeNode<ActivatedRoute>,
+    currNode: TreeNode<ActivatedRoute> | null,
+    contexts: ChildrenOutletContexts,
+  ): void {
     const children: {[outletName: string]: TreeNode<ActivatedRoute>} = nodeChildrenAsMap(currNode);
 
     // Recurse on the routes active in the future state to de-activate deeper children
-    futureNode.children.forEach(futureChild => {
+    futureNode.children.forEach((futureChild) => {
       const childOutletName = futureChild.value.outlet;
       this.deactivateRoutes(futureChild, children[childOutletName], contexts);
       delete children[childOutletName];
     });
 
     // De-activate the routes that will not be re-used
-    forEach(children, (v: TreeNode<ActivatedRoute>, childName: string) => {
+    Object.values(children).forEach((v: TreeNode<ActivatedRoute>) => {
       this.deactivateRouteAndItsChildren(v, contexts);
     });
   }
 
   private deactivateRoutes(
-      futureNode: TreeNode<ActivatedRoute>, currNode: TreeNode<ActivatedRoute>,
-      parentContext: ChildrenOutletContexts): void {
+    futureNode: TreeNode<ActivatedRoute>,
+    currNode: TreeNode<ActivatedRoute>,
+    parentContext: ChildrenOutletContexts,
+  ): void {
     const future = futureNode.value;
     const curr = currNode ? currNode.value : null;
 
@@ -89,7 +103,9 @@ export class ActivateRoutes {
   }
 
   private deactivateRouteAndItsChildren(
-      route: TreeNode<ActivatedRoute>, parentContexts: ChildrenOutletContexts): void {
+    route: TreeNode<ActivatedRoute>,
+    parentContexts: ChildrenOutletContexts,
+  ): void {
     // If there is no component, the Route is never attached to an outlet (because there is no
     // component to attach).
     if (route.value.component && this.routeReuseStrategy.shouldDetach(route.value.snapshot)) {
@@ -100,13 +116,15 @@ export class ActivateRoutes {
   }
 
   private detachAndStoreRouteSubtree(
-      route: TreeNode<ActivatedRoute>, parentContexts: ChildrenOutletContexts): void {
+    route: TreeNode<ActivatedRoute>,
+    parentContexts: ChildrenOutletContexts,
+  ): void {
     const context = parentContexts.getContext(route.value.outlet);
     const contexts = context && route.value.component ? context.children : parentContexts;
     const children: {[outletName: string]: TreeNode<ActivatedRoute>} = nodeChildrenAsMap(route);
 
-    for (const childOutlet of Object.keys(children)) {
-      this.deactivateRouteAndItsChildren(children[childOutlet], contexts);
+    for (const treeNode of Object.values(children)) {
+      this.deactivateRouteAndItsChildren(treeNode, contexts);
     }
 
     if (context && context.outlet) {
@@ -117,35 +135,41 @@ export class ActivateRoutes {
   }
 
   private deactivateRouteAndOutlet(
-      route: TreeNode<ActivatedRoute>, parentContexts: ChildrenOutletContexts): void {
+    route: TreeNode<ActivatedRoute>,
+    parentContexts: ChildrenOutletContexts,
+  ): void {
     const context = parentContexts.getContext(route.value.outlet);
     // The context could be `null` if we are on a componentless route but there may still be
     // children that need deactivating.
     const contexts = context && route.value.component ? context.children : parentContexts;
     const children: {[outletName: string]: TreeNode<ActivatedRoute>} = nodeChildrenAsMap(route);
 
-    for (const childOutlet of Object.keys(children)) {
-      this.deactivateRouteAndItsChildren(children[childOutlet], contexts);
+    for (const treeNode of Object.values(children)) {
+      this.deactivateRouteAndItsChildren(treeNode, contexts);
     }
 
-    if (context && context.outlet) {
-      // Destroy the component
-      context.outlet.deactivate();
-      // Destroy the contexts for all the outlets that were in the component
-      context.children.onOutletDeactivated();
+    if (context) {
+      if (context.outlet) {
+        // Destroy the component
+        context.outlet.deactivate();
+        // Destroy the contexts for all the outlets that were in the component
+        context.children.onOutletDeactivated();
+      }
       // Clear the information about the attached component on the context but keep the reference to
-      // the outlet.
+      // the outlet. Clear even if outlet was not yet activated to avoid activating later with old
+      // info
       context.attachRef = null;
-      context.resolver = null;
       context.route = null;
     }
   }
 
   private activateChildRoutes(
-      futureNode: TreeNode<ActivatedRoute>, currNode: TreeNode<ActivatedRoute>|null,
-      contexts: ChildrenOutletContexts): void {
+    futureNode: TreeNode<ActivatedRoute>,
+    currNode: TreeNode<ActivatedRoute> | null,
+    contexts: ChildrenOutletContexts,
+  ): void {
     const children: {[outlet: string]: TreeNode<ActivatedRoute>} = nodeChildrenAsMap(currNode);
-    futureNode.children.forEach(c => {
+    futureNode.children.forEach((c) => {
       this.activateRoutes(c, children[c.value.outlet], contexts);
       this.forwardEvent(new ActivationEnd(c.value.snapshot));
     });
@@ -155,8 +179,10 @@ export class ActivateRoutes {
   }
 
   private activateRoutes(
-      futureNode: TreeNode<ActivatedRoute>, currNode: TreeNode<ActivatedRoute>,
-      parentContexts: ChildrenOutletContexts): void {
+    futureNode: TreeNode<ActivatedRoute>,
+    currNode: TreeNode<ActivatedRoute>,
+    parentContexts: ChildrenOutletContexts,
+  ): void {
     const future = futureNode.value;
     const curr = currNode ? currNode.value : null;
 
@@ -178,8 +204,9 @@ export class ActivateRoutes {
         const context = parentContexts.getOrCreateContext(future.outlet);
 
         if (this.routeReuseStrategy.shouldAttach(future.snapshot)) {
-          const stored =
-              (<DetachedRouteHandleInternal>this.routeReuseStrategy.retrieve(future.snapshot));
+          const stored = <DetachedRouteHandleInternal>(
+            this.routeReuseStrategy.retrieve(future.snapshot)
+          );
           this.routeReuseStrategy.store(future.snapshot, null);
           context.children.onOutletReAttached(stored.contexts);
           context.attachRef = stored.componentRef;
@@ -193,12 +220,8 @@ export class ActivateRoutes {
           advanceActivatedRoute(stored.route.value);
           this.activateChildRoutes(futureNode, null, context.children);
         } else {
-          const injector = getClosestRouteInjector(future.snapshot);
-          const cmpFactoryResolver = injector?.get(ComponentFactoryResolver) ?? null;
           context.attachRef = null;
           context.route = future;
-          context.resolver = cmpFactoryResolver;
-          context.injector = injector;
           if (context.outlet) {
             // Activate the outlet when it has already been instantiated
             // Otherwise it will get activated from its `ngOnInit` when instantiated
@@ -210,6 +233,22 @@ export class ActivateRoutes {
       } else {
         // if we have a componentless route, we recurse but keep the same outlet map.
         this.activateChildRoutes(futureNode, null, parentContexts);
+      }
+    }
+    if (typeof ngDevMode === 'undefined' || ngDevMode) {
+      const context = parentContexts.getOrCreateContext(future.outlet);
+      const outlet = context.outlet;
+      if (
+        outlet &&
+        this.inputBindingEnabled &&
+        !outlet.supportsBindingToComponentInputs &&
+        !warnedAboutUnsupportedInputBinding
+      ) {
+        console.warn(
+          `'withComponentInputBinding' feature is enabled but ` +
+            `this application is using an outlet that may not support binding to component inputs.`,
+        );
+        warnedAboutUnsupportedInputBinding = true;
       }
     }
   }

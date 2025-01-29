@@ -3,27 +3,36 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ElementRef, forwardRef, ɵɵngDeclareDirective} from '@angular/core';
 
-import {AttributeMarker, DirectiveDef, ɵɵInheritDefinitionFeature, ɵɵNgOnChangesFeature} from '../../../src/render3';
+import {
+  AttributeMarker,
+  DirectiveDef,
+  ɵɵInheritDefinitionFeature,
+  ɵɵNgOnChangesFeature,
+} from '../../../src/render3';
 
 import {functionContaining} from './matcher';
 
 describe('directive declaration jit compilation', () => {
   it('should compile a minimal directive declaration', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+    }) as DirectiveDef<TestClass>;
 
     expectDirectiveDef(def, {});
   });
 
   it('should compile a selector', () => {
-    const def =
-        ɵɵngDeclareDirective({type: TestClass, selector: '[dir], test'}) as DirectiveDef<TestClass>;
+    const def = ɵɵngDeclareDirective({
+      version: '18.0.0',
+      type: TestClass,
+      selector: '[dir], test',
+    }) as DirectiveDef<TestClass>;
 
     expectDirectiveDef(def, {
       selectors: [['', 'dir', ''], ['test']],
@@ -32,15 +41,16 @@ describe('directive declaration jit compilation', () => {
 
   it('should compile inputs and outputs', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                  inputs: {
-                    minifiedProperty: 'property',
-                    minifiedClassProperty: ['bindingName', 'classProperty'],
-                  },
-                  outputs: {
-                    minifiedEventName: 'eventBindingName',
-                  },
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+      inputs: {
+        minifiedProperty: 'property',
+        minifiedClassProperty: ['bindingName', 'classProperty'],
+      },
+      outputs: {
+        minifiedEventName: 'eventBindingName',
+      },
+    }) as DirectiveDef<TestClass>;
 
     expectDirectiveDef(def, {
       inputs: {
@@ -59,9 +69,10 @@ describe('directive declaration jit compilation', () => {
 
   it('should compile exportAs', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                  exportAs: ['a', 'b'],
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+      exportAs: ['a', 'b'],
+    }) as DirectiveDef<TestClass>;
 
     expectDirectiveDef(def, {
       exportAs: ['a', 'b'],
@@ -70,11 +81,10 @@ describe('directive declaration jit compilation', () => {
 
   it('should compile providers', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                  providers: [
-                    {provide: 'token', useValue: 123},
-                  ],
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+      providers: [{provide: 'token', useValue: 123}],
+    }) as DirectiveDef<TestClass>;
 
     expectDirectiveDef(def, {
       features: [jasmine.any(Function)],
@@ -84,23 +94,24 @@ describe('directive declaration jit compilation', () => {
 
   it('should compile content queries', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                  queries: [
-                    {
-                      propertyName: 'byRef',
-                      predicate: ['ref'],
-                    },
-                    {
-                      propertyName: 'byToken',
-                      predicate: String,
-                      descendants: true,
-                      static: true,
-                      first: true,
-                      read: ElementRef,
-                      emitDistinctChangesOnly: false,
-                    }
-                  ],
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+      queries: [
+        {
+          propertyName: 'byRef',
+          predicate: ['ref'],
+        },
+        {
+          propertyName: 'byToken',
+          predicate: String,
+          descendants: true,
+          static: true,
+          first: true,
+          read: ElementRef,
+          emitDistinctChangesOnly: false,
+        },
+      ],
+    }) as DirectiveDef<TestClass>;
 
     expectDirectiveDef(def, {
       contentQueries: functionContaining([
@@ -120,14 +131,15 @@ describe('directive declaration jit compilation', () => {
 
   it('should compile content queries with forwardRefs', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                  queries: [
-                    {
-                      propertyName: 'byRef',
-                      predicate: forwardRef(() => Child),
-                    },
-                  ],
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+      queries: [
+        {
+          propertyName: 'byRef',
+          predicate: forwardRef(() => Child),
+        },
+      ],
+    }) as DirectiveDef<TestClass>;
 
     class Child {}
 
@@ -141,23 +153,24 @@ describe('directive declaration jit compilation', () => {
 
   it('should compile view queries', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                  viewQueries: [
-                    {
-                      propertyName: 'byRef',
-                      predicate: ['ref'],
-                    },
-                    {
-                      propertyName: 'byToken',
-                      predicate: String,
-                      descendants: true,
-                      static: true,
-                      first: true,
-                      read: ElementRef,
-                      emitDistinctChangesOnly: false,
-                    }
-                  ],
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+      viewQueries: [
+        {
+          propertyName: 'byRef',
+          predicate: ['ref'],
+        },
+        {
+          propertyName: 'byToken',
+          predicate: String,
+          descendants: true,
+          static: true,
+          first: true,
+          read: ElementRef,
+          emitDistinctChangesOnly: false,
+        },
+      ],
+    }) as DirectiveDef<TestClass>;
 
     expectDirectiveDef(def, {
       viewQuery: functionContaining([
@@ -177,14 +190,15 @@ describe('directive declaration jit compilation', () => {
 
   it('should compile view queries with forwardRefs', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                  viewQueries: [
-                    {
-                      propertyName: 'byRef',
-                      predicate: forwardRef(() => Child),
-                    },
-                  ],
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+      viewQueries: [
+        {
+          propertyName: 'byRef',
+          predicate: forwardRef(() => Child),
+        },
+      ],
+    }) as DirectiveDef<TestClass>;
 
     class Child {}
 
@@ -198,27 +212,34 @@ describe('directive declaration jit compilation', () => {
 
   it('should compile host bindings', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                  host: {
-                    attributes: {
-                      'attr': 'value',
-                    },
-                    listeners: {
-                      'event': 'handleEvent($event)',
-                    },
-                    properties: {
-                      'foo': 'foo.prop',
-                      'attr.bar': 'bar.prop',
-                    },
-                    classAttribute: 'foo bar',
-                    styleAttribute: 'width: 100px;',
-                  },
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+      host: {
+        attributes: {
+          'attr': 'value',
+        },
+        listeners: {
+          'event': 'handleEvent($event)',
+        },
+        properties: {
+          'foo': 'foo.prop',
+          'attr.bar': 'bar.prop',
+        },
+        classAttribute: 'foo bar',
+        styleAttribute: 'width: 100px;',
+      },
+    }) as DirectiveDef<TestClass>;
 
     expectDirectiveDef(def, {
       hostAttrs: [
-        'attr', 'value', AttributeMarker.Classes, 'foo', 'bar', AttributeMarker.Styles, 'width',
-        '100px'
+        'attr',
+        'value',
+        AttributeMarker.Classes,
+        'foo',
+        'bar',
+        AttributeMarker.Styles,
+        'width',
+        '100px',
       ],
       hostBindings: functionContaining([
         'return ctx.handleEvent($event)',
@@ -231,9 +252,10 @@ describe('directive declaration jit compilation', () => {
 
   it('should compile directives with inheritance', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                  usesInheritance: true,
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+      usesInheritance: true,
+    }) as DirectiveDef<TestClass>;
 
     expectDirectiveDef(def, {
       features: [ɵɵInheritDefinitionFeature],
@@ -242,20 +264,100 @@ describe('directive declaration jit compilation', () => {
 
   it('should compile directives with onChanges lifecycle hook', () => {
     const def = ɵɵngDeclareDirective({
-                  type: TestClass,
-                  usesOnChanges: true,
-                }) as DirectiveDef<TestClass>;
+      version: '18.0.0',
+      type: TestClass,
+      usesOnChanges: true,
+    }) as DirectiveDef<TestClass>;
 
     expectDirectiveDef(def, {
       features: [ɵɵNgOnChangesFeature],
     });
   });
+
+  it('should compile host directives', () => {
+    class One {}
+    class Two {}
+
+    const def = ɵɵngDeclareDirective({
+      version: '18.0.0',
+      type: TestClass,
+      hostDirectives: [
+        {
+          directive: One,
+          inputs: ['firstInput', 'firstInput', 'secondInput', 'secondInputAlias'],
+          outputs: ['firstOutput', 'firstOutput', 'secondOutput', 'secondOutputAlias'],
+        },
+        {
+          directive: Two,
+        },
+      ],
+    }) as DirectiveDef<TestClass>;
+
+    expectDirectiveDef(def, {
+      features: [jasmine.any(Function)],
+      hostDirectives: [
+        {
+          directive: One,
+          inputs: {
+            'firstInput': 'firstInput',
+            'secondInput': 'secondInputAlias',
+          },
+          outputs: {
+            'firstOutput': 'firstOutput',
+            'secondOutput': 'secondOutputAlias',
+          },
+        },
+        {
+          directive: Two,
+          inputs: {},
+          outputs: {},
+        },
+      ],
+    });
+  });
+
+  it('should declare a 0.0.0 directive as standalone', () => {
+    const def = ɵɵngDeclareDirective({
+      version: '0.0.0-PLACEHOLDER',
+      type: TestClass,
+    }) as DirectiveDef<TestClass>;
+
+    expectDirectiveDef(def, {
+      standalone: true,
+    });
+  });
+
+  it('should declare a v19+ directive as standalone', () => {
+    const def = ɵɵngDeclareDirective({
+      version: '19.0.0',
+      type: TestClass,
+    }) as DirectiveDef<TestClass>;
+
+    expectDirectiveDef(def, {
+      standalone: true,
+    });
+  });
 });
 
-type DirectiveDefExpectations = jasmine.Expected<Pick<
+type DirectiveDefExpectations = jasmine.Expected<
+  Pick<
     DirectiveDef<unknown>,
-    'selectors'|'inputs'|'declaredInputs'|'outputs'|'features'|'hostAttrs'|'hostBindings'|
-    'hostVars'|'contentQueries'|'viewQuery'|'exportAs'|'providersResolver'>>;
+    | 'selectors'
+    | 'inputs'
+    | 'declaredInputs'
+    | 'outputs'
+    | 'features'
+    | 'hostAttrs'
+    | 'hostBindings'
+    | 'hostVars'
+    | 'contentQueries'
+    | 'viewQuery'
+    | 'exportAs'
+    | 'providersResolver'
+    | 'hostDirectives'
+    | 'standalone'
+  >
+>;
 
 /**
  * Asserts that the provided directive definition is according to the provided expectation.
@@ -263,7 +365,9 @@ type DirectiveDefExpectations = jasmine.Expected<Pick<
  * default value.
  */
 function expectDirectiveDef(
-    actual: DirectiveDef<unknown>, expected: Partial<DirectiveDefExpectations>): void {
+  actual: DirectiveDef<unknown>,
+  expected: Partial<DirectiveDefExpectations>,
+): void {
   const expectation: DirectiveDefExpectations = {
     selectors: [],
     inputs: {},
@@ -277,22 +381,28 @@ function expectDirectiveDef(
     viewQuery: null,
     exportAs: null,
     providersResolver: null,
+    hostDirectives: null,
+    standalone: false,
     ...expected,
   };
 
   expect(actual.type).toBe(TestClass);
-  expect(actual.selectors).toEqual(expectation.selectors);
-  expect(actual.inputs).toEqual(expectation.inputs);
-  expect(actual.declaredInputs).toEqual(expectation.declaredInputs);
-  expect(actual.outputs).toEqual(expectation.outputs);
-  expect(actual.features).toEqual(expectation.features);
-  expect(actual.hostAttrs).toEqual(expectation.hostAttrs);
-  expect(actual.hostBindings).toEqual(expectation.hostBindings);
-  expect(actual.hostVars).toEqual(expectation.hostVars);
-  expect(actual.contentQueries).toEqual(expectation.contentQueries);
-  expect(actual.viewQuery).toEqual(expectation.viewQuery);
-  expect(actual.exportAs).toEqual(expectation.exportAs);
-  expect(actual.providersResolver).toEqual(expectation.providersResolver);
+  expect(actual.selectors).withContext('selectors').toEqual(expectation.selectors);
+  expect(actual.inputs).withContext('inputs').toEqual(expectation.inputs);
+  expect(actual.declaredInputs).withContext('declaredInputs').toEqual(expectation.declaredInputs);
+  expect(actual.outputs).withContext('outputs').toEqual(expectation.outputs);
+  expect(actual.features).withContext('features').toEqual(expectation.features);
+  expect(actual.hostAttrs).withContext('hostAttrs').toEqual(expectation.hostAttrs);
+  expect(actual.hostBindings).withContext('hostBindings').toEqual(expectation.hostBindings);
+  expect(actual.hostVars).withContext('hostVars').toEqual(expectation.hostVars);
+  expect(actual.contentQueries).withContext('contentQueries').toEqual(expectation.contentQueries);
+  expect(actual.viewQuery).withContext('viewQuery').toEqual(expectation.viewQuery);
+  expect(actual.exportAs).withContext('exportAs').toEqual(expectation.exportAs);
+  expect(actual.providersResolver)
+    .withContext('providersResolver')
+    .toEqual(expectation.providersResolver);
+  expect(actual.hostDirectives).withContext('hostDirectives').toEqual(expectation.hostDirectives);
+  expect(actual.standalone).withContext('standalone').toEqual(expectation.standalone);
 }
 
 class TestClass {}

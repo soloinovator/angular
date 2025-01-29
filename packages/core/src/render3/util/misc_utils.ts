@@ -3,17 +3,16 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {RElement} from '../interfaces/renderer_dom';
-
 
 /**
  *
  * @codeGenApi
  */
-export function ɵɵresolveWindow(element: RElement&{ownerDocument: Document}) {
+export function ɵɵresolveWindow(element: RElement & {ownerDocument: Document}) {
   return element.ownerDocument.defaultView;
 }
 
@@ -21,7 +20,7 @@ export function ɵɵresolveWindow(element: RElement&{ownerDocument: Document}) {
  *
  * @codeGenApi
  */
-export function ɵɵresolveDocument(element: RElement&{ownerDocument: Document}) {
+export function ɵɵresolveDocument(element: RElement & {ownerDocument: Document}) {
   return element.ownerDocument;
 }
 
@@ -29,7 +28,7 @@ export function ɵɵresolveDocument(element: RElement&{ownerDocument: Document})
  *
  * @codeGenApi
  */
-export function ɵɵresolveBody(element: RElement&{ownerDocument: Document}) {
+export function ɵɵresolveBody(element: RElement & {ownerDocument: Document}) {
   return element.ownerDocument.body;
 }
 
@@ -52,7 +51,7 @@ export const INTERPOLATION_DELIMITER = `�`;
 /**
  * Unwrap a value which might be behind a closure (for forward declaration reasons).
  */
-export function maybeUnwrapFn<T>(value: T|(() => T)): T {
+export function maybeUnwrapFn<T>(value: T | (() => T)): T {
   if (value instanceof Function) {
     return value();
   } else {

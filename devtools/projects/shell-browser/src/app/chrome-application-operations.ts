@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 /// <reference types="chrome"/>
@@ -11,30 +11,29 @@
 import {ApplicationOperations} from 'ng-devtools';
 import {DirectivePosition, ElementPosition} from 'protocol';
 
+function runInInspectedWindow(script: string, frameURL?: URL): void {
+  chrome.devtools.inspectedWindow.eval(script, {frameURL: frameURL?.toString?.()});
+}
+
 export class ChromeApplicationOperations extends ApplicationOperations {
-  viewSource(position: ElementPosition, directiveIndex: number): void {
-    if (chrome.devtools) {
-      chrome.devtools.inspectedWindow.eval(
-          `inspect(inspectedApplication.findConstructorByPosition('${position}', ${
-              directiveIndex}))`);
-    }
+  override viewSource(position: ElementPosition, directiveIndex?: number, target?: URL): void {
+    const viewSource = `inspect(inspectedApplication.findConstructorByPosition('${position}', ${directiveIndex}))`;
+    runInInspectedWindow(viewSource, target);
   }
 
-  selectDomElement(position: ElementPosition): void {
-    if (chrome.devtools) {
-      chrome.devtools.inspectedWindow.eval(
-          `inspect(inspectedApplication.findDomElementByPosition('${position}'))`);
-    }
+  override selectDomElement(position: ElementPosition, target?: URL): void {
+    const selectDomElement = `inspect(inspectedApplication.findDomElementByPosition('${position}'))`;
+    runInInspectedWindow(selectDomElement, target);
   }
 
-  inspect(directivePosition: DirectivePosition, objectPath: string[]): void {
-    if (chrome.devtools) {
-      const args = {
-        directivePosition,
-        objectPath,
-      };
-      chrome.devtools.inspectedWindow.eval(
-          `inspect(inspectedApplication.findPropertyByPosition('${JSON.stringify(args)}'))`);
-    }
+  override inspect(directivePosition: DirectivePosition, objectPath: string[], target?: URL): void {
+    const args = {
+      directivePosition,
+      objectPath,
+    };
+    const inspect = `inspect(inspectedApplication.findPropertyByPosition('${JSON.stringify(
+      args,
+    )}'))`;
+    runInInspectedWindow(inspect, target);
   }
 }

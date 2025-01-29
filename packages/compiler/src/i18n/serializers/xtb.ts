@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import * as ml from '../../ml_parser/ast';
@@ -19,12 +19,14 @@ const _TRANSLATION_TAG = 'translation';
 const _PLACEHOLDER_TAG = 'ph';
 
 export class Xtb extends Serializer {
-  override write(messages: i18n.Message[], locale: string|null): string {
+  override write(messages: i18n.Message[], locale: string | null): string {
     throw new Error('Unsupported');
   }
 
-  override load(content: string, url: string):
-      {locale: string, i18nNodesByMsgId: {[msgId: string]: i18n.Node[]}} {
+  override load(
+    content: string,
+    url: string,
+  ): {locale: string; i18nNodesByMsgId: {[msgId: string]: i18n.Node[]}} {
     // xtb to xml nodes
     const xtbParser = new XtbParser();
     const {locale, msgIdToHtml, errors} = xtbParser.parse(content, url);
@@ -36,8 +38,8 @@ export class Xtb extends Serializer {
     // Because we should be able to load xtb files that rely on features not supported by angular,
     // we need to delay the conversion of html to i18n nodes so that non angular messages are not
     // converted
-    Object.keys(msgIdToHtml).forEach(msgId => {
-      const valueFn = function() {
+    Object.keys(msgIdToHtml).forEach((msgId) => {
+      const valueFn = function () {
         const {i18nNodes, errors} = converter.convert(msgIdToHtml[msgId], url);
         if (errors.length) {
           throw new Error(`xtb parse errors:\n${errors.join('\n')}`);
@@ -67,12 +69,12 @@ function createLazyProperty(messages: any, id: string, valueFn: () => any) {
   Object.defineProperty(messages, id, {
     configurable: true,
     enumerable: true,
-    get: function() {
+    get: function () {
       const value = valueFn();
       Object.defineProperty(messages, id, {enumerable: true, value});
       return value;
     },
-    set: _ => {
+    set: (_) => {
       throw new Error('Could not overwrite an XTB translation');
     },
   });
@@ -80,13 +82,11 @@ function createLazyProperty(messages: any, id: string, valueFn: () => any) {
 
 // Extract messages as xml nodes from the xtb file
 class XtbParser implements ml.Visitor {
-  // TODO(issue/24571): remove '!'.
+  // using non-null assertions because they're (re)set by parse()
   private _bundleDepth!: number;
-  // TODO(issue/24571): remove '!'.
   private _errors!: I18nError[];
-  // TODO(issue/24571): remove '!'.
   private _msgIdToHtml!: {[msgId: string]: string};
-  private _locale: string|null = null;
+  private _locale: string | null = null;
 
   parse(xtb: string, url: string) {
     this._bundleDepth = 0;
@@ -154,6 +154,12 @@ class XtbParser implements ml.Visitor {
 
   visitExpansionCase(expansionCase: ml.ExpansionCase, context: any): any {}
 
+  visitBlock(block: ml.Block, context: any) {}
+
+  visitBlockParameter(block: ml.BlockParameter, context: any) {}
+
+  visitLetDeclaration(decl: ml.LetDeclaration, context: any) {}
+
   private _addError(node: ml.Node, message: string): void {
     this._errors.push(new I18nError(node.sourceSpan, message));
   }
@@ -161,16 +167,17 @@ class XtbParser implements ml.Visitor {
 
 // Convert ml nodes (xtb syntax) to i18n nodes
 class XmlToI18n implements ml.Visitor {
-  // TODO(issue/24571): remove '!'.
+  // using non-null assertion because it's (re)set by convert()
   private _errors!: I18nError[];
 
   convert(message: string, url: string) {
     const xmlIcu = new XmlParser().parse(message, url, {tokenizeExpansionForms: true});
     this._errors = xmlIcu.errors;
 
-    const i18nNodes = this._errors.length > 0 || xmlIcu.rootNodes.length == 0 ?
-        [] :
-        ml.visitAll(this, xmlIcu.rootNodes);
+    const i18nNodes =
+      this._errors.length > 0 || xmlIcu.rootNodes.length == 0
+        ? []
+        : ml.visitAll(this, xmlIcu.rootNodes);
 
     return {
       i18nNodes,
@@ -185,7 +192,7 @@ class XmlToI18n implements ml.Visitor {
   visitExpansion(icu: ml.Expansion, context: any) {
     const caseMap: {[value: string]: i18n.Node} = {};
 
-    ml.visitAll(this, icu.cases).forEach(c => {
+    ml.visitAll(this, icu.cases).forEach((c) => {
       caseMap[c.value] = new i18n.Container(c.nodes, icu.sourceSpan);
     });
 
@@ -199,7 +206,7 @@ class XmlToI18n implements ml.Visitor {
     };
   }
 
-  visitElement(el: ml.Element, context: any): i18n.Placeholder|null {
+  visitElement(el: ml.Element, context: any): i18n.Placeholder | null {
     if (el.name === _PLACEHOLDER_TAG) {
       const nameAttr = el.attrs.find((attr) => attr.name === 'name');
       if (nameAttr) {
@@ -216,6 +223,12 @@ class XmlToI18n implements ml.Visitor {
   visitComment(comment: ml.Comment, context: any) {}
 
   visitAttribute(attribute: ml.Attribute, context: any) {}
+
+  visitBlock(block: ml.Block, context: any) {}
+
+  visitBlockParameter(block: ml.BlockParameter, context: any) {}
+
+  visitLetDeclaration(decl: ml.LetDeclaration, context: any) {}
 
   private _addError(node: ml.Node, message: string): void {
     this._errors.push(new I18nError(node.sourceSpan, message));

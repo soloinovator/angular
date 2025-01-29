@@ -3,13 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
-
 
 import {Type} from '../interface/type';
 import {NgModuleType} from '../metadata/ng_module_def';
-import {getNgModuleDef} from '../render3/definition';
 import {stringify} from '../util/stringify';
 
 /**
@@ -24,10 +22,11 @@ const modules = new Map<string, NgModuleType>();
  */
 let checkForDuplicateNgModules = true;
 
-function assertSameOrNotExisting(id: string, type: Type<any>|null, incoming: Type<any>): void {
+function assertSameOrNotExisting(id: string, type: Type<any> | null, incoming: Type<any>): void {
   if (type && type !== incoming && checkForDuplicateNgModules) {
     throw new Error(
-        `Duplicate module registered for ${id} - ${stringify(type)} vs ${stringify(type.name)}`);
+      `Duplicate module registered for ${id} - ${stringify(type)} vs ${stringify(type.name)}`,
+    );
   }
 }
 
@@ -51,7 +50,7 @@ export function clearModulesForTest(): void {
   modules.clear();
 }
 
-export function getRegisteredNgModuleType(id: string): NgModuleType|undefined {
+export function getRegisteredNgModuleType(id: string): NgModuleType | undefined {
   return modules.get(id);
 }
 

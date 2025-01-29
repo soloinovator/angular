@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {forwardRef, Inject, Injectable, Injector, resolveForwardRef} from '@angular/core';
@@ -35,8 +35,12 @@ import {forwardRef, Inject, Injectable, Injector, resolveForwardRef} from '@angu
       // Only at this point Lock is defined.
       class Lock {}
 
-      const injector =
-          Injector.create({providers: [{provide: Lock, deps: []}, {provide: Door, deps: [Lock]}]});
+      const injector = Injector.create({
+        providers: [
+          {provide: Lock, deps: []},
+          {provide: Door, deps: [Lock]},
+        ],
+      });
 
       expect(injector.get(Door) instanceof Door).toBe(true);
       expect(injector.get(Door).lock instanceof Lock).toBe(true);

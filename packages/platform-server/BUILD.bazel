@@ -1,4 +1,5 @@
-load("//tools:defaults.bzl", "api_golden_test_npm_package", "ng_module", "ng_package", "tsec_test")
+load("@build_bazel_rules_nodejs//:index.bzl", "js_library")
+load("//tools:defaults.bzl", "api_golden_test_npm_package", "esbuild", "generate_api_docs", "ng_module", "ng_package", "tsec_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -10,21 +11,35 @@ ng_module(
             "*.ts",
             "src/**/*.ts",
         ],
+        exclude = ["src/bundled-domino.d.ts"],
     ),
     deps = [
-        "//packages/animations/browser",
+        ":bundled_domino_lib",
         "//packages/common",
         "//packages/common/http",
         "//packages/compiler",
         "//packages/core",
         "//packages/platform-browser",
-        "//packages/platform-browser-dynamic",
-        "//packages/platform-browser/animations",
         "//packages/zone.js/lib:zone_d_ts",
         "@npm//@types/node",
-        "@npm//domino",
         "@npm//rxjs",
         "@npm//xhr2",
+    ],
+)
+
+esbuild(
+    name = "bundled_domino",
+    entry_point = "@npm//:node_modules/domino/lib/index.js",
+    format = "esm",
+    output = "src/bundled-domino.mjs",
+    deps = ["@npm//domino"],
+)
+
+js_library(
+    name = "bundled_domino_lib",
+    srcs = [
+        "src/bundled-domino.d.ts",
+        ":bundled_domino",
     ],
 )
 
@@ -40,7 +55,6 @@ ng_package(
         "package.json",
     ],
     externals = [
-        "domino",
         "xhr2",
     ],
     tags = [
@@ -49,10 +63,9 @@ ng_package(
     # Do not add more to this list.
     # Dependencies on the full npm_package cause long re-builds.
     visibility = [
-        "//aio:__pkg__",
-        "//aio/content/examples:__subpackages__",
-        "//aio/tools/examples:__pkg__",
+        "//adev:__pkg__",
         "//integration:__subpackages__",
+        "//modules/ssr-benchmarks:__subpackages__",
         "//packages/compiler-cli/integrationtest:__pkg__",
     ],
     deps = [
@@ -78,4 +91,14 @@ filegroup(
         "*.ts",
         "src/**/*.ts",
     ]) + ["PACKAGE.md"],
+)
+
+generate_api_docs(
+    name = "platform-server_docs",
+    srcs = [
+        ":files_for_docgen",
+        "//packages:common_files_and_deps_for_docs",
+    ],
+    entry_point = ":index.ts",
+    module_name = "@angular/platform-server",
 )

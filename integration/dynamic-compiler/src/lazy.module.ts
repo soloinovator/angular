@@ -1,19 +1,15 @@
-import {NgModule} from "@angular/core";
-import {Component} from '@angular/core';
+import {NgModule, Component} from '@angular/core';
 
 @Component({
   selector: 'lazy-component',
   template: 'Lazy-loaded component!',
-  jit: true
+  jit: true,
+  standalone: false,
 })
-export class LazyComponent {
-  constructor() {
-  }
-}
+export class LazyComponent {}
 
 @NgModule({
   declarations: [LazyComponent],
   jit: true,
 })
-export class LazyModule {
-}
+export class LazyModule {}

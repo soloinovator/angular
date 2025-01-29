@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {Component} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
@@ -24,7 +24,8 @@ describe('property interpolation', () => {
         <div title="a{{one}}b{{two}}c"></div>
         <div title="a{{one}}b"></div>
         <div title="{{one}}"></div>
-      `
+      `,
+      standalone: false,
     })
     class App {
       one = 1;
@@ -42,9 +43,9 @@ describe('property interpolation', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    const titles =
-        Array.from(<NodeListOf<HTMLDivElement>>fixture.nativeElement.querySelectorAll('div[title]'))
-            .map((div: HTMLDivElement) => div.title);
+    const titles = Array.from(
+      <NodeListOf<HTMLDivElement>>fixture.nativeElement.querySelectorAll('div[title]'),
+    ).map((div: HTMLDivElement) => div.title);
 
     expect(titles).toEqual([
       'a1b2c3d4e5f6g7h8i9j',
@@ -64,7 +65,8 @@ describe('property interpolation', () => {
     @Component({
       template: `
         <img title="{{(details | async)?.title}}" src="{{(details | async)?.url}}" />
-      `
+      `,
+      standalone: false,
     })
     class App {
       details = of({
@@ -87,7 +89,8 @@ describe('property interpolation', () => {
     @Component({
       template: `
         <img src="{{leadSurgeon?.getCommonInfo()?.getPhotoUrl() }}">
-      `
+      `,
+      standalone: false,
     })
     class App {
       /** Clearly this is a doctor of heavy metals. */
@@ -96,9 +99,9 @@ describe('property interpolation', () => {
           return {
             getPhotoUrl() {
               return 'http://somecooldomain:1234/cool_image.png';
-            }
+            },
           };
-        }
+        },
       };
     }
 
@@ -114,7 +117,8 @@ describe('property interpolation', () => {
     @Component({
       template: `
         <img src="{{naughty}}">
-      `
+      `,
+      standalone: false,
     })
     class App {
       naughty = 'javascript:alert("haha, I am taking over your computer!!!");';
@@ -132,7 +136,8 @@ describe('property interpolation', () => {
     @Component({
       template: `
         <img src="{{ja}}{{va}}script:{{naughty}}">
-      `
+      `,
+      standalone: false,
     })
     class App {
       ja = 'ja';
@@ -152,18 +157,18 @@ describe('property interpolation', () => {
     @Component({
       selector: 'app-comp',
       template: `
-        <a href="http://g.com/?one={{'1'}}&two={{'2'}}&three={{'3'}}&four={{'4'}}&five={{'5'}}&six={{'6'}}&seven={{'7'}}&eight={{'8'}}&nine={{'9'}}&ten={{'10'}}">link2</a>`
+        <a href="http://g.com/?one={{'1'}}&two={{'2'}}&three={{'3'}}&four={{'4'}}&five={{'5'}}&six={{'6'}}&seven={{'7'}}&eight={{'8'}}&nine={{'9'}}&ten={{'10'}}">link2</a>`,
+      standalone: false,
     })
-    class AppComp {
-    }
+    class AppComp {}
 
     TestBed.configureTestingModule({declarations: [AppComp]});
     const fixture = TestBed.createComponent(AppComp);
     fixture.detectChanges();
     const anchor = fixture.debugElement.query(By.css('a')).nativeElement;
-    expect(anchor.getAttribute('href'))
-        .toEqual(
-            `http://g.com/?one=1&two=2&three=3&four=4&five=5&six=6&seven=7&eight=8&nine=9&ten=10`);
+    expect(anchor.getAttribute('href')).toEqual(
+      `http://g.com/?one=1&two=2&three=3&four=4&five=5&six=6&seven=7&eight=8&nine=9&ten=10`,
+    );
   });
 
   it('should support the chained use cases of propertyInterpolate instructions', () => {
@@ -181,7 +186,8 @@ describe('property interpolation', () => {
       <img title="a{{one}}b{{two}}c" alt="a{{one}}b{{two}}c"/>
       <img title="a{{one}}b" alt="a{{one}}b"/>
       <img title="{{one}}" alt="{{one}}"/>
-      `
+      `,
+      standalone: false,
     })
     class AppComp {
       one = 1;
@@ -199,10 +205,9 @@ describe('property interpolation', () => {
     const fixture = TestBed.createComponent(AppComp);
     fixture.detectChanges();
 
-    const titles = Array
-                       .from(<NodeListOf<HTMLImageElement>>fixture.nativeElement.querySelectorAll(
-                           'img[title]'))
-                       .map((img: HTMLImageElement) => img.title);
+    const titles = Array.from(
+      <NodeListOf<HTMLImageElement>>fixture.nativeElement.querySelectorAll('img[title]'),
+    ).map((img: HTMLImageElement) => img.title);
 
     expect(titles).toEqual([
       'a1b2c3d4e5f6g7h8i9j',
@@ -217,9 +222,9 @@ describe('property interpolation', () => {
       '1',
     ]);
 
-    const others =
-        Array.from(<NodeListOf<HTMLImageElement>>fixture.nativeElement.querySelectorAll('img[alt]'))
-            .map((img: HTMLImageElement) => img.alt);
+    const others = Array.from(
+      <NodeListOf<HTMLImageElement>>fixture.nativeElement.querySelectorAll('img[alt]'),
+    ).map((img: HTMLImageElement) => img.alt);
 
     expect(others).toEqual([
       'a1b2c3d4e5f6g7h8i9j',

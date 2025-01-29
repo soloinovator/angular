@@ -3,17 +3,18 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Observable} from 'rxjs';
+import {Observable, Subject} from 'rxjs';
 
 import {EventEmitter} from '../event_emitter';
+import {Writable} from '../interface/type';
 import {arrayEquals, flatten} from '../util/array_utils';
-import {getSymbolIterator} from '../util/symbol';
 
 function symbolIterator<T>(this: QueryList<T>): Iterator<T> {
-  return ((this as any as {_results: Array<T>})._results as any)[getSymbolIterator()]();
+  // @ts-expect-error accessing a private member
+  return this._results[Symbol.iterator]();
 }
 
 /**
@@ -33,7 +34,7 @@ function symbolIterator<T>(this: QueryList<T>): Iterator<T> {
  *
  * @usageNotes
  * ### Example
- * ```typescript
+ * ```ts
  * @Component({...})
  * class Container {
  *   @ViewChildren(Item) items:QueryList<Item>;
@@ -44,9 +45,10 @@ function symbolIterator<T>(this: QueryList<T>): Iterator<T> {
  */
 export class QueryList<T> implements Iterable<T> {
   public readonly dirty = true;
+  private _onDirty?: () => void = undefined;
   private _results: Array<T> = [];
   private _changesDetected: boolean = false;
-  private _changes: EventEmitter<QueryList<T>>|null = null;
+  private _changes: Subject<QueryList<T>> | undefined = undefined;
 
   readonly length: number = 0;
   readonly first: T = undefined!;
@@ -56,7 +58,7 @@ export class QueryList<T> implements Iterable<T> {
    * Returns `Observable` of `QueryList` notifying the subscriber of changes.
    */
   get changes(): Observable<any> {
-    return this._changes || (this._changes = new EventEmitter());
+    return (this._changes ??= new Subject());
   }
 
   /**
@@ -64,20 +66,12 @@ export class QueryList<T> implements Iterable<T> {
    *     has occurred. Or if it should fire when query is recomputed. (recomputing could resolve in
    *     the same result)
    */
-  constructor(private _emitDistinctChangesOnly: boolean = false) {
-    // This function should be declared on the prototype, but doing so there will cause the class
-    // declaration to have side-effects and become not tree-shakable. For this reason we do it in
-    // the constructor.
-    // [getSymbolIterator()](): Iterator<T> { ... }
-    const symbol = getSymbolIterator();
-    const proto = QueryList.prototype as any;
-    if (!proto[symbol]) proto[symbol] = symbolIterator;
-  }
+  constructor(private _emitDistinctChangesOnly: boolean = false) {}
 
   /**
    * Returns the QueryList entry at `index`.
    */
-  get(index: number): T|undefined {
+  get(index: number): T | undefined {
     return this._results[index];
   }
 
@@ -93,6 +87,8 @@ export class QueryList<T> implements Iterable<T> {
    * See
    * [Array.filter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter)
    */
+  filter<S extends T>(predicate: (value: T, index: number, array: readonly T[]) => value is S): S[];
+  filter(predicate: (value: T, index: number, array: readonly T[]) => unknown): T[];
   filter(fn: (item: T, index: number, array: T[]) => boolean): T[] {
     return this._results.filter(fn);
   }
@@ -101,7 +97,7 @@ export class QueryList<T> implements Iterable<T> {
    * See
    * [Array.find](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find)
    */
-  find(fn: (item: T, index: number, array: T[]) => boolean): T|undefined {
+  find(fn: (item: T, index: number, array: T[]) => boolean): T | undefined {
     return this._results.find(fn);
   }
 
@@ -152,17 +148,14 @@ export class QueryList<T> implements Iterable<T> {
    *    function) to detect if the lists are different. If the function is not provided, elements
    *    are compared as is (without any pre-processing).
    */
-  reset(resultsTree: Array<T|any[]>, identityAccessor?: (value: T) => unknown): void {
-    // Cast to `QueryListInternal` so that we can mutate fields which are readonly for the usage of
-    // QueryList (but not for QueryList itself.)
-    const self = this as QueryListInternal<T>;
-    (self as {dirty: boolean}).dirty = false;
+  reset(resultsTree: Array<T | any[]>, identityAccessor?: (value: T) => unknown): void {
+    (this as {dirty: boolean}).dirty = false;
     const newResultFlat = flatten(resultsTree);
-    if (this._changesDetected = !arrayEquals(self._results, newResultFlat, identityAccessor)) {
-      self._results = newResultFlat;
-      self.length = newResultFlat.length;
-      self.last = newResultFlat[this.length - 1];
-      self.first = newResultFlat[0];
+    if ((this._changesDetected = !arrayEquals(this._results, newResultFlat, identityAccessor))) {
+      this._results = newResultFlat;
+      (this as Writable<this>).length = newResultFlat.length;
+      (this as Writable<this>).last = newResultFlat[this.length - 1];
+      (this as Writable<this>).first = newResultFlat[0];
     }
   }
 
@@ -170,36 +163,28 @@ export class QueryList<T> implements Iterable<T> {
    * Triggers a change event by emitting on the `changes` {@link EventEmitter}.
    */
   notifyOnChanges(): void {
-    if (this._changes && (this._changesDetected || !this._emitDistinctChangesOnly))
-      this._changes.emit(this);
+    if (this._changes !== undefined && (this._changesDetected || !this._emitDistinctChangesOnly))
+      this._changes.next(this);
+  }
+
+  /** @internal */
+  onDirty(cb: () => void) {
+    this._onDirty = cb;
   }
 
   /** internal */
   setDirty() {
     (this as {dirty: boolean}).dirty = true;
+    this._onDirty?.();
   }
 
   /** internal */
   destroy(): void {
-    (this.changes as EventEmitter<any>).complete();
-    (this.changes as EventEmitter<any>).unsubscribe();
+    if (this._changes !== undefined) {
+      this._changes.complete();
+      this._changes.unsubscribe();
+    }
   }
 
-  // The implementation of `Symbol.iterator` should be declared here, but this would cause
-  // tree-shaking issues with `QueryList. So instead, it's added in the constructor (see comments
-  // there) and this declaration is left here to ensure that TypeScript considers QueryList to
-  // implement the Iterable interface. This is required for template type-checking of NgFor loops
-  // over QueryLists to work correctly, since QueryList must be assignable to NgIterable.
-  [Symbol.iterator]!: () => Iterator<T>;
-}
-
-/**
- * Internal set of APIs used by the framework. (not to be made public)
- */
-interface QueryListInternal<T> extends QueryList<T> {
-  reset(a: any[]): void;
-  notifyOnChanges(): void;
-  length: number;
-  last: T;
-  first: T;
+  [Symbol.iterator]: () => Iterator<T> = /** @__PURE__*/ (() => symbolIterator)();
 }

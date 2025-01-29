@@ -24,7 +24,10 @@
         {
           "failureMessage": "Incorrect MyComponent.ɵcmp",
           "files": [
-            "local_reference_nested.js"
+            {
+              "generated": "local_reference_nested.js",
+              "expected": "local_reference_nested.js"
+            }
           ]
         }
       ]
@@ -38,7 +41,10 @@
         {
           "failureMessage": "Incorrect template",
           "files": [
-            "local_reference_and_context_variables.js"
+            {
+              "expected": "local_reference_and_context_variables_template.js",
+              "generated": "local_reference_and_context_variables.js"
+            }
           ]
         }
       ]

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, NgModule} from '@angular/core';
@@ -16,28 +16,24 @@ import {LazyModule} from './root_lazy';
 @Component({
   selector: 'root-app',
   template: '<router-outlet></router-outlet>',
+  standalone: false,
 })
-export class AppComponent {
-}
+export class AppComponent {}
 
 export function children(): any {
   console.error('children', LazyModule);
   return LazyModule;
 }
 
-
 @NgModule({
   imports: [
-    BrowserModule.withServerTransition({appId: 'id-app'}),
+    BrowserModule,
     ServerModule,
-    RouterModule.forRoot(
-        [
-          {path: '', pathMatch: 'prefix', loadChildren: children},
-        ],
-        {initialNavigation: 'enabledBlocking'}),
+    RouterModule.forRoot([{path: '', pathMatch: 'prefix', loadChildren: children}], {
+      initialNavigation: 'enabledBlocking',
+    }),
   ],
   declarations: [AppComponent],
   bootstrap: [AppComponent],
 })
-export class RootAppModule {
-}
+export class RootAppModule {}

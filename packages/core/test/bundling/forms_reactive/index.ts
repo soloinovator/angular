@@ -3,10 +3,17 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {Component, NgModule} from '@angular/core';
-import {FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
+import {
+  FormArray,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import {BrowserModule, platformBrowser} from '@angular/platform-browser';
 
 @Component({
@@ -35,7 +42,8 @@ import {BrowserModule, platformBrowser} from '@angular/platform-browser';
       </div>
       <button (click)="addCity()">Add City</button>
     </form>
-  `
+  `,
+  standalone: false,
 })
 class ReactiveFormsComponent {
   profileForm!: FormGroup;
@@ -78,14 +86,14 @@ class ReactiveFormsComponent {
   selector: 'app-root',
   template: `
     <app-reactive-forms></app-reactive-forms>
-  `
+  `,
+  standalone: false,
 })
-class RootComponent {
-}
+class RootComponent {}
 
 @NgModule({
   declarations: [RootComponent, ReactiveFormsComponent],
-  imports: [BrowserModule, ReactiveFormsModule]
+  imports: [BrowserModule, ReactiveFormsModule],
 })
 class FormsExampleModule {
   ngDoBootstrap(app: any) {

@@ -3,10 +3,18 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {camelToDashCase, isElement, isFunction, kebabToCamelCase, matchesSelector, scheduler, strictEquals} from '../src/utils';
+import {
+  camelToDashCase,
+  isElement,
+  isFunction,
+  kebabToCamelCase,
+  matchesSelector,
+  scheduler,
+  strictEquals,
+} from '../src/utils';
 
 describe('utils', () => {
   describe('scheduler', () => {
@@ -39,43 +47,6 @@ describe('utils', () => {
         expect(clearTimeoutSpy).toHaveBeenCalledWith(42);
       });
     });
-
-    describe('scheduleBeforeRender()', () => {
-      if (typeof window.requestAnimationFrame === 'undefined') {
-        const mockCancelFn = () => undefined;
-        let scheduleSpy: jasmine.Spy;
-
-        beforeEach(() => scheduleSpy = spyOn(scheduler, 'schedule').and.returnValue(mockCancelFn));
-
-        it('should delegate to `scheduler.schedule()`', () => {
-          const cb = () => null;
-          expect(scheduler.scheduleBeforeRender(cb)).toBe(mockCancelFn);
-          expect(scheduleSpy).toHaveBeenCalledWith(cb, 16);
-        });
-      } else {
-        let requestAnimationFrameSpy: jasmine.Spy;
-        let cancelAnimationFrameSpy: jasmine.Spy;
-
-        beforeEach(() => {
-          requestAnimationFrameSpy = spyOn(window, 'requestAnimationFrame').and.returnValue(42);
-          cancelAnimationFrameSpy = spyOn(window, 'cancelAnimationFrame');
-        });
-
-        it('should delegate to `window.requestAnimationFrame()`', () => {
-          const cb = () => null;
-          scheduler.scheduleBeforeRender(cb);
-          expect(requestAnimationFrameSpy).toHaveBeenCalledWith(cb);
-        });
-
-        it('should return a function for cancelling the scheduled job', () => {
-          const cancelFn = scheduler.scheduleBeforeRender(() => null);
-          expect(cancelAnimationFrameSpy).not.toHaveBeenCalled();
-
-          cancelFn();
-          expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(42);
-        });
-      }
-    });
   });
 
   describe('camelToKebabCase()', () => {
@@ -98,7 +69,7 @@ describe('utils', () => {
         document.documentElement,
       ];
 
-      elems.forEach(n => expect(isElement(n)).toBe(true));
+      elems.forEach((n) => expect(isElement(n)).toBe(true));
     });
 
     it('should return false for non-Element nodes', () => {
@@ -110,36 +81,22 @@ describe('utils', () => {
         document.createTextNode('baz'),
       ];
 
-      nonElems.forEach(n => expect(isElement(n)).toBe(false));
+      nonElems.forEach((n) => expect(isElement(n)).toBe(false));
     });
   });
 
   describe('isFunction()', () => {
     it('should return true for functions', () => {
-      const obj = {foo: function() {}, bar: () => null, baz() {}};
-      const fns = [
-        function() {},
-        () => null,
-        obj.foo,
-        obj.bar,
-        obj.baz,
-        Function,
-        Date,
-      ];
+      const obj = {foo: function () {}, bar: () => null, baz() {}};
+      const fns = [function () {}, () => null, obj.foo, obj.bar, obj.baz, Function, Date];
 
-      fns.forEach(v => expect(isFunction(v)).toBe(true));
+      fns.forEach((v) => expect(isFunction(v)).toBe(true));
     });
 
     it('should return false for non-functions', () => {
-      const nonFns = [
-        undefined,
-        null,
-        true,
-        42,
-        {},
-      ];
+      const nonFns = [undefined, null, true, 42, {}];
 
-      nonFns.forEach(v => expect(isFunction(v)).toBe(false));
+      nonFns.forEach((v) => expect(isFunction(v)).toBe(false));
     });
   });
 

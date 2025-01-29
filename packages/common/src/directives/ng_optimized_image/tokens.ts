@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {InjectionToken} from '@angular/core';
@@ -24,4 +24,9 @@ export const DEFAULT_PRELOADED_IMAGES_LIMIT = 5;
  * run through the specified `IMAGE_LOADER`.
  */
 export const PRELOADED_IMAGES = new InjectionToken<Set<string>>(
-    'NG_OPTIMIZED_PRELOADED_IMAGES', {providedIn: 'root', factory: () => new Set<string>()});
+  typeof ngDevMode === 'undefined' || ngDevMode ? 'NG_OPTIMIZED_PRELOADED_IMAGES' : '',
+  {
+    providedIn: 'root',
+    factory: () => new Set<string>(),
+  },
+);

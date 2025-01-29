@@ -3,17 +3,28 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
+import {validateMatchingNode} from '../../hydration/error_handling';
+import {locateNextRNode} from '../../hydration/node_lookup_utils';
+import {isDisconnectedNode, markRNodeAsClaimedByHydration} from '../../hydration/utils';
+import {isDetachedByI18n} from '../../i18n/utils';
 import {assertEqual, assertIndexInRange} from '../../util/assert';
-import {TElementNode, TNodeType} from '../interfaces/node';
-import {HEADER_OFFSET, RENDERER, T_HOST} from '../interfaces/view';
-import {appendChild, createTextNode} from '../node_manipulation';
-import {getBindingIndex, getLView, getTView, setCurrentTNode} from '../state';
-
-import {getOrCreateTNode} from './shared';
-
-
+import {TElementNode, TNode, TNodeType} from '../interfaces/node';
+import {RText} from '../interfaces/renderer_dom';
+import {HEADER_OFFSET, HYDRATION, LView, RENDERER, TView} from '../interfaces/view';
+import {appendChild} from '../node_manipulation';
+import {createTextNode} from '../dom_node_manipulation';
+import {
+  getBindingIndex,
+  getLView,
+  getTView,
+  isInSkipHydrationBlock,
+  lastNodeWasCreated,
+  setCurrentTNode,
+  wasLastNodeCreated,
+} from '../state';
+import {getOrCreateTNode} from '../tnode_manipulation';
 
 /**
  * Create static text node
@@ -29,18 +40,72 @@ export function ɵɵtext(index: number, value: string = ''): void {
   const adjustedIndex = index + HEADER_OFFSET;
 
   ngDevMode &&
-      assertEqual(
-          getBindingIndex(), tView.bindingStartIndex,
-          'text nodes should be created before any bindings');
+    assertEqual(
+      getBindingIndex(),
+      tView.bindingStartIndex,
+      'text nodes should be created before any bindings',
+    );
   ngDevMode && assertIndexInRange(lView, adjustedIndex);
 
-  const tNode = tView.firstCreatePass ?
-      getOrCreateTNode(tView, adjustedIndex, TNodeType.Text, value, null) :
-      tView.data[adjustedIndex] as TElementNode;
+  const tNode = tView.firstCreatePass
+    ? getOrCreateTNode(tView, adjustedIndex, TNodeType.Text, value, null)
+    : (tView.data[adjustedIndex] as TElementNode);
 
-  const textNative = lView[adjustedIndex] = createTextNode(lView[RENDERER], value);
-  appendChild(tView, lView, textNative, tNode);
+  const textNative = _locateOrCreateTextNode(tView, lView, tNode, value, index);
+  lView[adjustedIndex] = textNative;
+
+  if (wasLastNodeCreated()) {
+    appendChild(tView, lView, textNative, tNode);
+  }
 
   // Text nodes are self closing.
   setCurrentTNode(tNode, false);
+}
+
+let _locateOrCreateTextNode: typeof locateOrCreateTextNodeImpl = (
+  tView: TView,
+  lView: LView,
+  tNode: TNode,
+  value: string,
+  index: number,
+) => {
+  lastNodeWasCreated(true);
+  return createTextNode(lView[RENDERER], value);
+};
+
+/**
+ * Enables hydration code path (to lookup existing elements in DOM)
+ * in addition to the regular creation mode of text nodes.
+ */
+function locateOrCreateTextNodeImpl(
+  tView: TView,
+  lView: LView,
+  tNode: TNode,
+  value: string,
+  index: number,
+): RText {
+  const hydrationInfo = lView[HYDRATION];
+  const isNodeCreationMode =
+    !hydrationInfo ||
+    isInSkipHydrationBlock() ||
+    isDetachedByI18n(tNode) ||
+    isDisconnectedNode(hydrationInfo, index);
+  lastNodeWasCreated(isNodeCreationMode);
+
+  // Regular creation mode.
+  if (isNodeCreationMode) {
+    return createTextNode(lView[RENDERER], value);
+  }
+
+  // Hydration mode, looking up an existing element in DOM.
+  const textNative = locateNextRNode(hydrationInfo, tView, lView, tNode) as RText;
+
+  ngDevMode && validateMatchingNode(textNative, Node.TEXT_NODE, null, lView, tNode);
+  ngDevMode && markRNodeAsClaimedByHydration(textNative);
+
+  return textNative;
+}
+
+export function enableLocateOrCreateTextNodeImpl() {
+  _locateOrCreateTextNode = locateOrCreateTextNodeImpl;
 }

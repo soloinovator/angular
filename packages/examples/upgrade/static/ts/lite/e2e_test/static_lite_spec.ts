@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {browser, by, element, ElementArrayFinder, ElementFinder} from 'protractor';
@@ -39,7 +39,7 @@ describe('upgrade/static (lite)', () => {
     // Verify the `<ng1-hero>` components.
     expect(ng1Heroes.count()).toBe(isShown ? ng1HeroCount : 0);
     if (isShown) {
-      ng1Heroes.each(ng1Hero => expect(ng1Hero).toBeAHero());
+      ng1Heroes.each((ng1Hero) => expect(ng1Hero).toBeAHero());
     }
   };
 

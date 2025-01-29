@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, NgModule} from '@angular/core';
@@ -12,11 +12,19 @@ import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
 
 import {Store, Todo, TodoFactory} from './app/TodoStore';
 
-@Component({selector: 'todo-app', viewProviders: [Store, TodoFactory], templateUrl: 'todo.html'})
+@Component({
+  selector: 'todo-app',
+  viewProviders: [Store, TodoFactory],
+  templateUrl: 'todo.html',
+  standalone: false,
+})
 export class TodoApp {
   todoEdit: Todo = null;
 
-  constructor(public todoStore: Store<Todo>, public factory: TodoFactory) {}
+  constructor(
+    public todoStore: Store<Todo>,
+    public factory: TodoFactory,
+  ) {}
 
   enterTodo(inputElement: HTMLInputElement): void {
     this.addTodo(inputElement.value);
@@ -64,7 +72,6 @@ export class TodoApp {
 }
 
 @NgModule({declarations: [TodoApp], bootstrap: [TodoApp], imports: [BrowserModule]})
-export class ExampleModule {
-}
+export class ExampleModule {}
 
 platformBrowserDynamic().bootstrapModule(ExampleModule);

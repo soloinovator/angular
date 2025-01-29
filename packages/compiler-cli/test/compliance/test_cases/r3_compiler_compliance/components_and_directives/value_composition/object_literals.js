@@ -1,8 +1,9 @@
-const $e0_ff$ = function ($v$) { return {"duration": 500, animation: $v$}; };
+const $e0_ff$ = $v$ => ({"duration": 500, animation: $v$});
 // ...
 MyApp.ɵcmp = /*@__PURE__*/ $r3$.ɵɵdefineComponent({
   type: MyApp,
   selectors: [["my-app"]],
+  standalone: false,
   decls: 1,
   vars: 3,
   consts: [[__AttributeMarker.Bindings__, "config"]],

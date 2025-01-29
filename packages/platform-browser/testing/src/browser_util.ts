@@ -3,77 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ɵgetDOM as getDOM} from '@angular/common';
-import {NgZone, ɵglobal as global} from '@angular/core';
-
-export class BrowserDetection {
-  private _overrideUa: string|null;
-  private get _ua(): string {
-    if (typeof this._overrideUa === 'string') {
-      return this._overrideUa;
-    }
-
-    return getDOM() ? getDOM().getUserAgent() : '';
-  }
-
-  static setup() {
-    return new BrowserDetection(null);
-  }
-
-  constructor(ua: string|null) {
-    this._overrideUa = ua;
-  }
-
-  get isFirefox(): boolean {
-    return this._ua.indexOf('Firefox') > -1;
-  }
-
-  get isAndroid(): boolean {
-    return this._ua.indexOf('Mozilla/5.0') > -1 && this._ua.indexOf('Android') > -1 &&
-        this._ua.indexOf('AppleWebKit') > -1 && this._ua.indexOf('Chrome') == -1 &&
-        this._ua.indexOf('IEMobile') == -1;
-  }
-
-  get isEdge(): boolean {
-    return this._ua.indexOf('Edge') > -1;
-  }
-
-  get isWebkit(): boolean {
-    return this._ua.indexOf('AppleWebKit') > -1 && this._ua.indexOf('Edge') == -1 &&
-        this._ua.indexOf('IEMobile') == -1;
-  }
-
-  get isIOS7(): boolean {
-    return (this._ua.indexOf('iPhone OS 7') > -1 || this._ua.indexOf('iPad OS 7') > -1) &&
-        this._ua.indexOf('IEMobile') == -1;
-  }
-
-  get isSlow(): boolean {
-    return this.isAndroid || this.isIOS7;
-  }
-
-  get isChromeDesktop(): boolean {
-    return this._ua.indexOf('Chrome') > -1 && this._ua.indexOf('Mobile Safari') == -1 &&
-        this._ua.indexOf('Edge') == -1;
-  }
-
-  // "Old Chrome" means Chrome 3X, where there are some discrepancies in the Intl API.
-  // Android 4.4 and 5.X have such browsers by default (respectively 30 and 39).
-  get isOldChrome(): boolean {
-    return this._ua.indexOf('Chrome') > -1 && this._ua.indexOf('Chrome/3') > -1 &&
-        this._ua.indexOf('Edge') == -1;
-  }
-
-  get supportsShadowDom() {
-    const testEl = document.createElement('div');
-    return (typeof testEl.attachShadow !== 'undefined');
-  }
-}
-
-export const browserDetection: BrowserDetection = BrowserDetection.setup();
+import {NgZone} from '@angular/core';
 
 export function dispatchEvent(element: any, eventType: any): Event {
   const evt: Event = getDOM().getDefaultDocument().createEvent('Event');
@@ -103,7 +37,7 @@ function getAttributeMap(element: any): Map<string, string> {
 }
 
 const _selfClosingTags = ['br', 'hr', 'input'];
-export function stringifyElement(el: any /** TODO #9100 */): string {
+export function stringifyElement(el: Element): string {
   let result = '';
   if (getDOM().isElementNode(el)) {
     const tagName = el.tagName.toLowerCase();
@@ -123,7 +57,12 @@ export function stringifyElement(el: any /** TODO #9100 */): string {
       } else {
         // Browsers order style rules differently. Order them alphabetically for consistency.
         if (lowerCaseKey === 'style') {
-          attValue = attValue.split(/; ?/).filter(s => !!s).sort().map(s => `${s};`).join(' ');
+          attValue = attValue
+            .split(/; ?/)
+            .filter((s) => !!s)
+            .sort()
+            .map((s) => `${s};`)
+            .join(' ');
         }
 
         result += ` ${lowerCaseKey}="${attValue}"`;
@@ -181,7 +120,7 @@ export function setCookie(name: string, value: string) {
   document.cookie = encodeURIComponent(name) + '=' + encodeURIComponent(value);
 }
 
-export function hasStyle(element: any, styleName: string, styleValue?: string|null): boolean {
+export function hasStyle(element: any, styleName: string, styleValue?: string | null): boolean {
   const value = element.style[styleName] || '';
   return styleValue ? value == styleValue : value.length > 0;
 }

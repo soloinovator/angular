@@ -3,23 +3,40 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {inject, InjectFlags, InjectionToken, InjectOptions, Injector, ProviderToken, ɵsetCurrentInjector as setCurrentInjector} from '@angular/core';
+import {
+  inject,
+  InjectFlags,
+  InjectionToken,
+  InjectOptions,
+  Injector,
+  ProviderToken,
+  ɵInjectorProfilerContext,
+  ɵsetCurrentInjector as setCurrentInjector,
+  ɵsetInjectorProfilerContext,
+} from '@angular/core';
 
 class MockRootScopeInjector implements Injector {
   constructor(readonly parent: Injector) {}
 
   get<T>(
-      token: ProviderToken<T>, defaultValue?: any,
-      flags: InjectFlags|InjectOptions = InjectFlags.Default): T {
+    token: ProviderToken<T>,
+    defaultValue?: any,
+    flags: InjectFlags | InjectOptions = InjectFlags.Default,
+  ): T {
     if ((token as any).ɵprov && (token as any).ɵprov.providedIn === 'root') {
       const old = setCurrentInjector(this);
+      const previousInjectorProfilerContext = ɵsetInjectorProfilerContext({
+        injector: this,
+        token: null,
+      });
       try {
         return (token as any).ɵprov.factory();
       } finally {
         setCurrentInjector(old);
+        ɵsetInjectorProfilerContext(previousInjectorProfilerContext);
       }
     }
     return this.parent.get(token, defaultValue, flags);
@@ -30,8 +47,9 @@ class MockRootScopeInjector implements Injector {
   describe('injector metadata examples', () => {
     it('works', () => {
       // #docregion Injector
-      const injector: Injector =
-          Injector.create({providers: [{provide: 'validToken', useValue: 'Value'}]});
+      const injector: Injector = Injector.create({
+        providers: [{provide: 'validToken', useValue: 'Value'}],
+      });
       expect(injector.get('validToken')).toEqual('Value');
       expect(() => injector.get('invalidToken')).toThrowError();
       expect(injector.get('invalidToken', 'notFound')).toEqual('notFound');
@@ -48,8 +66,9 @@ class MockRootScopeInjector implements Injector {
     it('should infer type', () => {
       // #docregion InjectionToken
       const BASE_URL = new InjectionToken<string>('BaseUrl');
-      const injector =
-          Injector.create({providers: [{provide: BASE_URL, useValue: 'http://localhost'}]});
+      const injector = Injector.create({
+        providers: [{provide: BASE_URL, useValue: 'http://localhost'}],
+      });
       const url = injector.get(BASE_URL);
       // Note: since `BASE_URL` is `InjectionToken<string>`
       // `url` is correctly inferred to be `string`
@@ -59,8 +78,9 @@ class MockRootScopeInjector implements Injector {
 
     it('injects a tree-shakeable InjectionToken', () => {
       class MyDep {}
-      const injector =
-          new MockRootScopeInjector(Injector.create({providers: [{provide: MyDep, deps: []}]}));
+      const injector = new MockRootScopeInjector(
+        Injector.create({providers: [{provide: MyDep, deps: []}]}),
+      );
 
       // #docregion ShakableInjectionToken
       class MyService {

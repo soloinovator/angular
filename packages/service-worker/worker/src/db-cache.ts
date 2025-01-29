@@ -3,13 +3,12 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Adapter} from './adapter';
 import {Database, NotFound, Table} from './database';
 import {NamedCache} from './named-cache-storage';
-
 
 /**
  * An implementation of a `Database` that uses the `CacheStorage` API to serialize
@@ -31,11 +30,11 @@ export class CacheDatabase implements Database {
   async list(): Promise<string[]> {
     const prefix = `${this.cacheNamePrefix}:`;
     const allCacheNames = await this.adapter.caches.keys();
-    const dbCacheNames = allCacheNames.filter(name => name.startsWith(prefix));
+    const dbCacheNames = allCacheNames.filter((name) => name.startsWith(prefix));
 
     // Return the un-prefixed table names, so they can be used with other `CacheDatabase` methods
     // (for example, for opening/deleting a table).
-    return dbCacheNames.map(name => name.slice(prefix.length));
+    return dbCacheNames.map((name) => name.slice(prefix.length));
   }
 
   async open(name: string, cacheQueryOptions?: CacheQueryOptions): Promise<Table> {
@@ -52,11 +51,16 @@ export class CacheDatabase implements Database {
  * A `Table` backed by a `Cache`.
  */
 export class CacheTable implements Table {
-  cacheName = this.cache.name;
+  cacheName: string;
 
   constructor(
-      readonly name: string, private cache: NamedCache, private adapter: Adapter,
-      private cacheQueryOptions?: CacheQueryOptions) {}
+    readonly name: string,
+    private cache: NamedCache,
+    private adapter: Adapter,
+    private cacheQueryOptions?: CacheQueryOptions,
+  ) {
+    this.cacheName = this.cache.name;
+  }
 
   private request(key: string): Request {
     return this.adapter.newRequest('/' + key);
@@ -67,11 +71,11 @@ export class CacheTable implements Table {
   }
 
   keys(): Promise<string[]> {
-    return this.cache.keys().then(requests => requests.map(req => req.url.slice(1)));
+    return this.cache.keys().then((requests) => requests.map((req) => req.url.slice(1)));
   }
 
   read(key: string): Promise<any> {
-    return this.cache.match(this.request(key), this.cacheQueryOptions).then(res => {
+    return this.cache.match(this.request(key), this.cacheQueryOptions).then((res) => {
       if (res === undefined) {
         return Promise.reject(new NotFound(this.name, key));
       }

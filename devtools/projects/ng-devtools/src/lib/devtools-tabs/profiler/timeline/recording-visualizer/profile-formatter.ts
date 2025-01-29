@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {DirectiveProfile} from 'protocol';
@@ -23,7 +23,10 @@ const formatOutput = (outputName: string) => {
     }
     output.push(parts[idx]);
   }
-  return output.filter((el) => !!el).reverse().join('-');
+  return output
+    .filter((el) => !!el)
+    .reverse()
+    .join('-');
 };
 
 export const formatDirectiveProfile = (nodes: DirectiveProfile[]) => {
@@ -37,18 +40,18 @@ export const formatDirectiveProfile = (nodes: DirectiveProfile[]) => {
         value: parseFloat(changeDetection.toFixed(2)),
       });
     }
-    Object.keys(node.lifecycle).forEach((key) => {
+    Object.entries(node.lifecycle).forEach(([key, lifeCycleProfile]) => {
       graphData.push({
         directive: node.name,
         method: key,
-        value: +node.lifecycle[key].toFixed(2),
+        value: +lifeCycleProfile.toFixed(2),
       });
     });
-    Object.keys(node.outputs).forEach((key) => {
+    Object.entries(node.outputs).forEach(([key, outputProfile]) => {
       graphData.push({
         directive: node.name,
         method: formatOutput(key),
-        value: +node.outputs[key].toFixed(2),
+        value: +outputProfile.toFixed(2),
       });
     });
   });

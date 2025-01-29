@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ElementPosition} from 'protocol';
@@ -28,7 +28,7 @@ export class DirectiveForestHooks {
 
   profiler: Profiler = selectProfilerStrategy();
 
-  getDirectivePosition(dir: any): ElementPosition|undefined {
+  getDirectivePosition(dir: any): ElementPosition | undefined {
     const result = this._tracker.getDirectivePosition(dir);
     if (result === undefined) {
       console.warn('Unable to find position of', dir);
@@ -36,7 +36,7 @@ export class DirectiveForestHooks {
     return result;
   }
 
-  getDirectiveId(dir: any): number|undefined {
+  getDirectiveId(dir: any): number | undefined {
     const result = this._tracker.getDirectiveId(dir);
     if (result === undefined) {
       console.warn('Unable to find ID of', result);

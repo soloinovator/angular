@@ -3,10 +3,19 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Component, Directive, Host, Injectable, Injector, Optional, Self, SkipSelf} from '@angular/core';
+import {
+  Component,
+  Directive,
+  Host,
+  Injectable,
+  Injector,
+  Optional,
+  Self,
+  SkipSelf,
+} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
 {
@@ -18,12 +27,15 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
         @Injectable()
         class Car {
-          constructor(public engine: Engine) {
-          }  // same as constructor(@Inject(Engine) engine:Engine)
+          constructor(public engine: Engine) {} // same as constructor(@Inject(Engine) engine:Engine)
         }
 
-        const injector = Injector.create(
-            {providers: [{provide: Engine, deps: []}, {provide: Car, deps: [Engine]}]});
+        const injector = Injector.create({
+          providers: [
+            {provide: Engine, deps: []},
+            {provide: Car, deps: [Engine]},
+          ],
+        });
         expect(injector.get(Car).engine instanceof Engine).toBe(true);
         // #enddocregion
       });
@@ -39,8 +51,9 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
           constructor(@Optional() public engine: Engine) {}
         }
 
-        const injector =
-            Injector.create({providers: [{provide: Car, deps: [[new Optional(), Engine]]}]});
+        const injector = Injector.create({
+          providers: [{provide: Car, deps: [[new Optional(), Engine]]}],
+        });
         expect(injector.get(Car).engine).toBeNull();
         // #enddocregion
       });
@@ -50,8 +63,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
       it('works', () => {
         // #docregion Injectable
         @Injectable()
-        class UsefulService {
-        }
+        class UsefulService {}
 
         @Injectable()
         class NeedsService {
@@ -59,8 +71,10 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
         }
 
         const injector = Injector.create({
-          providers:
-              [{provide: NeedsService, deps: [UsefulService]}, {provide: UsefulService, deps: []}]
+          providers: [
+            {provide: NeedsService, deps: [UsefulService]},
+            {provide: UsefulService, deps: []},
+          ],
         });
         expect(injector.get(NeedsService).service instanceof UsefulService).toBe(true);
         // #enddocregion
@@ -80,8 +94,8 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
         let inj = Injector.create({
           providers: [
             {provide: Dependency, deps: []},
-            {provide: NeedsDependency, deps: [[new Self(), Dependency]]}
-          ]
+            {provide: NeedsDependency, deps: [[new Self(), Dependency]]},
+          ],
         });
         const nd = inj.get(NeedsDependency);
 
@@ -89,7 +103,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 
         const child = Injector.create({
           providers: [{provide: NeedsDependency, deps: [[new Self(), Dependency]]}],
-          parent: inj
+          parent: inj,
         });
         expect(() => child.get(NeedsDependency)).toThrowError();
         // #enddocregion
@@ -107,12 +121,15 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
         }
 
         const parent = Injector.create({providers: [{provide: Dependency, deps: []}]});
-        const child =
-            Injector.create({providers: [{provide: NeedsDependency, deps: [Dependency]}], parent});
+        const child = Injector.create({
+          providers: [{provide: NeedsDependency, deps: [Dependency]}],
+          parent,
+        });
         expect(child.get(NeedsDependency).dependency instanceof Dependency).toBe(true);
 
-        const inj = Injector.create(
-            {providers: [{provide: NeedsDependency, deps: [[new Self(), Dependency]]}]});
+        const inj = Injector.create({
+          providers: [{provide: NeedsDependency, deps: [[new Self(), Dependency]]}],
+        });
         expect(() => inj.get(NeedsDependency)).toThrowError();
         // #enddocregion
       });
@@ -124,7 +141,10 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
         class OtherService {}
         class HostService {}
 
-        @Directive({selector: 'child-directive'})
+        @Directive({
+          selector: 'child-directive',
+          standalone: false,
+        })
         class ChildDirective {
           logs: string[] = [];
 
@@ -140,17 +160,17 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
           selector: 'parent-cmp',
           viewProviders: [HostService],
           template: '<child-directive></child-directive>',
+          standalone: false,
         })
-        class ParentCmp {
-        }
+        class ParentCmp {}
 
         @Component({
           selector: 'app',
           viewProviders: [OtherService],
           template: '<parent-cmp></parent-cmp>',
+          standalone: false,
         })
-        class App {
-        }
+        class App {}
         // #enddocregion
 
         TestBed.configureTestingModule({
@@ -158,7 +178,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
         });
 
         let cmp: ComponentFixture<App> = undefined!;
-        expect(() => cmp = TestBed.createComponent(App)).not.toThrow();
+        expect(() => (cmp = TestBed.createComponent(App))).not.toThrow();
 
         expect(cmp.debugElement.children[0].children[0].injector.get(ChildDirective).logs).toEqual([
           'os is null: true',

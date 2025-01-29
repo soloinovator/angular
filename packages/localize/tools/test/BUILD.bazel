@@ -19,10 +19,8 @@ ts_library(
         "//packages/localize/tools",
         "//packages/localize/tools/test/helpers",
         "@npm//@babel/generator",
-        "@npm//@babel/template",
         "@npm//@types/babel__generator",
-        "@npm//@types/babel__template",
-        "@npm//@types/glob",
+        "@npm//fast-glob",
     ],
 )
 
@@ -31,6 +29,6 @@ jasmine_node_test(
     bootstrap = ["//tools/testing:node_no_angular"],
     deps = [
         ":test_lib",
-        "@npm//glob",
+        "@npm//fast-glob",
     ],
 )

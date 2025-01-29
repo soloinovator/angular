@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 // tslint:disable: no-duplicate-imports
 import {Component, NgModule} from '@angular/core';
@@ -19,6 +19,7 @@ const PUBLIC_VAPID_KEY_OF_SERVER = '...';
 @Component({
   selector: 'example-app',
   template: 'SW enabled: {{ swPush.isEnabled }}',
+  standalone: false,
 })
 // #docregion inject-sw-push
 export class AppComponent {
@@ -40,10 +41,9 @@ export class AppComponent {
 
   private subscribeToNotificationClicks() {
     // #docregion subscribe-to-notification-clicks
-    this.swPush.notificationClicks.subscribe(
-        ({action, notification}) => {
-            // TODO: Do something in response to notification click.
-        });
+    this.swPush.notificationClicks.subscribe(({action, notification}) => {
+      // TODO: Do something in response to notification click.
+    });
     // #enddocregion subscribe-to-notification-clicks
   }
   // #docregion inject-sw-push
@@ -51,16 +51,8 @@ export class AppComponent {
 // #enddocregion inject-sw-push
 
 @NgModule({
-  bootstrap: [
-    AppComponent,
-  ],
-  declarations: [
-    AppComponent,
-  ],
-  imports: [
-    BrowserModule,
-    ServiceWorkerModule.register('ngsw-worker.js'),
-  ],
+  bootstrap: [AppComponent],
+  declarations: [AppComponent],
+  imports: [BrowserModule, ServiceWorkerModule.register('ngsw-worker.js')],
 })
-export class AppModule {
-}
+export class AppModule {}

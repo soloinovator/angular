@@ -3,12 +3,13 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 if (typeof window !== 'undefined') {
   const zoneSymbol = (window as any).Zone.__symbol__;
   (window as any)['__Zone_enable_cross_context_check'] = true;
   (window as any)[zoneSymbol('fakeAsyncAutoFakeAsyncWhenClockPatched')] = true;
+  (window as any)[zoneSymbol('DISABLE_WRAPPING_UNCAUGHT_PROMISE_REJECTION')] = false;
 }
 import '../lib/common/to-string';
 import '../lib/browser/api-util';

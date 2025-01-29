@@ -3,22 +3,30 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import '@angular/core/test/bundling/util/src/reflect_metadata';
-
-import {ApplicationRef, Component, Directive, ElementRef, HostBinding, HostListener, NgModule, ɵdetectChanges as detectChanges} from '@angular/core';
+import {
+  ApplicationRef,
+  ChangeDetectorRef,
+  Component,
+  Directive,
+  ElementRef,
+  HostBinding,
+  HostListener,
+  NgModule,
+} from '@angular/core';
 import {BrowserModule, platformBrowser} from '@angular/platform-browser';
 
 @Directive({
   selector: '[make-color-grey]',
   exportAs: 'makeColorGrey',
-  host: {'style': 'font-family: Times New Roman;'}
+  host: {'style': 'font-family: Times New Roman;'},
+  standalone: false,
 })
 class MakeColorGreyDirective {
-  @HostBinding('style.background-color') private _backgroundColor: string|null = null;
-  @HostBinding('style.color') private _textColor: string|null = null;
+  @HostBinding('style.background-color') private _backgroundColor: string | null = null;
+  @HostBinding('style.color') private _textColor: string | null = null;
 
   on() {
     this._backgroundColor = 'grey';
@@ -35,13 +43,17 @@ class MakeColorGreyDirective {
   }
 }
 
-@Component({selector: 'box-with-overridden-styles', template: '...'})
+@Component({
+  selector: 'box-with-overridden-styles',
+  template: '...',
+  standalone: false,
+})
 class BoxWithOverriddenStylesComponent {
   public active = false;
 
   @HostBinding('style') styles = {};
 
-  constructor() {
+  constructor(private readonly cdr: ChangeDetectorRef) {
     this.onInActive();
   }
 
@@ -52,7 +64,7 @@ class BoxWithOverriddenStylesComponent {
     } else {
       this.onActive();
     }
-    detectChanges(this);
+    this.cdr.detectChanges();
   }
 
   onActive() {
@@ -93,19 +105,29 @@ class BoxWithOverriddenStylesComponent {
       [style]="{'border-radius':'50px', 'border': '50px solid teal'}" [ngStyle]="{transform:'rotate(50deg)'}">
     </box-with-overridden-styles>
   `,
+  standalone: false,
 })
 class AnimationWorldComponent {
   @HostBinding('class') classVal = 'border';
 
   items: any[] = [
-    {value: 1, active: false}, {value: 2, active: false}, {value: 3, active: false},
-    {value: 4, active: false}, {value: 5, active: false}, {value: 6, active: false},
-    {value: 7, active: false}, {value: 8, active: false}, {value: 9, active: false}
+    {value: 1, active: false},
+    {value: 2, active: false},
+    {value: 3, active: false},
+    {value: 4, active: false},
+    {value: 5, active: false},
+    {value: 6, active: false},
+    {value: 7, active: false},
+    {value: 8, active: false},
+    {value: 9, active: false},
   ];
   private _hostElement: HTMLElement;
-  public styles: {[key: string]: any}|null = null;
+  public styles: {[key: string]: any} | null = null;
 
-  constructor(element: ElementRef) {
+  constructor(
+    element: ElementRef,
+    private readonly cdr: ChangeDetectorRef,
+  ) {
     this._hostElement = element.nativeElement;
   }
 
@@ -116,7 +138,7 @@ class AnimationWorldComponent {
   toggleActive(item: any, makeColorGrey: MakeColorGreyDirective) {
     item.active = !item.active;
     makeColorGrey.toggle();
-    detectChanges(this);
+    this.cdr.detectChanges();
   }
 }
 

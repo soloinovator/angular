@@ -3,13 +3,21 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {InjectFlags, InjectionToken, INJECTOR, Injector, Optional, ɵɵdefineInjectable, ɵɵdefineInjector, ɵɵinject} from '@angular/core';
+import {
+  InjectFlags,
+  InjectionToken,
+  INJECTOR,
+  Injector,
+  Optional,
+  ɵɵdefineInjectable,
+  ɵɵdefineInjector,
+  ɵɵinject,
+} from '@angular/core';
 import {createInjector} from '@angular/core/src/di/create_injector';
 import {R3Injector} from '@angular/core/src/di/r3_injector';
-import {expect} from '@angular/platform-browser/testing/src/matchers';
 
 describe('InjectorDef-based createInjector()', () => {
   class CircularA {
@@ -65,12 +73,12 @@ describe('InjectorDef-based createInjector()', () => {
       providedIn: null,
       // ChildService is derived from ServiceWithDep, so the factory function here must do the right
       // thing and create an instance of the requested type if one is given.
-      factory: (t?: any) => new(t || ServiceWithDep)(ɵɵinject(Service)),
+      factory: (t?: any) => new (t || ServiceWithDep)(ɵɵinject(Service)),
     });
   }
 
   class ServiceWithOptionalDep {
-    constructor(@Optional() readonly service: OptionalService|null) {}
+    constructor(@Optional() readonly service: OptionalService | null) {}
 
     static ɵprov = ɵɵdefineInjectable({
       token: ServiceWithOptionalDep,
@@ -142,17 +150,15 @@ describe('InjectorDef-based createInjector()', () => {
     static ɵfac = () => new DeepModule(ɵɵinject(EagerService));
     static ɵinj = ɵɵdefineInjector({
       imports: undefined,
-      providers:
-          [
-            EagerService,
-            {
-              provide: DeepService,
-              useFactory:
-                  () => {
-                    throw new Error('Not overridden!');
-                  }
-            },
-          ],
+      providers: [
+        EagerService,
+        {
+          provide: DeepService,
+          useFactory: () => {
+            throw new Error('Not overridden!');
+          },
+        },
+      ],
     });
 
     static safe() {
@@ -191,32 +197,33 @@ describe('InjectorDef-based createInjector()', () => {
   class Module {
     static ɵinj = ɵɵdefineInjector({
       imports: [IntermediateModule],
-      providers:
-          [
-            ChildService,
-            ServiceWithDep,
-            ServiceWithOptionalDep,
-            ServiceWithMultiDep,
-            {provide: LOCALE, multi: true, useValue: 'en'},
-            {provide: LOCALE, multi: true, useValue: 'es'},
-            {provide: PRIMITIVE_VALUE, useValue: 'foo'},
-            {provide: UNDEFINED_VALUE, useValue: undefined},
-            Service,
-            {provide: SERVICE_TOKEN, useExisting: Service},
-            CircularA,
-            CircularB,
-            {provide: STATIC_TOKEN, useClass: StaticService, deps: [Service]},
-            InjectorWithDep,
-            AbstractService,
-          ],
+      providers: [
+        ChildService,
+        ServiceWithDep,
+        ServiceWithOptionalDep,
+        ServiceWithMultiDep,
+        {provide: LOCALE, multi: true, useValue: 'en'},
+        {provide: LOCALE, multi: true, useValue: 'es'},
+        {provide: PRIMITIVE_VALUE, useValue: 'foo'},
+        {provide: UNDEFINED_VALUE, useValue: undefined},
+        Service,
+        {provide: SERVICE_TOKEN, useExisting: Service},
+        CircularA,
+        CircularB,
+        {provide: STATIC_TOKEN, useClass: StaticService, deps: [Service]},
+        InjectorWithDep,
+        AbstractService,
+      ],
     });
   }
 
-  const ABSTRACT_SERVICE_TOKEN_WITH_FACTORY =
-      new InjectionToken<AbstractService>('ABSTRACT_SERVICE_TOKEN', {
-        providedIn: Module,
-        factory: () => ɵɵinject(AbstractService),
-      });
+  const ABSTRACT_SERVICE_TOKEN_WITH_FACTORY = new InjectionToken<AbstractService>(
+    'ABSTRACT_SERVICE_TOKEN',
+    {
+      providedIn: Module,
+      factory: () => ɵɵinject(AbstractService),
+    },
+  );
 
   class OtherModule {
     static ɵinj = ɵɵdefineInjector({
@@ -278,7 +285,7 @@ describe('InjectorDef-based createInjector()', () => {
     static ɵinj = ɵɵdefineInjector({
       imports: [
         {ngModule: MultiProviderA, providers: [{provide: LOCALE, multi: true, useValue: 'C'}]},
-        MultiProviderB
+        MultiProviderB,
       ],
       providers: [],
     });
@@ -323,48 +330,47 @@ describe('InjectorDef-based createInjector()', () => {
     expect(injector.get(Service)).toBe(instance);
   });
 
-  it('returns the default value if a provider isn\'t present', () => {
+  it("returns the default value if a provider isn't present", () => {
     expect(injector.get(ServiceTwo, null)).toBeNull();
   });
 
   it('should throw when no provider defined', () => {
-    expect(() => injector.get(ServiceTwo))
-        .toThrowError(
-            `R3InjectorError(Module)[ServiceTwo]: \n` +
-            `  NullInjectorError: No provider for ServiceTwo!`);
+    expect(() => injector.get(ServiceTwo)).toThrowError(
+      `R3InjectorError(Module)[ServiceTwo]: \n` +
+        `  NullInjectorError: No provider for ServiceTwo!`,
+    );
   });
 
   it('should throw without the module name when no module', () => {
     const injector = createInjector([ServiceTwo]);
-    expect(() => injector.get(ServiceTwo))
-        .toThrowError(
-            `R3InjectorError[ServiceTwo]: \n` +
-            `  NullInjectorError: No provider for ServiceTwo!`);
+    expect(() => injector.get(ServiceTwo)).toThrowError(
+      `R3InjectorError[ServiceTwo]: \n` + `  NullInjectorError: No provider for ServiceTwo!`,
+    );
   });
 
   it('should throw with the full path when no provider', () => {
     const injector = createInjector(ModuleWithMissingDep);
-    expect(() => injector.get(ServiceWithMissingDep))
-        .toThrowError(
-            `R3InjectorError(ModuleWithMissingDep)[ServiceWithMissingDep -> Service]: \n` +
-            `  NullInjectorError: No provider for Service!`);
+    expect(() => injector.get(ServiceWithMissingDep)).toThrowError(
+      `R3InjectorError(ModuleWithMissingDep)[ServiceWithMissingDep -> Service]: \n` +
+        `  NullInjectorError: No provider for Service!`,
+    );
   });
 
   it('injects a service with dependencies', () => {
     const instance = injector.get(ServiceWithDep);
-    expect(instance instanceof ServiceWithDep);
+    expect(instance instanceof ServiceWithDep).toBeTrue();
     expect(instance.service).toBe(injector.get(Service));
   });
 
   it('injects a service with optional dependencies', () => {
     const instance = injector.get(ServiceWithOptionalDep);
-    expect(instance instanceof ServiceWithOptionalDep);
+    expect(instance instanceof ServiceWithOptionalDep).toBeTrue();
     expect(instance.service).toBe(null);
   });
 
   it('injects a service with dependencies on multi-providers', () => {
     const instance = injector.get(ServiceWithMultiDep);
-    expect(instance instanceof ServiceWithMultiDep);
+    expect(instance instanceof ServiceWithMultiDep).toBeTrue();
     expect(instance.locale).toEqual(['en', 'es']);
   });
 
@@ -375,7 +381,7 @@ describe('InjectorDef-based createInjector()', () => {
 
   it('injects an injector with dependencies', () => {
     const instance = injector.get(InjectorWithDep);
-    expect(instance instanceof InjectorWithDep);
+    expect(instance instanceof InjectorWithDep).toBeTrue();
     expect(instance.service).toBe(injector.get(Service));
   });
 
@@ -448,14 +454,16 @@ describe('InjectorDef-based createInjector()', () => {
 
   it('does not allow injection after destroy', () => {
     (injector as R3Injector).destroy();
-    expect(() => injector.get(DeepService))
-        .toThrowError('NG0205: Injector has already been destroyed.');
+    expect(() => injector.get(DeepService)).toThrowError(
+      'NG0205: Injector has already been destroyed.',
+    );
   });
 
   it('does not allow double destroy', () => {
     (injector as R3Injector).destroy();
-    expect(() => (injector as R3Injector).destroy())
-        .toThrowError('NG0205: Injector has already been destroyed.');
+    expect(() => (injector as R3Injector).destroy()).toThrowError(
+      'NG0205: Injector has already been destroyed.',
+    );
   });
 
   it('should not crash when importing something that has no ɵinj', () => {
@@ -484,15 +492,16 @@ describe('InjectorDef-based createInjector()', () => {
       expect(() => injector.get(CircularA)).toThrow();
     });
 
-    it('should throw when it can\'t resolve all arguments', () => {
+    it("should throw when it can't resolve all arguments", () => {
       class MissingArgumentType {
         constructor(missingType: any) {}
       }
       class ErrorModule {
         static ɵinj = ɵɵdefineInjector({providers: [MissingArgumentType]});
       }
-      expect(() => createInjector(ErrorModule).get(MissingArgumentType))
-          .toThrowError('NG0204: Can\'t resolve all parameters for MissingArgumentType: (?).');
+      expect(() => createInjector(ErrorModule).get(MissingArgumentType)).toThrowError(
+        "NG0204: Can't resolve all parameters for MissingArgumentType: (?).",
+      );
     });
   });
 });

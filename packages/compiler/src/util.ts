@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 const DASH_CASE_REGEXP = /-+([a-z0-9])/g;
@@ -26,7 +26,7 @@ function _splitAt(input: string, character: string, defaultValues: string[]): st
   return [input.slice(0, characterIndex).trim(), input.slice(characterIndex + 1).trim()];
 }
 
-export function noUndefined<T>(val: T|undefined): T {
+export function noUndefined<T>(val: T | undefined): T {
   return val === undefined ? null! : val;
 }
 
@@ -48,7 +48,7 @@ export function utf8Encode(str: string): Byte[] {
 
     // decode surrogate
     // see https://mathiasbynens.be/notes/javascript-encoding#surrogate-formulae
-    if (codePoint >= 0xd800 && codePoint <= 0xdbff && str.length > (index + 1)) {
+    if (codePoint >= 0xd800 && codePoint <= 0xdbff && str.length > index + 1) {
       const low = str.charCodeAt(index + 1);
       if (low >= 0xdc00 && low <= 0xdfff) {
         index++;
@@ -59,14 +59,20 @@ export function utf8Encode(str: string): Byte[] {
     if (codePoint <= 0x7f) {
       encoded.push(codePoint);
     } else if (codePoint <= 0x7ff) {
-      encoded.push(((codePoint >> 6) & 0x1F) | 0xc0, (codePoint & 0x3f) | 0x80);
+      encoded.push(((codePoint >> 6) & 0x1f) | 0xc0, (codePoint & 0x3f) | 0x80);
     } else if (codePoint <= 0xffff) {
       encoded.push(
-          (codePoint >> 12) | 0xe0, ((codePoint >> 6) & 0x3f) | 0x80, (codePoint & 0x3f) | 0x80);
+        (codePoint >> 12) | 0xe0,
+        ((codePoint >> 6) & 0x3f) | 0x80,
+        (codePoint & 0x3f) | 0x80,
+      );
     } else if (codePoint <= 0x1fffff) {
       encoded.push(
-          ((codePoint >> 18) & 0x07) | 0xf0, ((codePoint >> 12) & 0x3f) | 0x80,
-          ((codePoint >> 6) & 0x3f) | 0x80, (codePoint & 0x3f) | 0x80);
+        ((codePoint >> 18) & 0x07) | 0xf0,
+        ((codePoint >> 12) & 0x3f) | 0x80,
+        ((codePoint >> 6) & 0x3f) | 0x80,
+        (codePoint & 0x3f) | 0x80,
+      );
     }
   }
 
@@ -128,22 +134,7 @@ export interface Console {
   warn(message: string): void;
 }
 
-
-declare var WorkerGlobalScope: any;
-// CommonJS / Node have global context exposed as "global" variable.
-// We don't want to include the whole node.d.ts this this compilation unit so we'll just fake
-// the global "global" var for now.
-declare var global: any;
-
-// Check `global` first, because in Node tests both `global` and `window` may be defined and our
-// `_global` variable should point to the NodeJS `global` in that case. Note: Typeof/Instanceof
-// checks are considered side-effects in Terser. We explicitly mark this as side-effect free:
-// https://github.com/terser/terser/issues/250.
-const _global: {[name: string]: any} = (/* @__PURE__ */ (
-    () => (typeof global !== 'undefined' && global) || (typeof window !== 'undefined' && window) ||
-        (typeof self !== 'undefined' && typeof WorkerGlobalScope !== 'undefined' &&
-         self instanceof WorkerGlobalScope && self))());
-
+const _global: {[name: string]: any} = globalThis;
 export {_global as global};
 
 export function newArray<T = any>(size: number): T[];
@@ -165,11 +156,29 @@ export function newArray<T>(size: number, value?: T): T[] {
  * boolean value.
  */
 export function partitionArray<T, F = T>(
-    arr: (T|F)[], conditionFn: (value: T|F) => boolean): [T[], F[]] {
+  arr: (T | F)[],
+  conditionFn: (value: T | F) => boolean,
+): [T[], F[]] {
   const truthy: T[] = [];
   const falsy: F[] = [];
   for (const item of arr) {
     (conditionFn(item) ? truthy : falsy).push(item as any);
   }
   return [truthy, falsy];
+}
+
+const V1_TO_18 = /^([1-9]|1[0-8])\./;
+
+export function getJitStandaloneDefaultForVersion(version: string): boolean {
+  if (version.startsWith('0.')) {
+    // 0.0.0 is always "latest", default is true.
+    return true;
+  }
+  if (V1_TO_18.test(version)) {
+    // Angular v2 - v18 default is false.
+    return false;
+  }
+
+  // All other Angular versions (v19+) default to true.
+  return true;
 }

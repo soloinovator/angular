@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {NgModule} from '@angular/core';
@@ -14,9 +14,8 @@ import {SelectControlComp} from './select_control_example';
 @NgModule({
   imports: [BrowserModule, FormsModule],
   declarations: [SelectControlComp],
-  bootstrap: [SelectControlComp]
+  bootstrap: [SelectControlComp],
 })
-export class AppModule {
-}
+export class AppModule {}
 
 export {SelectControlComp as AppComponent};

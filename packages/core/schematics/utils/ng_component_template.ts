@@ -3,16 +3,15 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Tree} from '@angular-devkit/schematics';
 import {dirname, relative, resolve} from 'path';
 import ts from 'typescript';
 
+import {extractAngularClassMetadata} from './extract_metadata';
 import {computeLineStartsMap, getLineAndCharacterFromPosition} from './line_mappings';
-import {getAngularDecorators} from './ng_decorators';
-import {unwrapExpression} from './typescript/functions';
 import {getPropertyNameText} from './typescript/property_name';
 
 export interface ResolvedTemplate {
@@ -32,7 +31,8 @@ export interface ResolvedTemplate {
    * character are based on the full source file content.
    */
   getCharacterAndLineOfPosition: (pos: number) => {
-    character: number, line: number
+    character: number;
+    line: number;
   };
 }
 
@@ -43,42 +43,23 @@ export interface ResolvedTemplate {
 export class NgComponentTemplateVisitor {
   resolvedTemplates: ResolvedTemplate[] = [];
 
-  constructor(public typeChecker: ts.TypeChecker, private _basePath: string, private _tree: Tree) {}
+  constructor(
+    public typeChecker: ts.TypeChecker,
+    private _basePath: string,
+    private _tree: Tree,
+  ) {}
 
   visitNode(node: ts.Node) {
     if (node.kind === ts.SyntaxKind.ClassDeclaration) {
       this.visitClassDeclaration(node as ts.ClassDeclaration);
     }
 
-    ts.forEachChild(node, n => this.visitNode(n));
+    ts.forEachChild(node, (n) => this.visitNode(n));
   }
 
   private visitClassDeclaration(node: ts.ClassDeclaration) {
-    const decorators = ts.getDecorators(node);
-
-    if (!decorators || !decorators.length) {
-      return;
-    }
-
-    const ngDecorators = getAngularDecorators(this.typeChecker, decorators);
-    const componentDecorator = ngDecorators.find(dec => dec.name === 'Component');
-
-    // In case no "@Component" decorator could be found on the current class, skip.
-    if (!componentDecorator) {
-      return;
-    }
-
-    const decoratorCall = componentDecorator.node.expression;
-
-    // In case the component decorator call is not valid, skip this class declaration.
-    if (decoratorCall.arguments.length !== 1) {
-      return;
-    }
-
-    const componentMetadata = unwrapExpression(decoratorCall.arguments[0]);
-
-    // Ensure that the component metadata is an object literal expression.
-    if (!ts.isObjectLiteralExpression(componentMetadata)) {
+    const metadata = extractAngularClassMetadata(this.typeChecker, node);
+    if (metadata === null || metadata.type !== 'component') {
       return;
     }
 
@@ -87,7 +68,7 @@ export class NgComponentTemplateVisitor {
 
     // Walk through all component metadata properties and determine the referenced
     // HTML templates (either external or inline)
-    componentMetadata.properties.forEach(property => {
+    metadata.node.properties.forEach((property) => {
       if (!ts.isPropertyAssignment(property)) {
         return;
       }
@@ -114,8 +95,8 @@ export class NgComponentTemplateVisitor {
           content,
           inline: true,
           start: start,
-          getCharacterAndLineOfPosition: pos =>
-              ts.getLineAndCharacterOfPosition(sourceFile, pos + start)
+          getCharacterAndLineOfPosition: (pos) =>
+            ts.getLineAndCharacterOfPosition(sourceFile, pos + start),
         });
       }
       if (propertyName === 'templateUrl' && ts.isStringLiteralLike(property.initializer)) {
@@ -142,7 +123,8 @@ export class NgComponentTemplateVisitor {
           content: fileContent,
           inline: false,
           start: 0,
-          getCharacterAndLineOfPosition: pos => getLineAndCharacterFromPosition(lineStartsMap, pos),
+          getCharacterAndLineOfPosition: (pos) =>
+            getLineAndCharacterFromPosition(lineStartsMap, pos),
         });
       }
     });

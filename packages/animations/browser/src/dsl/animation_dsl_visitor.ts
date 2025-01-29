@@ -3,9 +3,23 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
-import {AnimationAnimateChildMetadata, AnimationAnimateMetadata, AnimationAnimateRefMetadata, AnimationGroupMetadata, AnimationKeyframesSequenceMetadata, AnimationQueryMetadata, AnimationReferenceMetadata, AnimationSequenceMetadata, AnimationStaggerMetadata, AnimationStateMetadata, AnimationStyleMetadata, AnimationTransitionMetadata, AnimationTriggerMetadata} from '@angular/animations';
+import {
+  AnimationAnimateChildMetadata,
+  AnimationAnimateMetadata,
+  AnimationAnimateRefMetadata,
+  AnimationGroupMetadata,
+  AnimationKeyframesSequenceMetadata,
+  AnimationQueryMetadata,
+  AnimationReferenceMetadata,
+  AnimationSequenceMetadata,
+  AnimationStaggerMetadata,
+  AnimationStateMetadata,
+  AnimationStyleMetadata,
+  AnimationTransitionMetadata,
+  AnimationTriggerMetadata,
+} from '@angular/animations';
 
 export interface AnimationDslVisitor {
   visitTrigger(node: AnimationTriggerMetadata, context: any): any;

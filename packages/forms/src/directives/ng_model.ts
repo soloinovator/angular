@@ -3,10 +3,26 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ChangeDetectorRef, Directive, EventEmitter, forwardRef, Host, Inject, Input, OnChanges, OnDestroy, Optional, Output, Provider, Self, SimpleChanges, ɵcoerceToBoolean as coerceToBoolean} from '@angular/core';
+import {
+  booleanAttribute,
+  ChangeDetectorRef,
+  Directive,
+  EventEmitter,
+  forwardRef,
+  Host,
+  Inject,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Optional,
+  Output,
+  Provider,
+  Self,
+  SimpleChanges,
+} from '@angular/core';
 
 import {FormHooks} from '../model/abstract_model';
 import {FormControl} from '../model/form_control';
@@ -18,19 +34,30 @@ import {ControlValueAccessor, NG_VALUE_ACCESSOR} from './control_value_accessor'
 import {NgControl} from './ng_control';
 import {NgForm} from './ng_form';
 import {NgModelGroup} from './ng_model_group';
-import {CALL_SET_DISABLED_STATE, controlPath, isPropertyUpdated, selectValueAccessor, SetDisabledStateOption, setUpControl} from './shared';
-import {formGroupNameException, missingNameException, modelParentException} from './template_driven_errors';
+import {
+  CALL_SET_DISABLED_STATE,
+  controlPath,
+  isPropertyUpdated,
+  selectValueAccessor,
+  SetDisabledStateOption,
+  setUpControl,
+} from './shared';
+import {
+  formGroupNameException,
+  missingNameException,
+  modelParentException,
+} from './template_driven_errors';
 import {AsyncValidator, AsyncValidatorFn, Validator, ValidatorFn} from './validators';
 
 const formControlBinding: Provider = {
   provide: NgControl,
-  useExisting: forwardRef(() => NgModel)
+  useExisting: forwardRef(() => NgModel),
 };
 
 /**
  * `ngModel` forces an additional change detection run when its inputs change:
  * E.g.:
- * ```
+ * ```html
  * <div>{{myModel.valid}}</div>
  * <input [(ngModel)]="myValue" #myModel="ngModel">
  * ```
@@ -48,8 +75,8 @@ const resolvedPromise = (() => Promise.resolve())();
 
 /**
  * @description
- * Creates a `FormControl` instance from a domain model and binds it
- * to a form control element.
+ * Creates a `FormControl` instance from a [domain
+ * model](https://en.wikipedia.org/wiki/Domain_model) and binds it to a form control element.
  *
  * The `FormControl` instance tracks the value, user interaction, and
  * validation status of the control and keeps the view synced with the model. If used
@@ -72,8 +99,8 @@ const resolvedPromise = (() => Promise.resolve())();
  * for direct access. See a full list of properties directly available in
  * `AbstractControlDirective`.
  *
- * @see `RadioControlValueAccessor`
- * @see `SelectControlValueAccessor`
+ * @see {@link RadioControlValueAccessor}
+ * @see {@link SelectControlValueAccessor}
  *
  * @usageNotes
  *
@@ -134,7 +161,8 @@ const resolvedPromise = (() => Promise.resolve())();
 @Directive({
   selector: '[ngModel]:not([formControlName]):not([formControl])',
   providers: [formControlBinding],
-  exportAs: 'ngModel'
+  exportAs: 'ngModel',
+  standalone: false,
 })
 export class NgModel extends NgControl implements OnChanges, OnDestroy {
   public override readonly control: FormControl = new FormControl();
@@ -146,7 +174,7 @@ export class NgModel extends NgControl implements OnChanges, OnDestroy {
   // This static member tells the compiler that values of type "string" can also be assigned
   // to the input in a template.
   /** @nodoc */
-  static ngAcceptInputType_isDisabled: boolean|string;
+  static ngAcceptInputType_isDisabled: boolean | string;
 
   /** @internal */
   _registered = false;
@@ -162,8 +190,7 @@ export class NgModel extends NgControl implements OnChanges, OnDestroy {
    * Tracks the name bound to the directive. If a parent form exists, it
    * uses this name as a key to retrieve this control's value.
    */
-  // TODO(issue/24571): remove '!'.
-  @Input() override name!: string;
+  @Input() override name: string = '';
 
   /**
    * @description
@@ -195,7 +222,7 @@ export class NgModel extends NgControl implements OnChanges, OnDestroy {
    *
    */
   // TODO(issue/24571): remove '!'.
-  @Input('ngModelOptions') options!: {name?: string, standalone?: boolean, updateOn?: FormHooks};
+  @Input('ngModelOptions') options!: {name?: string; standalone?: boolean; updateOn?: FormHooks};
 
   /**
    * @description
@@ -205,14 +232,18 @@ export class NgModel extends NgControl implements OnChanges, OnDestroy {
   @Output('ngModelChange') update = new EventEmitter();
 
   constructor(
-      @Optional() @Host() parent: ControlContainer,
-      @Optional() @Self() @Inject(NG_VALIDATORS) validators: (Validator|ValidatorFn)[],
-      @Optional() @Self() @Inject(NG_ASYNC_VALIDATORS) asyncValidators:
-          (AsyncValidator|AsyncValidatorFn)[],
-      @Optional() @Self() @Inject(NG_VALUE_ACCESSOR) valueAccessors: ControlValueAccessor[],
-      @Optional() @Inject(ChangeDetectorRef) private _changeDetectorRef?: ChangeDetectorRef|null,
-      @Optional() @Inject(CALL_SET_DISABLED_STATE) private callSetDisabledState?:
-          SetDisabledStateOption) {
+    @Optional() @Host() parent: ControlContainer,
+    @Optional() @Self() @Inject(NG_VALIDATORS) validators: (Validator | ValidatorFn)[],
+    @Optional()
+    @Self()
+    @Inject(NG_ASYNC_VALIDATORS)
+    asyncValidators: (AsyncValidator | AsyncValidatorFn)[],
+    @Optional() @Self() @Inject(NG_VALUE_ACCESSOR) valueAccessors: ControlValueAccessor[],
+    @Optional() @Inject(ChangeDetectorRef) private _changeDetectorRef?: ChangeDetectorRef | null,
+    @Optional()
+    @Inject(CALL_SET_DISABLED_STATE)
+    private callSetDisabledState?: SetDisabledStateOption,
+  ) {
     super();
     this._parent = parent;
     this._setValidators(validators);
@@ -302,7 +333,7 @@ export class NgModel extends NgControl implements OnChanges, OnDestroy {
   }
 
   private _checkForErrors(): void {
-    if (!this._isStandalone()) {
+    if ((typeof ngDevMode === 'undefined' || ngDevMode) && !this._isStandalone()) {
       this._checkParentType();
     }
     this._checkName();
@@ -310,8 +341,10 @@ export class NgModel extends NgControl implements OnChanges, OnDestroy {
 
   private _checkParentType(): void {
     if (typeof ngDevMode === 'undefined' || ngDevMode) {
-      if (!(this._parent instanceof NgModelGroup) &&
-          this._parent instanceof AbstractFormGroupDirective) {
+      if (
+        !(this._parent instanceof NgModelGroup) &&
+        this._parent instanceof AbstractFormGroupDirective
+      ) {
         throw formGroupNameException();
       } else if (!(this._parent instanceof NgModelGroup) && !(this._parent instanceof NgForm)) {
         throw modelParentException();
@@ -337,7 +370,7 @@ export class NgModel extends NgControl implements OnChanges, OnDestroy {
   private _updateDisabled(changes: SimpleChanges) {
     const disabledValue = changes['isDisabled'].currentValue;
     // checking for 0 to avoid breaking change
-    const isDisabled = disabledValue !== 0 && coerceToBoolean(disabledValue);
+    const isDisabled = disabledValue !== 0 && booleanAttribute(disabledValue);
 
     resolvedPromise.then(() => {
       if (isDisabled && !this.control.disabled) {

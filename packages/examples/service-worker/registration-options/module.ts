@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 // tslint:disable: no-duplicate-imports
 import {Component} from '@angular/core';
@@ -18,6 +18,7 @@ import {SwUpdate} from '@angular/service-worker';
 @Component({
   selector: 'example-app',
   template: 'SW enabled: {{ swu.isEnabled }}',
+  standalone: false,
 })
 export class AppComponent {
   constructor(readonly swu: SwUpdate) {}
@@ -26,17 +27,10 @@ export class AppComponent {
 
 @NgModule({
   // #enddocregion registration-options
-  bootstrap: [
-    AppComponent,
-  ],
-  declarations: [
-    AppComponent,
-  ],
+  bootstrap: [AppComponent],
+  declarations: [AppComponent],
   // #docregion registration-options
-  imports: [
-    BrowserModule,
-    ServiceWorkerModule.register('ngsw-worker.js'),
-  ],
+  imports: [BrowserModule, ServiceWorkerModule.register('ngsw-worker.js')],
   providers: [
     {
       provide: SwRegistrationOptions,
@@ -44,6 +38,5 @@ export class AppComponent {
     },
   ],
 })
-export class AppModule {
-}
+export class AppModule {}
 // #enddocregion registration-options

@@ -3,9 +3,8 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
-
 
 import {createInjector} from './create_injector';
 import {THROW_IF_NOT_FOUND, ɵɵinject} from './injector_compatibility';
@@ -13,17 +12,17 @@ import {InjectorMarkers} from './injector_marker';
 import {INJECTOR} from './injector_token';
 import {ɵɵdefineInjectable} from './interface/defs';
 import {InjectFlags, InjectOptions} from './interface/injector';
-import {StaticProvider} from './interface/provider';
+import {Provider, StaticProvider} from './interface/provider';
 import {NullInjector} from './null_injector';
 import {ProviderToken} from './provider_token';
 
 /**
  * Concrete injectors implement this interface. Injectors are configured
- * with [providers](guide/glossary#provider) that associate
- * dependencies of various types with [injection tokens](guide/glossary#di-token).
+ * with [providers](guide/di/dependency-injection-providers) that associate
+ * dependencies of various types with [injection tokens](guide/di/dependency-injection-providers).
  *
- * @see ["DI Providers"](guide/dependency-injection-providers).
- * @see `StaticProvider`
+ * @see [DI Providers](guide/di/dependency-injection-providers).
+ * @see {@link StaticProvider}
  *
  * @usageNotes
  *
@@ -43,7 +42,7 @@ import {ProviderToken} from './provider_token';
  */
 export abstract class Injector {
   static THROW_IF_NOT_FOUND = THROW_IF_NOT_FOUND;
-  static NULL: Injector = (/* @__PURE__ */ new NullInjector());
+  static NULL: Injector = /* @__PURE__ */ new NullInjector();
 
   /**
    * Internal note on the `options?: InjectOptions|InjectFlags` override of the `get`
@@ -57,23 +56,33 @@ export abstract class Injector {
    * @returns The instance from the injector if defined, otherwise the `notFoundValue`.
    * @throws When the `notFoundValue` is `undefined` or `Injector.THROW_IF_NOT_FOUND`.
    */
-  abstract get<T>(token: ProviderToken<T>, notFoundValue: undefined, options: InjectOptions&{
-    optional?: false;
-  }): T;
+  abstract get<T>(
+    token: ProviderToken<T>,
+    notFoundValue: undefined,
+    options: InjectOptions & {
+      optional?: false;
+    },
+  ): T;
   /**
    * Retrieves an instance from the injector based on the provided token.
    * @returns The instance from the injector if defined, otherwise the `notFoundValue`.
    * @throws When the `notFoundValue` is `undefined` or `Injector.THROW_IF_NOT_FOUND`.
    */
-  abstract get<T>(token: ProviderToken<T>, notFoundValue: null|undefined, options: InjectOptions): T
-      |null;
+  abstract get<T>(
+    token: ProviderToken<T>,
+    notFoundValue: null | undefined,
+    options: InjectOptions,
+  ): T | null;
   /**
    * Retrieves an instance from the injector based on the provided token.
    * @returns The instance from the injector if defined, otherwise the `notFoundValue`.
    * @throws When the `notFoundValue` is `undefined` or `Injector.THROW_IF_NOT_FOUND`.
    */
-  abstract get<T>(token: ProviderToken<T>, notFoundValue?: T, options?: InjectOptions|InjectFlags):
-      T;
+  abstract get<T>(
+    token: ProviderToken<T>,
+    notFoundValue?: T,
+    options?: InjectOptions | InjectFlags,
+  ): T;
   /**
    * Retrieves an instance from the injector based on the provided token.
    * @returns The instance from the injector if defined, otherwise the `notFoundValue`.
@@ -104,12 +113,18 @@ export abstract class Injector {
    * @returns The new injector instance.
    *
    */
-  static create(options: {providers: StaticProvider[], parent?: Injector, name?: string}): Injector;
-
+  static create(options: {
+    providers: Array<Provider | StaticProvider>;
+    parent?: Injector;
+    name?: string;
+  }): Injector;
 
   static create(
-      options: StaticProvider[]|{providers: StaticProvider[], parent?: Injector, name?: string},
-      parent?: Injector): Injector {
+    options:
+      | StaticProvider[]
+      | {providers: Array<Provider | StaticProvider>; parent?: Injector; name?: string},
+    parent?: Injector,
+  ): Injector {
     if (Array.isArray(options)) {
       return createInjector({name: ''}, parent, options, '');
     } else {
@@ -119,7 +134,7 @@ export abstract class Injector {
   }
 
   /** @nocollapse */
-  static ɵprov = /** @pureOrBreakMyCode */ ɵɵdefineInjectable({
+  static ɵprov = /** @pureOrBreakMyCode */ /* @__PURE__ */ ɵɵdefineInjectable({
     token: Injector,
     providedIn: 'any',
     factory: () => ɵɵinject(INJECTOR),

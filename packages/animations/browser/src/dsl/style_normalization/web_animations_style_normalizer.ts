@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {invalidCssUnitValue} from '../../error_helpers';
 import {dashCaseToCamelCase} from '../../util';
@@ -39,7 +39,7 @@ const DIMENSIONAL_PROP_SET = new Set([
   'borderRightWidth',
   'borderBottomWidth',
   'textIndent',
-  'perspective'
+  'perspective',
 ]);
 
 export class WebAnimationsStyleNormalizer extends AnimationStyleNormalizer {
@@ -48,8 +48,11 @@ export class WebAnimationsStyleNormalizer extends AnimationStyleNormalizer {
   }
 
   override normalizeStyleValue(
-      userProvidedProperty: string, normalizedProperty: string, value: string|number,
-      errors: Error[]): string {
+    userProvidedProperty: string,
+    normalizedProperty: string,
+    value: string | number,
+    errors: Error[],
+  ): string {
     let unit: string = '';
     const strVal = value.toString().trim();
 

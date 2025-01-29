@@ -3,19 +3,34 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Directive, ElementRef, forwardRef, Host, Input, OnDestroy, Optional, Provider, Renderer2, ɵRuntimeError as RuntimeError} from '@angular/core';
+import {
+  Directive,
+  ElementRef,
+  forwardRef,
+  Host,
+  Input,
+  OnDestroy,
+  Optional,
+  Provider,
+  Renderer2,
+  ɵRuntimeError as RuntimeError,
+} from '@angular/core';
 
 import {RuntimeErrorCode} from '../errors';
 
-import {BuiltInControlValueAccessor, ControlValueAccessor, NG_VALUE_ACCESSOR} from './control_value_accessor';
+import {
+  BuiltInControlValueAccessor,
+  ControlValueAccessor,
+  NG_VALUE_ACCESSOR,
+} from './control_value_accessor';
 
 const SELECT_MULTIPLE_VALUE_ACCESSOR: Provider = {
   provide: NG_VALUE_ACCESSOR,
   useExisting: forwardRef(() => SelectMultipleControlValueAccessor),
-  multi: true
+  multi: true,
 };
 
 function _buildValueString(id: string, value: any): string {
@@ -48,7 +63,7 @@ abstract class HTMLCollection {
  * control changes. The value accessor is used by the `FormControlDirective`, `FormControlName`, and
  * `NgModel` directives.
  *
- * @see `SelectControlValueAccessor`
+ * @see {@link SelectControlValueAccessor}
  *
  * @usageNotes
  *
@@ -60,7 +75,7 @@ abstract class HTMLCollection {
  * const countryControl = new FormControl();
  * ```
  *
- * ```
+ * ```html
  * <select multiple name="countries" [formControl]="countryControl">
  *   <option *ngFor="let country of countries" [ngValue]="country">
  *     {{ country.name }}
@@ -79,12 +94,15 @@ abstract class HTMLCollection {
  */
 @Directive({
   selector:
-      'select[multiple][formControlName],select[multiple][formControl],select[multiple][ngModel]',
+    'select[multiple][formControlName],select[multiple][formControl],select[multiple][ngModel]',
   host: {'(change)': 'onChange($event.target)', '(blur)': 'onTouched()'},
-  providers: [SELECT_MULTIPLE_VALUE_ACCESSOR]
+  providers: [SELECT_MULTIPLE_VALUE_ACCESSOR],
+  standalone: false,
 })
-export class SelectMultipleControlValueAccessor extends BuiltInControlValueAccessor implements
-    ControlValueAccessor {
+export class SelectMultipleControlValueAccessor
+  extends BuiltInControlValueAccessor
+  implements ControlValueAccessor
+{
   /**
    * The current value.
    * @nodoc
@@ -106,8 +124,9 @@ export class SelectMultipleControlValueAccessor extends BuiltInControlValueAcces
   set compareWith(fn: (o1: any, o2: any) => boolean) {
     if (typeof fn !== 'function' && (typeof ngDevMode === 'undefined' || ngDevMode)) {
       throw new RuntimeError(
-          RuntimeErrorCode.COMPAREWITH_NOT_A_FN,
-          `compareWith must be a function, but received ${JSON.stringify(fn)}`);
+        RuntimeErrorCode.COMPAREWITH_NOT_A_FN,
+        `compareWith must be a function, but received ${JSON.stringify(fn)}`,
+      );
     }
     this._compareWith = fn;
   }
@@ -178,8 +197,8 @@ export class SelectMultipleControlValueAccessor extends BuiltInControlValueAcces
   }
 
   /** @internal */
-  _getOptionId(value: any): string|null {
-    for (const id of Array.from(this._optionMap.keys())) {
+  _getOptionId(value: any): string | null {
+    for (const id of this._optionMap.keys()) {
       if (this._compareWith(this._optionMap.get(id)!._value, value)) return id;
     }
     return null;
@@ -196,13 +215,16 @@ export class SelectMultipleControlValueAccessor extends BuiltInControlValueAcces
  * @description
  * Marks `<option>` as dynamic, so Angular can be notified when options change.
  *
- * @see `SelectMultipleControlValueAccessor`
+ * @see {@link SelectMultipleControlValueAccessor}
  *
  * @ngModule ReactiveFormsModule
  * @ngModule FormsModule
  * @publicApi
  */
-@Directive({selector: 'option'})
+@Directive({
+  selector: 'option',
+  standalone: false,
+})
 export class ɵNgSelectMultipleOption implements OnDestroy {
   // TODO(issue/24571): remove '!'.
   id!: string;
@@ -210,8 +232,10 @@ export class ɵNgSelectMultipleOption implements OnDestroy {
   _value: any;
 
   constructor(
-      private _element: ElementRef, private _renderer: Renderer2,
-      @Optional() @Host() private _select: SelectMultipleControlValueAccessor) {
+    private _element: ElementRef,
+    private _renderer: Renderer2,
+    @Optional() @Host() private _select: SelectMultipleControlValueAccessor,
+  ) {
     if (this._select) {
       this.id = this._select._registerOption(this);
     }

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {findEndOfBlock} from '../../utils';
@@ -28,7 +28,7 @@ export interface LocalizeFn {
    *
    * The compile-time translation inliner is able to replace the following code:
    *
-   * ```
+   * ```ts
    * typeof $localize !== "undefined" && $localize.locale
    * ```
    *
@@ -43,8 +43,10 @@ export interface LocalizeFn {
 
 /** @nodoc */
 export interface TranslateFn {
-  (messageParts: TemplateStringsArray,
-   expressions: readonly any[]): [TemplateStringsArray, readonly any[]];
+  (
+    messageParts: TemplateStringsArray,
+    expressions: readonly any[],
+  ): [TemplateStringsArray, readonly any[]];
 }
 
 /**
@@ -70,7 +72,7 @@ export interface TranslateFn {
  * ```
  *
  * This format is the same as that used for `i18n` markers in Angular templates. See the
- * [Angular i18n guide](guide/i18n-common-prepare#mark-text-in-component-template).
+ * [Angular i18n guide](guide/i18n/prepare#mark-text-in-component-template).
  *
  * **Naming placeholders**
  *
@@ -139,11 +141,12 @@ export interface TranslateFn {
  * @param expressions a collection of the values of each placeholder in the template string.
  * @returns the translated string, with the `messageParts` and `expressions` interleaved together.
  *
- * @globalApi
  * @publicApi
  */
-export const $localize: LocalizeFn = function(
-    messageParts: TemplateStringsArray, ...expressions: readonly any[]) {
+export const $localize: LocalizeFn = function (
+  messageParts: TemplateStringsArray,
+  ...expressions: readonly any[]
+) {
   if ($localize.translate) {
     // Don't use array expansion here to avoid the compiler adding `__read()` helper unnecessarily.
     const translation = $localize.translate(messageParts, expressions);
@@ -173,7 +176,7 @@ const BLOCK_MARKER = ':';
  * @throws an error if the block is unterminated
  */
 function stripBlock(messagePart: string, rawMessagePart: string) {
-  return rawMessagePart.charAt(0) === BLOCK_MARKER ?
-      messagePart.substring(findEndOfBlock(messagePart, rawMessagePart) + 1) :
-      messagePart;
+  return rawMessagePart.charAt(0) === BLOCK_MARKER
+    ? messagePart.substring(findEndOfBlock(messagePart, rawMessagePart) + 1)
+    : messagePart;
 }

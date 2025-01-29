@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 /**
@@ -17,9 +17,10 @@ export class Version {
   public readonly patch: string;
 
   constructor(public full: string) {
-    this.major = full.split('.')[0];
-    this.minor = full.split('.')[1];
-    this.patch = full.split('.').slice(2).join('.');
+    const parts = full.split('.');
+    this.major = parts[0];
+    this.minor = parts[1];
+    this.patch = parts.slice(2).join('.');
   }
 }
 

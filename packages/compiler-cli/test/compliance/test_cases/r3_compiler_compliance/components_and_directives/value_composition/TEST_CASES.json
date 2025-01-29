@@ -61,6 +61,10 @@
             }
           ]
         }
+      ],
+      "compilationModeFilter": [
+        "full compile",
+        "local compile"
       ]
     },
     {
@@ -283,6 +287,20 @@
           "failureMessage": "Invalid number literal",
           "files": [
             "number_separator.js"
+          ]
+        }
+      ]
+    },
+    {
+      "description": "should support template literals",
+      "inputFiles": [
+        "template_literals.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Invalid template literal binding",
+          "files": [
+            "template_literals.js"
           ]
         }
       ]

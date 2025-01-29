@@ -3,12 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {InjectFlags, resolveForwardRef} from '../../di';
 import {assertInjectImplementationNotEqual} from '../../di/inject_switch';
 import {ɵɵinject} from '../../di/injector_compatibility';
 import {ProviderToken} from '../../di/provider_token';
+import {Type} from '../../interface/type';
+import {emitInjectEvent} from '../debug/injector_profiler';
 import {getOrCreateInjectable} from '../di';
 import {TDirectiveHostNode} from '../interfaces/node';
 import {getCurrentTNode, getLView} from '../state';
@@ -39,7 +41,10 @@ import {getCurrentTNode, getLView} from '../state';
  */
 export function ɵɵdirectiveInject<T>(token: ProviderToken<T>): T;
 export function ɵɵdirectiveInject<T>(token: ProviderToken<T>, flags: InjectFlags): T;
-export function ɵɵdirectiveInject<T>(token: ProviderToken<T>, flags = InjectFlags.Default): T|null {
+export function ɵɵdirectiveInject<T>(
+  token: ProviderToken<T>,
+  flags = InjectFlags.Default,
+): T | null {
   const lView = getLView();
   // Fall back to inject() if view hasn't been created. This situation can happen in tests
   // if inject utilities are used before bootstrapping.
@@ -49,8 +54,14 @@ export function ɵɵdirectiveInject<T>(token: ProviderToken<T>, flags = InjectFl
     return ɵɵinject(token, flags);
   }
   const tNode = getCurrentTNode();
-  return getOrCreateInjectable<T>(
-      tNode as TDirectiveHostNode, lView, resolveForwardRef(token), flags);
+  const value = getOrCreateInjectable<T>(
+    tNode as TDirectiveHostNode,
+    lView,
+    resolveForwardRef(token),
+    flags,
+  );
+  ngDevMode && emitInjectEvent(token as Type<unknown>, value, flags);
+  return value;
 }
 
 /**
@@ -66,7 +77,8 @@ export function ɵɵdirectiveInject<T>(token: ProviderToken<T>, flags = InjectFl
  * @codeGenApi
  */
 export function ɵɵinvalidFactory(): never {
-  const msg =
-      ngDevMode ? `This constructor was not compatible with Dependency Injection.` : 'invalid';
+  const msg = ngDevMode
+    ? `This constructor was not compatible with Dependency Injection.`
+    : 'invalid';
   throw new Error(msg);
 }

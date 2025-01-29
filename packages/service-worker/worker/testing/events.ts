@@ -3,14 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 export class MockEvent implements Event {
-  readonly AT_TARGET = -1;
-  readonly BUBBLING_PHASE = -1;
-  readonly CAPTURING_PHASE = -1;
-  readonly NONE = -1;
+  readonly AT_TARGET = 2;
+  readonly BUBBLING_PHASE = 3;
+  readonly CAPTURING_PHASE = 1;
+  readonly NONE = 0;
 
   readonly bubbles = false;
   cancelBubble = false;
@@ -73,14 +73,17 @@ export class MockActivateEvent extends MockExtendableEvent {
 export class MockFetchEvent extends MockExtendableEvent implements FetchEvent {
   readonly preloadResponse = Promise.resolve();
   handled = Promise.resolve(undefined);
-  response: Promise<Response|undefined> = Promise.resolve(undefined);
+  response: Promise<Response | undefined> = Promise.resolve(undefined);
 
   constructor(
-      readonly request: Request, readonly clientId: string, readonly resultingClientId: string) {
+    readonly request: Request,
+    readonly clientId: string,
+    readonly resultingClientId: string,
+  ) {
     super('fetch');
   }
 
-  respondWith(r: Response|Promise<Response>): void {
+  respondWith(r: Response | Promise<Response>): void {
     this.response = Promise.resolve(r);
   }
 }
@@ -91,25 +94,34 @@ export class MockInstallEvent extends MockExtendableEvent {
   }
 }
 
-export class MockExtendableMessageEvent extends MockExtendableEvent implements
-    ExtendableMessageEvent {
+export class MockExtendableMessageEvent
+  extends MockExtendableEvent
+  implements ExtendableMessageEvent
+{
   readonly lastEventId = '';
   readonly origin = '';
   readonly ports: ReadonlyArray<MessagePort> = [];
 
-  constructor(readonly data: any, readonly source: Client|MessagePort|ServiceWorker|null) {
+  constructor(
+    readonly data: any,
+    readonly source: Client | MessagePort | ServiceWorker | null,
+  ) {
     super('message');
   }
 }
 
 export class MockNotificationEvent extends MockExtendableEvent implements NotificationEvent {
-  readonly notification = {
-    ...this._notification,
-    close: () => undefined,
-  } as Notification;
+  readonly notification: Notification;
 
-  constructor(private _notification: Partial<Notification>, readonly action = '') {
+  constructor(
+    private _notification: Partial<Notification>,
+    readonly action = '',
+  ) {
     super('notification');
+    this.notification = {
+      ...this._notification,
+      close: () => undefined,
+    } as Notification;
   }
 }
 

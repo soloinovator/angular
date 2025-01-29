@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import * as highlighter from './highlighter';
@@ -97,6 +97,130 @@ describe('highlighter', () => {
         },
       };
       expect(highlighter.inDoc(node)).toBeTruthy();
+    });
+  });
+
+  // Those test were disabled since very flaky on the CI - needs investigation before re-enabling
+  xdescribe('highlightHydrationElement', () => {
+    afterEach(() => {
+      document.body.innerHTML = '';
+      delete (window as any).ng;
+    });
+
+    it('should show hydration overlay with svg', () => {
+      const appNode = document.createElement('app');
+      appNode.style.width = '500px';
+      appNode.style.height = '400px';
+      appNode.style.display = 'block';
+      document.body.appendChild(appNode);
+      (window as any).ng = {
+        getComponent: (el: any) => el,
+      };
+
+      highlighter.highlightHydrationElement(appNode, {status: 'hydrated'});
+
+      expect(document.body.querySelectorAll('div').length).toBe(2);
+      expect(document.body.querySelectorAll('svg').length).toBe(1);
+
+      const overlay = document.body.querySelector('.ng-devtools-overlay');
+      expect(overlay?.getBoundingClientRect().width).toBe(500);
+      expect(overlay?.getBoundingClientRect().height).toBe(400);
+
+      highlighter.removeHydrationHighlights();
+      expect(document.body.querySelectorAll('div').length).toBe(0);
+      expect(document.body.querySelectorAll('svg').length).toBe(0);
+    });
+
+    it('should show hydration overlay without svg (too small)', () => {
+      const appNode = document.createElement('app');
+      appNode.style.width = '25px';
+      appNode.style.height = '20px';
+      appNode.style.display = 'block';
+      document.body.appendChild(appNode);
+      (window as any).ng = {
+        getComponent: (el: any) => el,
+      };
+
+      highlighter.highlightHydrationElement(appNode, {status: 'hydrated'});
+
+      expect(document.body.querySelectorAll('div').length).toBe(1);
+      expect(document.body.querySelectorAll('svg').length).toBe(0);
+
+      const overlay = document.body.querySelector('.ng-devtools-overlay');
+      expect(overlay?.getBoundingClientRect().width).toBe(25);
+      expect(overlay?.getBoundingClientRect().height).toBe(20);
+
+      highlighter.removeHydrationHighlights();
+      expect(document.body.querySelectorAll('div').length).toBe(0);
+      expect(document.body.querySelectorAll('svg').length).toBe(0);
+    });
+
+    it('should show hydration overlay and selected component overlay at the same time ', () => {
+      const appNode = document.createElement('app');
+      appNode.style.width = '25px';
+      appNode.style.height = '20px';
+      appNode.style.display = 'block';
+      document.body.appendChild(appNode);
+      (window as any).ng = {
+        getComponent: (el: any) => el,
+      };
+
+      highlighter.highlightHydrationElement(appNode, {status: 'hydrated'});
+      highlighter.highlightSelectedElement(appNode);
+
+      expect(document.body.querySelectorAll('.ng-devtools-overlay').length).toBe(2);
+      highlighter.removeHydrationHighlights();
+      expect(document.body.querySelectorAll('.ng-devtools-overlay').length).toBe(1);
+      highlighter.unHighlight();
+      expect(document.body.querySelectorAll('.ng-devtools-overlay').length).toBe(0);
+
+      highlighter.highlightHydrationElement(appNode, {status: 'hydrated'});
+      highlighter.highlightSelectedElement(appNode);
+      highlighter.unHighlight();
+      expect(document.body.querySelectorAll('.ng-devtools-overlay').length).toBe(1);
+      highlighter.removeHydrationHighlights();
+      expect(document.body.querySelectorAll('.ng-devtools-overlay').length).toBe(0);
+    });
+  });
+
+  describe('highlightSelectedElement', () => {
+    function createElement(name: string) {
+      const element = document.createElement(name);
+      element.style.width = '25px';
+      element.style.height = '20px';
+      element.style.display = 'block';
+      document.body.appendChild(element);
+      return element;
+    }
+
+    it('should show overlay', () => {
+      const appNode = createElement('app');
+      (window as any).ng = {
+        getComponent: (el: any) => new (class FakeComponent {})(),
+      };
+
+      highlighter.highlightSelectedElement(appNode);
+
+      const overlay = document.body.querySelectorAll('.ng-devtools-overlay');
+      expect(overlay.length).toBe(1);
+      expect(overlay[0].innerHTML).toContain('FakeComponent');
+
+      highlighter.unHighlight();
+      expect(document.body.querySelectorAll('.ng-devtools-overlay').length).toBe(0);
+    });
+
+    it('should remove the previous overlay when calling highlightSelectedElement again', () => {
+      const appNode = createElement('app');
+      const appNode2 = createElement('app-two');
+
+      (window as any).ng = {
+        getComponent: (el: any) => new (class FakeComponent {})(),
+      };
+
+      highlighter.highlightSelectedElement(appNode);
+      highlighter.highlightSelectedElement(appNode2);
+      const overlay = document.body.querySelectorAll('.ng-devtools-overlay');
+      expect(overlay.length).toBe(1);
     });
   });
 });

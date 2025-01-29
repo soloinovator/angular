@@ -3,10 +3,19 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Directive, DoCheck, Host, Input, Optional, TemplateRef, ViewContainerRef, ɵRuntimeError as RuntimeError} from '@angular/core';
+import {
+  Directive,
+  DoCheck,
+  Host,
+  Input,
+  Optional,
+  TemplateRef,
+  ViewContainerRef,
+  ɵRuntimeError as RuntimeError,
+} from '@angular/core';
 
 import {RuntimeErrorCode} from '../errors';
 
@@ -14,7 +23,9 @@ export class SwitchView {
   private _created = false;
 
   constructor(
-      private _viewContainerRef: ViewContainerRef, private _templateRef: TemplateRef<Object>) {}
+    private _viewContainerRef: ViewContainerRef,
+    private _templateRef: TemplateRef<Object>,
+  ) {}
 
   create(): void {
     this._created = true;
@@ -50,14 +61,14 @@ export class SwitchView {
  * Define a container element for the directive, and specify the switch expression
  * to match against as an attribute:
  *
- * ```
+ * ```html
  * <container-element [ngSwitch]="switch_expression">
  * ```
  *
  * Within the container, `*ngSwitchCase` statements specify the match expressions
  * as attributes. Include `*ngSwitchDefault` as the final case.
  *
- * ```
+ * ```html
  * <container-element [ngSwitch]="switch_expression">
  *    <some-element *ngSwitchCase="match_expression_1">...</some-element>
  * ...
@@ -69,7 +80,7 @@ export class SwitchView {
  *
  * The following example shows how to use more than one case to display the same view:
  *
- * ```
+ * ```html
  * <container-element [ngSwitch]="switch_expression">
  *   <!-- the same view can be shown in more than one case -->
  *   <some-element *ngSwitchCase="match_expression_1">...</some-element>
@@ -81,7 +92,7 @@ export class SwitchView {
  * ```
  *
  * The following example shows how cases can be nested:
- * ```
+ * ```html
  * <container-element [ngSwitch]="switch_expression">
  *       <some-element *ngSwitchCase="match_expression_1">...</some-element>
  *       <some-element *ngSwitchCase="match_expression_2">...</some-element>
@@ -96,14 +107,13 @@ export class SwitchView {
  * ```
  *
  * @publicApi
- * @see `NgSwitchCase`
- * @see `NgSwitchDefault`
- * @see [Structural Directives](guide/structural-directives)
+ * @see {@link NgSwitchCase}
+ * @see {@link NgSwitchDefault}
+ * @see [Structural Directives](guide/directives/structural-directives)
  *
  */
 @Directive({
   selector: '[ngSwitch]',
-  standalone: true,
 })
 export class NgSwitch {
   private _defaultViews: SwitchView[] = [];
@@ -133,8 +143,8 @@ export class NgSwitch {
 
   /** @internal */
   _matchCase(value: any): boolean {
-    const matched = value == this._ngSwitch;
-    this._lastCasesMatched = this._lastCasesMatched || matched;
+    const matched = value === this._ngSwitch;
+    this._lastCasesMatched ||= matched;
     this._lastCaseCheckIndex++;
     if (this._lastCaseCheckIndex === this._caseCount) {
       this._updateDefaultCases(!this._lastCasesMatched);
@@ -167,7 +177,7 @@ export class NgSwitch {
  * Within a switch container, `*ngSwitchCase` statements specify the match expressions
  * as attributes. Include `*ngSwitchDefault` as the final case.
  *
- * ```
+ * ```html
  * <container-element [ngSwitch]="switch_expression">
  *   <some-element *ngSwitchCase="match_expression_1">...</some-element>
  *   ...
@@ -179,17 +189,16 @@ export class NgSwitch {
  * that defines the subtree to be selected if the value of the match expression
  * matches the value of the switch expression.
  *
- * Unlike JavaScript, which uses strict equality, Angular uses loose equality.
- * This means that the empty string, `""` matches 0.
+ * As of Angular v17 the NgSwitch directive uses strict equality comparison (`===`) instead of
+ * loose equality (`==`) to match different cases.
  *
  * @publicApi
- * @see `NgSwitch`
- * @see `NgSwitchDefault`
+ * @see {@link NgSwitch}
+ * @see {@link NgSwitchDefault}
  *
  */
 @Directive({
   selector: '[ngSwitchCase]',
-  standalone: true,
 })
 export class NgSwitchCase implements DoCheck {
   private _view: SwitchView;
@@ -199,8 +208,10 @@ export class NgSwitchCase implements DoCheck {
   @Input() ngSwitchCase: any;
 
   constructor(
-      viewContainer: ViewContainerRef, templateRef: TemplateRef<Object>,
-      @Optional() @Host() private ngSwitch: NgSwitch) {
+    viewContainer: ViewContainerRef,
+    templateRef: TemplateRef<Object>,
+    @Optional() @Host() private ngSwitch: NgSwitch,
+  ) {
     if ((typeof ngDevMode === 'undefined' || ngDevMode) && !ngSwitch) {
       throwNgSwitchProviderNotFoundError('ngSwitchCase', 'NgSwitchCase');
     }
@@ -228,18 +239,19 @@ export class NgSwitchCase implements DoCheck {
  * This statement should be the final case in an `NgSwitch`.
  *
  * @publicApi
- * @see `NgSwitch`
- * @see `NgSwitchCase`
+ * @see {@link NgSwitch}
+ * @see {@link NgSwitchCase}
  *
  */
 @Directive({
   selector: '[ngSwitchDefault]',
-  standalone: true,
 })
 export class NgSwitchDefault {
   constructor(
-      viewContainer: ViewContainerRef, templateRef: TemplateRef<Object>,
-      @Optional() @Host() ngSwitch: NgSwitch) {
+    viewContainer: ViewContainerRef,
+    templateRef: TemplateRef<Object>,
+    @Optional() @Host() ngSwitch: NgSwitch,
+  ) {
     if ((typeof ngDevMode === 'undefined' || ngDevMode) && !ngSwitch) {
       throwNgSwitchProviderNotFoundError('ngSwitchDefault', 'NgSwitchDefault');
     }
@@ -250,9 +262,9 @@ export class NgSwitchDefault {
 
 function throwNgSwitchProviderNotFoundError(attrName: string, directiveName: string): never {
   throw new RuntimeError(
-      RuntimeErrorCode.PARENT_NG_SWITCH_NOT_FOUND,
-      `An element with the "${attrName}" attribute ` +
-          `(matching the "${
-              directiveName}" directive) must be located inside an element with the "ngSwitch" attribute ` +
-          `(matching "NgSwitch" directive)`);
+    RuntimeErrorCode.PARENT_NG_SWITCH_NOT_FOUND,
+    `An element with the "${attrName}" attribute ` +
+      `(matching the "${directiveName}" directive) must be located inside an element with the "ngSwitch" attribute ` +
+      `(matching "NgSwitch" directive)`,
+  );
 }

@@ -3,11 +3,15 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import * as o from '../../output/output_ast';
 import {Identifiers as R3} from '../r3_identifiers';
-import {createNgModuleType, R3NgModuleMetadata} from '../r3_module_compiler';
+import {
+  createNgModuleType,
+  R3NgModuleMetadata,
+  R3NgModuleMetadataKind,
+} from '../r3_module_compiler';
 import {R3CompiledExpression, refsToArray} from '../util';
 import {DefinitionMap} from '../view/util';
 
@@ -34,14 +38,21 @@ export function compileDeclareNgModuleFromMetadata(meta: R3NgModuleMetadata): R3
 /**
  * Gathers the declaration fields for an NgModule into a `DefinitionMap`.
  */
-function createNgModuleDefinitionMap(meta: R3NgModuleMetadata):
-    DefinitionMap<R3DeclareNgModuleMetadata> {
+function createNgModuleDefinitionMap(
+  meta: R3NgModuleMetadata,
+): DefinitionMap<R3DeclareNgModuleMetadata> {
   const definitionMap = new DefinitionMap<R3DeclareNgModuleMetadata>();
+
+  if (meta.kind === R3NgModuleMetadataKind.Local) {
+    throw new Error(
+      'Invalid path! Local compilation mode should not get into the partial compilation path',
+    );
+  }
 
   definitionMap.set('minVersion', o.literal(MINIMUM_PARTIAL_LINKER_VERSION));
   definitionMap.set('version', o.literal('0.0.0-PLACEHOLDER'));
   definitionMap.set('ngImport', o.importExpr(R3.core));
-  definitionMap.set('type', meta.internalType);
+  definitionMap.set('type', meta.type.value);
 
   // We only generate the keys in the metadata if the arrays contain values.
 
@@ -66,7 +77,7 @@ function createNgModuleDefinitionMap(meta: R3NgModuleMetadata):
   }
 
   if (meta.schemas !== null && meta.schemas.length > 0) {
-    definitionMap.set('schemas', o.literalArr(meta.schemas.map(ref => ref.value)));
+    definitionMap.set('schemas', o.literalArr(meta.schemas.map((ref) => ref.value)));
   }
 
   if (meta.id !== null) {

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {trigger} from '@angular/animations';
@@ -17,7 +17,10 @@ import {triggerParsingWarnings} from '../src/warning_helpers';
 import {MockAnimationDriver} from '../testing/src/mock_animation_driver';
 
 export function makeTrigger(
-    name: string, steps: any, skipErrors: boolean = false): AnimationTrigger {
+  name: string,
+  steps: any,
+  skipErrors: boolean = false,
+): AnimationTrigger {
   const driver = new MockAnimationDriver();
   const errors: Error[] = [];
   const warnings: string[] = [];

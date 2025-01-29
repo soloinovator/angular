@@ -3,10 +3,18 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Component, ComponentFactoryResolver, createEnvironmentInjector, EnvironmentInjector, Injector, NgModule, ViewChild, ViewContainerRef} from '@angular/core';
+import {
+  Component,
+  createComponent,
+  createEnvironmentInjector,
+  EnvironmentInjector,
+  NgModule,
+  ViewChild,
+  ViewContainerRef,
+} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 
 describe('standalone injector', () => {
@@ -18,20 +26,23 @@ describe('standalone injector', () => {
     }
 
     @NgModule({providers: [Service]})
-    class ModuleWithAService {
-    }
+    class ModuleWithAService {}
 
     @Component({
       selector: 'standalone',
       standalone: true,
       imports: [ModuleWithAService],
-      template: `({{service.value}})`
+      template: `({{service.value}})`,
     })
     class TestComponent {
       constructor(readonly service: Service) {}
     }
 
-    @Component({selector: 'app', template: `<ng-template #insert></ng-template>`})
+    @Component({
+      selector: 'app',
+      template: `<ng-template #insert></ng-template>`,
+      standalone: false,
+    })
     class AppComponent {
       @ViewChild('insert', {static: true, read: ViewContainerRef}) vcRef!: ViewContainerRef;
 
@@ -66,29 +77,30 @@ describe('standalone injector', () => {
     }
 
     @NgModule({providers: [Service]})
-    class ModuleWithAService {
-    }
+    class ModuleWithAService {}
 
     @Component({
       selector: 'standalone',
       standalone: true,
       imports: [ModuleWithAService],
-      template: `{{service.value}}`
+      template: `{{service.value}}`,
     })
     class DynamicComponent {
       constructor(readonly service: Service) {}
     }
 
-    @Component({})
-    class AppComponent {
-    }
+    @Component({
+      standalone: false,
+    })
+    class AppComponent {}
 
     const fixture = TestBed.createComponent(AppComponent);
 
-    const cfr = TestBed.inject(ComponentFactoryResolver);
-    const cf = cfr.resolveComponentFactory(DynamicComponent);
-
-    const componentRef = cf.create(Injector.NULL);
+    const environmentInjector = createEnvironmentInjector(
+      [Service],
+      TestBed.inject(EnvironmentInjector),
+    );
+    const componentRef = createComponent(DynamicComponent, {environmentInjector});
     componentRef.changeDetectorRef.detectChanges();
 
     expect(componentRef.location.nativeElement.textContent).toBe('Service value');

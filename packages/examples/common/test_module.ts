@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, NgModule} from '@angular/core';
@@ -15,14 +15,20 @@ import * as ngIfExample from './ngIf/ts/module';
 import * as ngTemplateOutletExample from './ngTemplateOutlet/ts/module';
 import * as pipesExample from './pipes/ts/module';
 
-@Component({selector: 'example-app', template: '<router-outlet></router-outlet>'})
-export class TestsAppComponent {
-}
+@Component({
+  selector: 'example-app:not(y)',
+  template: '<router-outlet></router-outlet>',
+  standalone: false,
+})
+export class TestsAppComponent {}
 
 @NgModule({
   imports: [
-    locationExample.AppModule, ngComponentOutletExample.AppModule, ngIfExample.AppModule,
-    ngTemplateOutletExample.AppModule, pipesExample.AppModule,
+    locationExample.AppModule,
+    ngComponentOutletExample.AppModule,
+    ngIfExample.AppModule,
+    ngTemplateOutletExample.AppModule,
+    pipesExample.AppModule,
 
     // Router configuration so that the individual e2e tests can load their
     // app components.
@@ -32,10 +38,9 @@ export class TestsAppComponent {
       {path: 'ngIf', component: ngIfExample.AppComponent},
       {path: 'ngTemplateOutlet', component: ngTemplateOutletExample.AppComponent},
       {path: 'pipes', component: pipesExample.AppComponent},
-    ])
+    ]),
   ],
   declarations: [TestsAppComponent],
-  bootstrap: [TestsAppComponent]
+  bootstrap: [TestsAppComponent],
 })
-export class TestsAppModule {
-}
+export class TestsAppModule {}

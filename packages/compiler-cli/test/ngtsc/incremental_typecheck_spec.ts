@@ -3,14 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import ts from 'typescript';
 
 import {absoluteFrom} from '../../src/ngtsc/file_system';
 import {runInEachFileSystem} from '../../src/ngtsc/file_system/testing';
-import {loadStandardTestFiles} from '../../src/ngtsc/testing';
+import {expectCompleteReuse, loadStandardTestFiles} from '../../src/ngtsc/testing';
 
 import {NgtscTestEnvironment} from './env';
 
@@ -30,29 +30,39 @@ runInEachFileSystem(() => {
       it('should type-check correctly when a backing input field is renamed', () => {
         // This test verifies that renaming the class field of an input is correctly reflected into
         // the TCB.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Input('dir')
             dir!: string;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo = 'foo';
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -61,51 +71,65 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
         // Now rename the backing field of the input; the TCB should be updated such that the `dir`
         // input binding is still valid.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Input('dir')
             dirRenamed!: string;
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
-      it('should type-check correctly when a backing output field is renamed', () => {
-        // This test verifies that renaming the class field of an output is correctly reflected into
+      it('should type-check correctly when a backing signal input field is renamed', () => {
+        // This test verifies that renaming the class field of an input is correctly reflected into
         // the TCB.
-        env.write('dir.ts', `
-          import {Directive, EventEmitter, Output} from '@angular/core';
+        env.write(
+          'dir.ts',
+          `
+          import {Directive, input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
-            @Output('dir')
-            dir = new EventEmitter<string>();
+            dir = input.required<string>();
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
-            template: '<div (dir)="foo($event)"></div>',
+            template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
-            foo(bar: string) {}
+            foo = 'foo';
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -114,22 +138,229 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
-        // Now rename the backing field of the output; the TCB should be updated such that the `dir`
+        // Now rename the backing field of the input; the TCB should be updated such that the `dir`
         // input binding is still valid.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
+          import {Directive, input} from '@angular/core';
+
+          @Directive({
+            selector: '[dir]',
+            standalone: false,
+          })
+          export class Dir {
+            dirRenamed = input.required<string>({alias: 'dir'});
+          }
+        `,
+        );
+        env.driveMain();
+      });
+
+      it('should type-check correctly when an decorator-input is changed to a signal input', () => {
+        env.write(
+          'dir.ts',
+          `
+          import {Directive, Input} from '@angular/core';
+
+          @Directive({
+            selector: '[dir]',
+            standalone: false,
+          })
+          export class Dir {
+            @Input() dir!: string;
+          }
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
+          import {Component} from '@angular/core';
+
+          @Component({
+            selector: 'test-cmp',
+            template: '<div [dir]="foo"></div>',
+            standalone: false,
+          })
+          export class Cmp {
+            foo = 'foo';
+          }
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
+          import {NgModule} from '@angular/core';
+          import {Cmp} from './cmp';
+          import {Dir} from './dir';
+
+          @NgModule({
+            declarations: [Cmp, Dir],
+          })
+          export class Mod {}
+        `,
+        );
+        env.driveMain();
+
+        // Now, the input is changed to a signal input. The template should still be valid.
+        // If this `isSignal` change would not be detected, `string` would never be assignable
+        // to `InputSignal` because the TCB would not unwrap it.
+        env.write(
+          'dir.ts',
+          `
+          import {Directive, input} from '@angular/core';
+
+          @Directive({
+            selector: '[dir]',
+            standalone: false,
+          })
+          export class Dir {
+            dir = input<string>();
+          }
+        `,
+        );
+        env.driveMain();
+      });
+
+      it('should type-check correctly when signal input transform is added', () => {
+        env.write(
+          'dir.ts',
+          `
+          import {Directive, input} from '@angular/core';
+
+          @Directive({
+            selector: '[dir]',
+            standalone: false,
+          })
+          export class Dir {
+            dir = input.required<string>();
+          }
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
+          import {Component} from '@angular/core';
+
+          @Component({
+            selector: 'test-cmp',
+            template: '<div [dir]="foo"></div>',
+            standalone: false,
+          })
+          export class Cmp {
+            foo = 'foo';
+          }
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
+          import {NgModule} from '@angular/core';
+          import {Cmp} from './cmp';
+          import {Dir} from './dir';
+
+          @NgModule({
+            declarations: [Cmp, Dir],
+          })
+          export class Mod {}
+        `,
+        );
+        env.driveMain();
+
+        // Transform is added and the input no longer accepts `string`, but only a boolean.
+        // This should result in diagnostics now, assuming the TCB is checked again.
+        env.write(
+          'dir.ts',
+          `
+          import {Directive, input} from '@angular/core';
+
+          @Directive({
+            selector: '[dir]',
+            standalone: false,
+          })
+          export class Dir {
+            dir = input.required<string, boolean>({
+              transform: v => v.toString(),
+            });
+          }
+        `,
+        );
+        const diagnostics = env.driveDiagnostics();
+        expect(diagnostics.length).toBe(1);
+        expect(diagnostics[0].messageText).toBe(
+          `Type 'string' is not assignable to type 'boolean'.`,
+        );
+      });
+
+      it('should type-check correctly when a backing output field is renamed', () => {
+        // This test verifies that renaming the class field of an output is correctly reflected into
+        // the TCB.
+        env.write(
+          'dir.ts',
+          `
           import {Directive, EventEmitter, Output} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
+          })
+          export class Dir {
+            @Output('dir')
+            dir = new EventEmitter<string>();
+          }
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
+          import {Component} from '@angular/core';
+
+          @Component({
+            selector: 'test-cmp',
+            template: '<div (dir)="foo($event)"></div>',
+            standalone: false,
+          })
+          export class Cmp {
+            foo(bar: string) {}
+          }
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
+          import {NgModule} from '@angular/core';
+          import {Cmp} from './cmp';
+          import {Dir} from './dir';
+
+          @NgModule({
+            declarations: [Cmp, Dir],
+          })
+          export class Mod {}
+        `,
+        );
+        env.driveMain();
+
+        // Now rename the backing field of the output; the TCB should be updated such that the `dir`
+        // input binding is still valid.
+        env.write(
+          'dir.ts',
+          `
+          import {Directive, EventEmitter, Output} from '@angular/core';
+
+          @Directive({
+            selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Output('dir')
             dirRenamed = new EventEmitter<string>();
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
@@ -138,29 +369,39 @@ runInEachFileSystem(() => {
         // declared in the TypeScript class, the TCB should not contain a write to the field as it
         // would be an error. This test verifies that the TCB is regenerated when a backing field
         // is removed.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
             inputs: ['dir'],
+            standalone: false,
           })
           export class Dir {
             dir!: string;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo = true;
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -169,23 +410,29 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         const diags = env.driveDiagnostics();
         expect(diags.length).toBe(1);
-        expect(diags[0].messageText)
-            .toContain(`Type 'boolean' is not assignable to type 'string'.`);
+        expect(diags[0].messageText).toContain(
+          `Type 'boolean' is not assignable to type 'string'.`,
+        );
 
         // Now remove the backing field for the `dir` input. The compilation should now succeed
         // as there are no type-check errors.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
             inputs: ['dir'],
+            standalone: false,
           })
           export class Dir {}
-        `);
+        `,
+        );
         env.driveMain();
       });
 
@@ -196,29 +443,39 @@ runInEachFileSystem(() => {
         // become readonly does result in the TCB being updated to use such an indirect write, as
         // otherwise an error would incorrectly be reported.
         env.tsconfig({strictTemplates: true, strictInputAccessModifiers: false});
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
             inputs: ['dir'],
+            standalone: false,
           })
           export class Dir {
             dir!: string;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo = 'foo';
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -227,22 +484,27 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
         // Now change the `dir` input to be readonly. Because `strictInputAccessModifiers` is
         // disabled this should be allowed.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
             inputs: ['dir'],
+            standalone: false,
           })
           export class Dir {
             readonly dir!: string;
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
@@ -250,29 +512,39 @@ runInEachFileSystem(() => {
         // Declaring a static `ngAcceptInputType` member requires that the TCB is regenerated, as
         // writes to an input property should then be targeted against this static member instead
         // of the input field itself.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Input()
             dir!: string;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo = true;
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -281,20 +553,25 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         const diags = env.driveDiagnostics();
         expect(diags.length).toBe(1);
-        expect(diags[0].messageText)
-            .toContain(`Type 'boolean' is not assignable to type 'string'.`);
+        expect(diags[0].messageText).toContain(
+          `Type 'boolean' is not assignable to type 'string'.`,
+        );
 
         // Now add an `ngAcceptInputType` static member to the directive such that its `dir` input
         // also accepts `boolean`, unlike the type of `dir`'s class field. This should therefore
         // allow the compilation to succeed.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Input()
@@ -302,36 +579,47 @@ runInEachFileSystem(() => {
 
             static ngAcceptInputType_dir: string | boolean;
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
       it('should type-check correctly when an ngTemplateContextGuard field is declared', () => {
         // This test adds an `ngTemplateContextGuard` static member to verify that the TCB is
         // regenerated for the template context to take effect.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Input()
             dir!: string;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div *dir="let bar">{{ foo(bar) }}</div>',
+            standalone: false,
           })
           export class Cmp {
             foo(bar: string) {}
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -340,13 +628,16 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
         // Now add the template context to declare the `$implicit` variable to be of type `number`.
         // Doing so should report an error for `Cmp`, as the type of `bar` which binds to
         // `$implicit` is no longer compatible with the method signature which requires a `string`.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           export interface TemplateContext {
@@ -355,6 +646,7 @@ runInEachFileSystem(() => {
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Input()
@@ -362,41 +654,52 @@ runInEachFileSystem(() => {
 
             static ngTemplateContextGuard(dir: Dir, ctx: any): ctx is TemplateContext { return true; }
           }
-        `);
+        `,
+        );
         const diags = env.driveDiagnostics();
         expect(diags.length).toBe(1);
-        expect(diags[0].messageText)
-            .toContain(
-                `Argument of type 'number' is not assignable to parameter of type 'string'.`);
+        expect(diags[0].messageText).toContain(
+          `Argument of type 'number' is not assignable to parameter of type 'string'.`,
+        );
       });
 
       it('should type-check correctly when an ngTemplateGuard field is declared', () => {
         // This test verifies that adding an `ngTemplateGuard` static member has the desired effect
         // of type-narrowing the bound input expression within the template.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Input()
             dir!: boolean;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div *dir="foo !== null">{{ test(foo) }}</div>',
+            standalone: false,
           })
           export class Cmp {
             foo!: string | null;
             test(foo: string) {}
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -405,17 +708,20 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         const diags = env.driveDiagnostics();
         expect(diags.length).toBe(1);
-        expect(ts.flattenDiagnosticMessageText(diags[0].messageText, '\n'))
-            .toContain(
-                `Argument of type 'string | null' is not assignable to parameter of type 'string'.`);
+        expect(ts.flattenDiagnosticMessageText(diags[0].messageText, '\n')).toContain(
+          `Argument of type 'string | null' is not assignable to parameter of type 'string'.`,
+        );
 
         // Now resolve the compilation error by adding the `ngTemplateGuard_dir` static member to
         // specify that the bound expression for `dir` should be used as template guard. This
         // should allow the compilation to succeed.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           export interface TemplateContext {
@@ -424,6 +730,7 @@ runInEachFileSystem(() => {
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Input()
@@ -431,7 +738,8 @@ runInEachFileSystem(() => {
 
             static ngTemplateGuard_dir: 'binding';
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
@@ -442,11 +750,14 @@ runInEachFileSystem(() => {
         // context guard is used, but it's ineffective at narrowing an expression that explicitly
         // compares against null. An incremental step changes the type of the guard to be of type
         // `binding`.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T> {
             @Input()
@@ -454,20 +765,27 @@ runInEachFileSystem(() => {
 
             static ngTemplateGuard_dir<T>(dir: Dir<T>, expr: any): expr is NonNullable<T> { return true; };
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div *dir="foo !== null">{{ test(foo) }}</div>',
+            standalone: false,
           })
           export class Cmp {
             foo!: string | null;
             test(foo: string) {}
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -476,16 +794,19 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         const diags = env.driveDiagnostics();
         expect(diags.length).toBe(1);
-        expect(ts.flattenDiagnosticMessageText(diags[0].messageText, '\n'))
-            .toContain(
-                `Argument of type 'string | null' is not assignable to parameter of type 'string'.`);
+        expect(ts.flattenDiagnosticMessageText(diags[0].messageText, '\n')).toContain(
+          `Argument of type 'string | null' is not assignable to parameter of type 'string'.`,
+        );
 
         // Now change the type of the template guard into "binding" to achieve the desired narrowing
         // of `foo`, allowing the compilation to succeed.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           export interface TemplateContext {
@@ -494,6 +815,7 @@ runInEachFileSystem(() => {
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T> {
             @Input()
@@ -501,7 +823,8 @@ runInEachFileSystem(() => {
 
             static ngTemplateGuard_dir: 'binding';
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
@@ -509,11 +832,14 @@ runInEachFileSystem(() => {
         // This test verifies that changing the name of the field to which an `ngTemplateGuard`
         // static member applies correctly removes its narrowing effect on the original input
         // binding expression.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T> {
             @Input()
@@ -521,20 +847,27 @@ runInEachFileSystem(() => {
 
             static ngTemplateGuard_dir: 'binding';
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div *dir="foo !== null">{{ test(foo) }}</div>',
+            standalone: false,
           })
           export class Cmp {
             foo!: string | null;
             test(foo: string) {}
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -543,12 +876,15 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
         // Now change the `ngTemplateGuard` to target a different field. The `dir` binding should
         // no longer be narrowed, causing the template of `Cmp` to become invalid.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           export interface TemplateContext {
@@ -557,6 +893,7 @@ runInEachFileSystem(() => {
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T> {
             @Input()
@@ -564,12 +901,13 @@ runInEachFileSystem(() => {
 
             static ngTemplateGuard_dir_renamed: 'binding';
           }
-        `);
+        `,
+        );
         const diags = env.driveDiagnostics();
         expect(diags.length).toBe(1);
-        expect(ts.flattenDiagnosticMessageText(diags[0].messageText, '\n'))
-            .toContain(
-                `Argument of type 'string | null' is not assignable to parameter of type 'string'.`);
+        expect(ts.flattenDiagnosticMessageText(diags[0].messageText, '\n')).toContain(
+          `Argument of type 'string | null' is not assignable to parameter of type 'string'.`,
+        );
       });
     });
 
@@ -580,29 +918,39 @@ runInEachFileSystem(() => {
         // of the generic type requires that `Cmp`'s local declaration of `Dir` is also updated,
         // otherwise the prior declaration without generic type argument would be invalid.
 
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Input()
             dir!: string;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo = 'foo';
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -611,21 +959,26 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
         // Adding a generic type should still allow the compilation to succeed.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T> {
             @Input()
             dir!: string;
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
@@ -635,29 +988,39 @@ runInEachFileSystem(() => {
         // type requires that `Cmp`'s local declaration of `Dir` is also updated, otherwise the
         // prior declaration with fewer generic type argument would be invalid.
 
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T> {
             @Input()
             dir!: T;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo = 'foo';
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -666,21 +1029,26 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
         // Add generic type parameter `U` should continue to allow the compilation to succeed.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T, U> {
             @Input()
             dir!: T;
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
@@ -690,29 +1058,39 @@ runInEachFileSystem(() => {
         // template. The removal of the generic type requires that `Cmp`'s local declaration of
         // `Dir` is also updated, as otherwise the prior declaration with a generic type argument
         // would be invalid.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T> {
             @Input()
             dir!: string;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo = 'foo';
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -721,21 +1099,26 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
         // Changing `Dir` to become non-generic should allow the compilation to succeed.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir {
             @Input()
             dir!: string;
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
@@ -744,29 +1127,39 @@ runInEachFileSystem(() => {
         // type-checks component `Cmp` that uses `Dir` in its template. The removal of the generic
         // type requires that `Cmp`'s local declaration of `Dir` is also updated, as otherwise the
         // prior declaration with the initial number of generic type arguments would be invalid.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T, U> {
             @Input()
             dir!: T;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo = 'foo';
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -775,21 +1168,26 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
         // Removing type parameter `U` should allow the compilation to succeed.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T> {
             @Input()
             dir!: T;
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
@@ -797,34 +1195,47 @@ runInEachFileSystem(() => {
         // This test verifies that changing an unbound generic type parameter of directive `Dir`
         // to have a type constraint properly applies the newly added type constraint during
         // type-checking of `Cmp` that uses `Dir` in its template.
-        env.write('node_modules/foo/index.ts', `
+        env.write(
+          'node_modules/foo/index.ts',
+          `
           export interface Foo {
             a: boolean;
           }
-        `);
-        env.write('dir.ts', `
+        `,
+        );
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T> {
             @Input()
             dir!: T;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo: string;
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -833,24 +1244,29 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
         // Update `Dir` such that its generic type parameter `T` is constrained to type `Foo`. The
         // template of `Cmp` should now fail to type-check, as its bound value for `T` does not
         // conform to the `Foo` constraint.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
           import {Foo} from 'foo';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T extends Foo> {
             @Input()
             dir!: T;
           }
-        `);
+        `,
+        );
 
         const diags = env.driveDiagnostics();
         expect(diags.length).toBe(1);
@@ -858,17 +1274,21 @@ runInEachFileSystem(() => {
 
         // Now update `Dir` again to remove the constraint of `T`, which should allow the template
         // of `Cmp` to succeed type-checking.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T> {
             @Input()
             dir!: T;
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
@@ -885,41 +1305,57 @@ runInEachFileSystem(() => {
         // - Perform an incremental compilation where the import of `Foo` is changed into `foo-b`.
         //   The binding in `Cmp` should now report an error, as its value of `Foo` from `foo-a`
         //   no longer conforms to the new type constraint of `Foo` from 'foo-b'.
-        env.write('node_modules/foo-a/index.ts', `
+        env.write(
+          'node_modules/foo-a/index.ts',
+          `
           export interface Foo {
             a: boolean;
           }
-        `);
-        env.write('node_modules/foo-b/index.ts', `
+        `,
+        );
+        env.write(
+          'node_modules/foo-b/index.ts',
+          `
           export interface Foo {
             b: boolean;
           }
-        `);
-        env.write('dir.ts', `
+        `,
+        );
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
           import {Foo} from 'foo-a';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T extends Foo> {
             @Input()
             dir!: T;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
           import {Foo} from 'foo-a';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo: Foo = {a: true};
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -928,59 +1364,71 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
         env.driveMain();
 
         // Now switch the import of `Foo` from `foo-a` to `foo-b`. This should cause a type-check
         // failure in `Cmp`, as its binding into `Dir` still provides an incompatible `Foo`
         // from `foo-a`.
-        env.write('dir.ts', `
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
           import {Foo} from 'foo-b';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir<T extends Foo> {
             @Input()
             dir!: T;
           }
-        `);
+        `,
+        );
 
         const diags = env.driveDiagnostics();
         expect(diags.length).toBe(1);
-        expect(diags[0].messageText)
-            .toContain(`Type 'import("${
-                absoluteFrom(
-                    '/node_modules/foo-a/index')}").Foo' is not assignable to type 'import("${
-                absoluteFrom('/node_modules/foo-b/index')}").Foo'.`);
+        expect(diags[0].messageText).toContain(
+          `Property 'b' is missing in type 'import("${absoluteFrom(
+            '/node_modules/foo-a/index',
+          )}").Foo' but required in type 'import("${absoluteFrom(
+            '/node_modules/foo-b/index',
+          )}").Foo'.`,
+        );
 
         // For completeness, update `Cmp` to address the previous template type-check error by
         // changing the type of the binding into `Dir` to also be the `Foo` from `foo-b`. This
         // should result in a successful compilation.
-        env.write('cmp.ts', `
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
           import {Foo} from 'foo-b';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo: Foo = {b: true};
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
     });
 
     describe('inheritance', () => {
-      it('should type-check derived directives when the public API of the parent class is affected',
-         () => {
-           // This test verifies that an indirect change to the public API of `Dir` as caused by a
-           // change to `Dir`'s base class `Parent` causes the type-check result of component `Cmp`
-           // that uses `Dir` to be updated accordingly.
-           env.write('parent.ts', `
+      it('should type-check derived directives when the public API of the parent class is affected', () => {
+        // This test verifies that an indirect change to the public API of `Dir` as caused by a
+        // change to `Dir`'s base class `Parent` causes the type-check result of component `Cmp`
+        // that uses `Dir` to be updated accordingly.
+        env.write(
+          'parent.ts',
+          `
              import {Directive, Input} from '@angular/core';
 
              @Directive()
@@ -988,31 +1436,42 @@ runInEachFileSystem(() => {
                @Input()
                parent!: string;
              }
-           `);
-           env.write('dir.ts', `
+           `,
+        );
+        env.write(
+          'dir.ts',
+          `
              import {Directive, Input} from '@angular/core';
              import {Parent} from './parent';
 
              @Directive({
                selector: '[dir]',
+               standalone: false,
              })
              export class Dir extends Parent {
                @Input()
                dir!: string;
              }
-           `);
-           env.write('cmp.ts', `
+           `,
+        );
+        env.write(
+          'cmp.ts',
+          `
              import {Component} from '@angular/core';
 
              @Component({
                selector: 'test-cmp',
                template: '<div [dir]="foo" [parent]="foo"></div>',
+               standalone: false,
              })
              export class Cmp {
                foo = 'foo';
              }
-           `);
-           env.write('mod.ts', `
+           `,
+        );
+        env.write(
+          'mod.ts',
+          `
              import {NgModule} from '@angular/core';
              import {Cmp} from './cmp';
              import {Dir} from './dir';
@@ -1021,31 +1480,37 @@ runInEachFileSystem(() => {
                declarations: [Cmp, Dir],
              })
              export class Mod {}
-           `);
-           env.driveMain();
+           `,
+        );
+        env.driveMain();
 
-           // Now remove an input from `Parent`. This invalidates the binding in `Cmp`'s template,
-           // so an error diagnostic should be reported.
-           env.write('parent.ts', `
+        // Now remove an input from `Parent`. This invalidates the binding in `Cmp`'s template,
+        // so an error diagnostic should be reported.
+        env.write(
+          'parent.ts',
+          `
              import {Directive, Input} from '@angular/core';
 
              @Directive()
              export class Parent {
 
              }
-           `);
-           const diags = env.driveDiagnostics();
-           expect(diags.length).toBe(1);
-           expect(diags[0].messageText)
-               .toContain(`Can't bind to 'parent' since it isn't a known property of 'div'.`);
-         });
+           `,
+        );
+        const diags = env.driveDiagnostics();
+        expect(diags.length).toBe(1);
+        expect(diags[0].messageText).toContain(
+          `Can't bind to 'parent' since it isn't a known property of 'div'.`,
+        );
+      });
 
-      it('should type-check derived directives when the public API of the grandparent class is affected',
-         () => {
-           // This test verifies that an indirect change to the public API of `Dir` as caused by a
-           // change to `Dir`'s transitive base class `Grandparent` causes the type-check result of
-           // component `Cmp` that uses `Dir` to be updated accordingly.
-           env.write('grandparent.ts', `
+      it('should type-check derived directives when the public API of the grandparent class is affected', () => {
+        // This test verifies that an indirect change to the public API of `Dir` as caused by a
+        // change to `Dir`'s transitive base class `Grandparent` causes the type-check result of
+        // component `Cmp` that uses `Dir` to be updated accordingly.
+        env.write(
+          'grandparent.ts',
+          `
              import {Directive, Input} from '@angular/core';
 
              @Directive()
@@ -1053,8 +1518,11 @@ runInEachFileSystem(() => {
                @Input()
                grandparent!: string;
              }
-           `);
-           env.write('parent.ts', `
+           `,
+        );
+        env.write(
+          'parent.ts',
+          `
              import {Directive, Input} from '@angular/core';
              import {Grandparent} from './grandparent';
 
@@ -1063,31 +1531,42 @@ runInEachFileSystem(() => {
                @Input()
                parent!: string;
              }
-           `);
-           env.write('dir.ts', `
+           `,
+        );
+        env.write(
+          'dir.ts',
+          `
              import {Directive, Input} from '@angular/core';
              import {Parent} from './parent';
 
              @Directive({
                selector: '[dir]',
+               standalone: false,
              })
              export class Dir extends Parent {
                @Input()
                dir!: string;
              }
-           `);
-           env.write('cmp.ts', `
+           `,
+        );
+        env.write(
+          'cmp.ts',
+          `
              import {Component} from '@angular/core';
 
              @Component({
                selector: 'test-cmp',
                template: '<div [dir]="foo" [parent]="foo" [grandparent]="foo"></div>',
+               standalone: false,
              })
              export class Cmp {
                foo = 'foo';
              }
-           `);
-           env.write('mod.ts', `
+           `,
+        );
+        env.write(
+          'mod.ts',
+          `
              import {NgModule} from '@angular/core';
              import {Cmp} from './cmp';
              import {Dir} from './dir';
@@ -1096,31 +1575,38 @@ runInEachFileSystem(() => {
                declarations: [Cmp, Dir],
              })
              export class Mod {}
-           `);
-           env.driveMain();
+           `,
+        );
+        env.driveMain();
 
-           // Now remove an input from `Grandparent`. This invalidates the binding in `Cmp`'s
-           // template, so an error diagnostic should be reported.
-           env.write('grandparent.ts', `
+        // Now remove an input from `Grandparent`. This invalidates the binding in `Cmp`'s
+        // template, so an error diagnostic should be reported.
+        env.write(
+          'grandparent.ts',
+          `
              import {Directive, Input} from '@angular/core';
 
              @Directive()
              export class Grandparent {
 
              }
-          `);
-           const diags = env.driveDiagnostics();
-           expect(diags.length).toBe(1);
-           expect(diags[0].messageText)
-               .toContain(`Can't bind to 'grandparent' since it isn't a known property of 'div'.`);
-         });
+          `,
+        );
+        const diags = env.driveDiagnostics();
+        expect(diags.length).toBe(1);
+        expect(diags[0].messageText).toContain(
+          `Can't bind to 'grandparent' since it isn't a known property of 'div'.`,
+        );
+      });
 
       it('should type-check derived directives when a base class is added to a grandparent', () => {
         // This test verifies that an indirect change to the public API of `Dir` as caused by
         // adding a base class `Grandgrandparent` to `Dir`'s transitive base class `Grandparent`
         // causes the type-check result of component `Cmp` that uses `Dir` to be
         // updated accordingly.
-        env.write('grandgrandparent.ts', `
+        env.write(
+          'grandgrandparent.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive()
@@ -1128,8 +1614,11 @@ runInEachFileSystem(() => {
             @Input()
             grandgrandparent!: string;
           }
-        `);
-        env.write('grandparent.ts', `
+        `,
+        );
+        env.write(
+          'grandparent.ts',
+          `
           import {Directive, Input} from '@angular/core';
 
           @Directive()
@@ -1137,8 +1626,11 @@ runInEachFileSystem(() => {
             @Input()
             grandparent!: string;
           }
-        `);
-        env.write('parent.ts', `
+        `,
+        );
+        env.write(
+          'parent.ts',
+          `
           import {Directive, Input} from '@angular/core';
           import {Grandparent} from './grandparent';
 
@@ -1147,31 +1639,42 @@ runInEachFileSystem(() => {
             @Input()
             parent!: string;
           }
-        `);
-        env.write('dir.ts', `
+        `,
+        );
+        env.write(
+          'dir.ts',
+          `
           import {Directive, Input} from '@angular/core';
           import {Parent} from './parent';
 
           @Directive({
             selector: '[dir]',
+            standalone: false,
           })
           export class Dir extends Parent {
             @Input()
             dir!: string;
           }
-        `);
-        env.write('cmp.ts', `
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
           import {Component} from '@angular/core';
 
           @Component({
             selector: 'test-cmp',
             template: '<div [dir]="foo" [parent]="foo" [grandgrandparent]="foo"></div>',
+            standalone: false,
           })
           export class Cmp {
             foo = 'foo';
           }
-        `);
-        env.write('mod.ts', `
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
           import {NgModule} from '@angular/core';
           import {Cmp} from './cmp';
           import {Dir} from './dir';
@@ -1180,19 +1683,22 @@ runInEachFileSystem(() => {
             declarations: [Cmp, Dir],
           })
           export class Mod {}
-        `);
+        `,
+        );
 
         // `Cmp` already binds to the `grandgrandparent` input but it's not available, as
         // `Granparent` does not yet extend from `Grandgrandparent`.
         const diags = env.driveDiagnostics();
         expect(diags.length).toBe(1);
-        expect(diags[0].messageText)
-            .toContain(
-                `Can't bind to 'grandgrandparent' since it isn't a known property of 'div'.`);
+        expect(diags[0].messageText).toContain(
+          `Can't bind to 'grandgrandparent' since it isn't a known property of 'div'.`,
+        );
 
         // Now fix the issue by adding the base class to `Grandparent`; this should allow
         // type-checking to succeed.
-        env.write('grandparent.ts', `
+        env.write(
+          'grandparent.ts',
+          `
           import {Directive, Input} from '@angular/core';
           import {Grandgrandparent} from './grandgrandparent';
 
@@ -1201,17 +1707,19 @@ runInEachFileSystem(() => {
             @Input()
             grandparent!: string;
           }
-        `);
+        `,
+        );
         env.driveMain();
       });
 
-      it('should type-check derived directives when a base class is removed from a grandparent',
-         () => {
-           // This test verifies that an indirect change to the public API of `Dir` as caused by
-           // removing a base class `Grandgrandparent` from `Dir`'s transitive base class
-           // `Grandparent` causes the type-check result of component `Cmp` that uses `Dir` to be
-           // updated accordingly.
-           env.write('grandgrandparent.ts', `
+      it('should type-check derived directives when a base class is removed from a grandparent', () => {
+        // This test verifies that an indirect change to the public API of `Dir` as caused by
+        // removing a base class `Grandgrandparent` from `Dir`'s transitive base class
+        // `Grandparent` causes the type-check result of component `Cmp` that uses `Dir` to be
+        // updated accordingly.
+        env.write(
+          'grandgrandparent.ts',
+          `
              import {Directive, Input} from '@angular/core';
 
              @Directive()
@@ -1219,8 +1727,11 @@ runInEachFileSystem(() => {
                @Input()
                grandgrandparent!: string;
              }
-           `);
-           env.write('grandparent.ts', `
+           `,
+        );
+        env.write(
+          'grandparent.ts',
+          `
              import {Directive, Input} from '@angular/core';
              import {Grandgrandparent} from './grandgrandparent';
 
@@ -1229,8 +1740,11 @@ runInEachFileSystem(() => {
                @Input()
                grandparent!: string;
              }
-           `);
-           env.write('parent.ts', `
+           `,
+        );
+        env.write(
+          'parent.ts',
+          `
              import {Directive, Input} from '@angular/core';
              import {Grandparent} from './grandparent';
 
@@ -1239,31 +1753,42 @@ runInEachFileSystem(() => {
                @Input()
                parent!: string;
              }
-           `);
-           env.write('dir.ts', `
+           `,
+        );
+        env.write(
+          'dir.ts',
+          `
              import {Directive, Input} from '@angular/core';
              import {Parent} from './parent';
 
              @Directive({
                selector: '[dir]',
+               standalone: false,
              })
              export class Dir extends Parent {
                @Input()
                dir!: string;
              }
-           `);
-           env.write('cmp.ts', `
+           `,
+        );
+        env.write(
+          'cmp.ts',
+          `
              import {Component} from '@angular/core';
 
              @Component({
                selector: 'test-cmp',
                template: '<div [dir]="foo" [parent]="foo" [grandgrandparent]="foo"></div>',
+               standalone: false,
              })
              export class Cmp {
                foo = 'foo';
              }
-           `);
-           env.write('mod.ts', `
+           `,
+        );
+        env.write(
+          'mod.ts',
+          `
              import {NgModule} from '@angular/core';
              import {Cmp} from './cmp';
              import {Dir} from './dir';
@@ -1272,13 +1797,16 @@ runInEachFileSystem(() => {
                declarations: [Cmp, Dir],
              })
              export class Mod {}
-           `);
-           env.driveMain();
+           `,
+        );
+        env.driveMain();
 
-           // Removing the base class from `Grandparent` should start to report a type-check
-           // error in `Cmp`'s template, as its binding to the `grandgrandparent` input is no
-           // longer valid.
-           env.write('grandparent.ts', `
+        // Removing the base class from `Grandparent` should start to report a type-check
+        // error in `Cmp`'s template, as its binding to the `grandgrandparent` input is no
+        // longer valid.
+        env.write(
+          'grandparent.ts',
+          `
              import {Directive, Input} from '@angular/core';
 
              @Directive()
@@ -1286,20 +1814,22 @@ runInEachFileSystem(() => {
                @Input()
                grandparent!: string;
              }
-           `);
-           const diags = env.driveDiagnostics();
-           expect(diags.length).toBe(1);
-           expect(diags[0].messageText)
-               .toContain(
-                   `Can't bind to 'grandgrandparent' since it isn't a known property of 'div'.`);
-         });
+           `,
+        );
+        const diags = env.driveDiagnostics();
+        expect(diags.length).toBe(1);
+        expect(diags[0].messageText).toContain(
+          `Can't bind to 'grandgrandparent' since it isn't a known property of 'div'.`,
+        );
+      });
 
-      it('should type-check derived directives when the base class of a grandparent changes',
-         () => {
-           // This test verifies that an indirect change to the public API of `Dir` as caused by
-           // changing the base class of `Dir`'s transitive base class `Grandparent` causes the
-           // type-check result of component `Cmp` that uses `Dir` to be updated accordingly.
-           env.write('grandgrandparent-a.ts', `
+      it('should type-check derived directives when the base class of a grandparent changes', () => {
+        // This test verifies that an indirect change to the public API of `Dir` as caused by
+        // changing the base class of `Dir`'s transitive base class `Grandparent` causes the
+        // type-check result of component `Cmp` that uses `Dir` to be updated accordingly.
+        env.write(
+          'grandgrandparent-a.ts',
+          `
              import {Directive, Input} from '@angular/core';
 
              @Directive()
@@ -1307,8 +1837,11 @@ runInEachFileSystem(() => {
                @Input()
                grandgrandparentA!: string;
              }
-           `);
-           env.write('grandgrandparent-b.ts', `
+           `,
+        );
+        env.write(
+          'grandgrandparent-b.ts',
+          `
              import {Directive, Input} from '@angular/core';
 
              @Directive()
@@ -1316,8 +1849,11 @@ runInEachFileSystem(() => {
                @Input()
                grandgrandparentB!: string;
              }
-           `);
-           env.write('grandparent.ts', `
+           `,
+        );
+        env.write(
+          'grandparent.ts',
+          `
              import {Directive, Input} from '@angular/core';
              import {GrandgrandparentA} from './grandgrandparent-a';
 
@@ -1326,8 +1862,11 @@ runInEachFileSystem(() => {
                @Input()
                grandparent!: string;
              }
-           `);
-           env.write('parent.ts', `
+           `,
+        );
+        env.write(
+          'parent.ts',
+          `
              import {Directive, Input} from '@angular/core';
              import {Grandparent} from './grandparent';
 
@@ -1336,31 +1875,42 @@ runInEachFileSystem(() => {
                @Input()
                parent!: string;
              }
-           `);
-           env.write('dir.ts', `
+           `,
+        );
+        env.write(
+          'dir.ts',
+          `
              import {Directive, Input} from '@angular/core';
              import {Parent} from './parent';
 
              @Directive({
                selector: '[dir]',
+               standalone: false,
              })
              export class Dir extends Parent {
                @Input()
                dir!: string;
              }
-           `);
-           env.write('cmp.ts', `
+           `,
+        );
+        env.write(
+          'cmp.ts',
+          `
              import {Component} from '@angular/core';
 
              @Component({
                selector: 'test-cmp',
                template: '<div [dir]="foo" [parent]="foo" [grandgrandparentA]="foo"></div>',
+               standalone: false,
              })
              export class Cmp {
                foo = 'foo';
              }
-           `);
-           env.write('mod.ts', `
+           `,
+        );
+        env.write(
+          'mod.ts',
+          `
              import {NgModule} from '@angular/core';
              import {Cmp} from './cmp';
              import {Dir} from './dir';
@@ -1369,13 +1919,16 @@ runInEachFileSystem(() => {
                declarations: [Cmp, Dir],
              })
              export class Mod {}
-           `);
-           env.driveMain();
+           `,
+        );
+        env.driveMain();
 
-           // Now switch the base class of `Grandparent` from `GrandgrandparentA` to
-           // `GrandgrandparentB` causes the input binding to `grandgrandparentA` to be reported as
-           // an error, as it's no longer available.
-           env.write('grandparent.ts', `
+        // Now switch the base class of `Grandparent` from `GrandgrandparentA` to
+        // `GrandgrandparentB` causes the input binding to `grandgrandparentA` to be reported as
+        // an error, as it's no longer available.
+        env.write(
+          'grandparent.ts',
+          `
              import {Directive, Input} from '@angular/core';
              import {GrandgrandparentB} from './grandgrandparent-b';
 
@@ -1384,13 +1937,154 @@ runInEachFileSystem(() => {
                @Input()
                grandparent!: string;
              }
-           `);
-           const diags = env.driveDiagnostics();
-           expect(diags.length).toBe(1);
-           expect(diags[0].messageText)
-               .toContain(
-                   `Can't bind to 'grandgrandparentA' since it isn't a known property of 'div'.`);
-         });
+           `,
+        );
+        const diags = env.driveDiagnostics();
+        expect(diags.length).toBe(1);
+        expect(diags[0].messageText).toContain(
+          `Can't bind to 'grandgrandparentA' since it isn't a known property of 'div'.`,
+        );
+      });
+    });
+
+    describe('program re-use', () => {
+      it('should completely re-use structure when the first signal input is introduced', () => {
+        env.tsconfig({strictTemplates: true});
+        env.write(
+          'dir.ts',
+          `
+          import {Directive, Input} from '@angular/core';
+
+          @Directive({
+            selector: '[dir]',
+            standalone: false,
+          })
+          export class Dir {
+            @Input() dir: string = '';
+          }
+        `,
+        );
+        env.write(
+          'cmp.ts',
+          `
+          import {Component} from '@angular/core';
+
+          @Component({
+            selector: 'test-cmp',
+            template: '<div [dir]="foo"></div>',
+            standalone: false,
+          })
+          export class Cmp {
+            foo = 'foo';
+          }
+        `,
+        );
+        env.write(
+          'mod.ts',
+          `
+          import {NgModule} from '@angular/core';
+          import {Cmp} from './cmp';
+          import {Dir} from './dir';
+
+          @NgModule({
+            declarations: [Cmp, Dir],
+          })
+          export class Mod {}
+        `,
+        );
+        env.driveMain();
+
+        // introduce the signal input.
+        env.write(
+          'dir.ts',
+          `
+          import {Directive, input} from '@angular/core';
+
+          @Directive({
+            selector: '[dir]',
+            standalone: false,
+          })
+          export class Dir {
+            dir = input.required<string>();
+          }
+        `,
+        );
+        env.driveMain();
+
+        expectCompleteReuse(env.getTsProgram());
+        expectCompleteReuse(env.getReuseTsProgram());
+      });
+
+      it('should completely re-use structure when an inline constructor generic directive starts using input signals', () => {
+        env.tsconfig({strictTemplates: true});
+        env.write(
+          'dir.ts',
+          `
+            import {Directive, Input} from '@angular/core';
+
+            class SomeNonExportedClass {}
+
+            @Directive({
+              selector: '[dir]',
+              standalone: false,
+            })
+            export class Dir<T extends SomeNonExportedClass> {
+              @Input() dir: T|undefined;
+            }
+          `,
+        );
+        env.write(
+          'cmp.ts',
+          `
+            import {Component} from '@angular/core';
+
+            @Component({
+              selector: 'test-cmp',
+              template: '<div [dir]="foo"></div>',
+              standalone: false,
+            })
+            export class Cmp {
+              foo = 'foo';
+            }
+          `,
+        );
+        env.write(
+          'mod.ts',
+          `
+            import {NgModule} from '@angular/core';
+            import {Cmp} from './cmp';
+            import {Dir} from './dir';
+
+            @NgModule({
+              declarations: [Cmp, Dir],
+            })
+            export class Mod {}
+          `,
+        );
+        env.driveMain();
+
+        // turn the input into a signal input- causing a new import.
+        env.write(
+          'dir.ts',
+          `
+            import {Directive, input} from '@angular/core';
+
+            class SomeNonExportedClass {}
+
+            @Directive({
+              selector: '[dir]',
+              standalone: false,
+            })
+            export class Dir<T extends SomeNonExportedClass> {
+              dir = input.required<T>();
+            }
+          `,
+        );
+        env.driveMain();
+
+        expectCompleteReuse(env.getTsProgram());
+        expectCompleteReuse(env.getReuseTsProgram());
+      });
     });
   });
 });

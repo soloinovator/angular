@@ -122,8 +122,6 @@ The manually configured ports are as follows:
 | TEST | PORT | CONFIGURATION |
 | ---------------------------- | ---------------- | -------------------------------------- |
 | dynamic-compiler             |      4201        | /e2e/browser.config.json: "port": 4201 |
-| hello_world__closure         |      4202        | /e2e/browser.config.json: "port": 4202 |
-| i18n                         |      4204        | /e2e/browser.config.json: "port": 4204 |
 | ng_elements                  |      4205        | /e2e/browser.config.json: "port": 4205 |
 | platform-server              |      4206        | /src/server.ts: app.listen(4206,...    |
 
@@ -158,7 +156,7 @@ And from the flags that the Karma `ChromeHeadless` browser passes to Chrome: htt
 
 The `--disable-dev-shm-usage` flag disables the usage of `/dev/shm` because it causes Chrome to crash on some environments.
 
-On CircleCI, the puppeteer provisioned Chrome crashes with `CI we get Root cause: org.openqa.selenium.WebDriverException: unknown error: DevToolsActivePort file doesn't exist which resolves` without this flag.
+On CI, the puppeteer provisioned Chrome crashes with `CI we get Root cause: org.openqa.selenium.WebDriverException: unknown error: DevToolsActivePort file doesn't exist which resolves` without this flag.
 
 See: https://github.com/puppeteer/puppeteer/blob/v1.0.0/docs/troubleshooting.md#tips
 See: https://stackoverflow.com/questions/50642308/webdriverexception-unknown-error-devtoolsactiveport-file-doesnt-exist-while-t

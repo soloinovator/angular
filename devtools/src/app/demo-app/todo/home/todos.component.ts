@@ -3,15 +3,19 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ChangeDetectorRef, Component, EventEmitter, OnDestroy, OnInit, Output} from '@angular/core';
+import {ChangeDetectorRef, Component, inject, OnDestroy, OnInit, output} from '@angular/core';
 
 import {Todo} from './todo';
-import {TodoFilter} from './todos.pipe';
+import {TodoFilter, TodosFilter} from './todos.pipe';
+import {SamplePipe} from './sample.pipe';
+import {TooltipDirective} from './tooltip.directive';
+import {TodoComponent} from './todo.component';
+import {RouterLink} from '@angular/router';
 
-const fib = (n: number) => {
+const fib = (n: number): number => {
   if (n === 1 || n === 2) {
     return 1;
   }
@@ -21,6 +25,7 @@ const fib = (n: number) => {
 @Component({
   templateUrl: 'todos.component.html',
   selector: 'app-todos',
+  imports: [RouterLink, TodoComponent, TooltipDirective, SamplePipe, TodosFilter],
 })
 export class TodosComponent implements OnInit, OnDestroy {
   todos: Todo[] = [
@@ -36,13 +41,12 @@ export class TodosComponent implements OnInit, OnDestroy {
     },
   ];
 
-  @Output() update = new EventEmitter();
-  @Output() delete = new EventEmitter();
-  @Output() add = new EventEmitter();
+  readonly update = output<Todo>();
+  readonly delete = output<Todo>();
+  readonly add = output<Todo>();
 
-  private hashListener: EventListenerOrEventListenerObject;
-
-  constructor(private cdRef: ChangeDetectorRef) {}
+  private hashListener!: EventListenerOrEventListenerObject;
+  private cdRef = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     if (typeof window !== 'undefined') {

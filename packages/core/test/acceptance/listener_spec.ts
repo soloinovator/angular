@@ -3,11 +3,25 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CommonModule} from '@angular/common';
-import {Component, Directive, ErrorHandler, EventEmitter, HostListener, Input, OnInit, Output, QueryList, TemplateRef, ViewChild, ViewChildren, ViewContainerRef} from '@angular/core';
+import {
+  Component,
+  Directive,
+  ErrorHandler,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnInit,
+  Output,
+  QueryList,
+  TemplateRef,
+  ViewChild,
+  ViewChildren,
+  ViewContainerRef,
+} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 
@@ -20,6 +34,7 @@ describe('event listeners', () => {
     it('should call function on event emit', () => {
       @Component({
         template: `<button (click)="onClick()">Click me</button>`,
+        standalone: false,
       })
       class MyComp {
         counter = 0;
@@ -41,6 +56,7 @@ describe('event listeners', () => {
     it('should call function chain on event emit', () => {
       @Component({
         template: `<button (click)="onClick(); onClick2(); "> Click me </button>`,
+        standalone: false,
       })
       class MyComp {
         counter = 0;
@@ -67,6 +83,7 @@ describe('event listeners', () => {
     it('should evaluate expression on event emit', () => {
       @Component({
         template: `<button (click)="showing=!showing"> Click me </button>`,
+        standalone: false,
       })
       class MyComp {
         showing = false;
@@ -87,6 +104,7 @@ describe('event listeners', () => {
     it('should support listeners with specified set of args', () => {
       @Component({
         template: `<button (click)="onClick(data.a, data.b)"> Click me </button>`,
+        standalone: false,
       })
       class MyComp {
         counter = 0;
@@ -110,13 +128,14 @@ describe('event listeners', () => {
     });
 
     it('should be able to access a property called $event using `this`', () => {
-      let eventVariable: number|undefined;
-      let eventObject: MouseEvent|undefined;
+      let eventVariable: number | undefined;
+      let eventObject: MouseEvent | undefined;
 
       @Component({
         template: `
           <button (click)="clicked(this.$event, $event)">Click me!</button>
         `,
+        standalone: false,
       })
       class MyComp {
         $event = 10;
@@ -137,30 +156,30 @@ describe('event listeners', () => {
       expect(eventObject?.type).toBe('click');
     });
 
-    it('should be able to use a keyed write on `this` from a listener inside an ng-template',
-       () => {
-         @Component({
-           template: `
+    it('should be able to use a keyed write on `this` from a listener inside an ng-template', () => {
+      @Component({
+        template: `
           <ng-template #template>
             <button (click)="this['mes' + 'sage'] = 'hello'">Click me</button>
           </ng-template>
   
           <ng-container [ngTemplateOutlet]="template"></ng-container>
-        `
-         })
-         class MyComp {
-           message = '';
-         }
+        `,
+        standalone: false,
+      })
+      class MyComp {
+        message = '';
+      }
 
-         TestBed.configureTestingModule({declarations: [MyComp], imports: [CommonModule]});
-         const fixture = TestBed.createComponent(MyComp);
-         fixture.detectChanges();
-         const button = fixture.nativeElement.querySelector('button');
-         button.click();
-         fixture.detectChanges();
+      TestBed.configureTestingModule({declarations: [MyComp], imports: [CommonModule]});
+      const fixture = TestBed.createComponent(MyComp);
+      fixture.detectChanges();
+      const button = fixture.nativeElement.querySelector('button');
+      button.click();
+      fixture.detectChanges();
 
-         expect(fixture.componentInstance.message).toBe('hello');
-       });
+      expect(fixture.componentInstance.message).toBe('hello');
+    });
 
     it('should reference the correct context object if it is swapped out', () => {
       @Component({
@@ -170,7 +189,8 @@ describe('event listeners', () => {
           </ng-template>
   
           <ng-container *ngTemplateOutlet="template; context: {$implicit: current}"></ng-container>
-        `
+        `,
+        standalone: false,
       })
       class MyComp {
         one = {value: 'one'};
@@ -209,8 +229,7 @@ describe('event listeners', () => {
         standalone: true,
         template: ``,
       })
-      class MyComp {
-      }
+      class MyComp {}
 
       @Component({
         standalone: true,
@@ -221,7 +240,7 @@ describe('event listeners', () => {
         `,
       })
       class App {
-        comp: MyComp|null = null;
+        comp: MyComp | null = null;
 
         onClick(comp: MyComp) {
           this.comp = comp;
@@ -242,18 +261,20 @@ describe('event listeners', () => {
     it('should call prevent default when a handler returns false', () => {
       @Component({
         template: `<button (click)="onClick($event)">Click</button>`,
+        standalone: false,
       })
       class MyComp {
-        handlerReturnValue: boolean|undefined;
-        event: Event|undefined;
+        handlerReturnValue: boolean | undefined;
+        event: Event | undefined;
 
         onClick(e: any) {
           this.event = e;
 
           // stub preventDefault() to check whether it's called
-          Object.defineProperty(
-              this.event, 'preventDefault',
-              {value: jasmine.createSpy('preventDefault'), writable: true});
+          Object.defineProperty(this.event, 'preventDefault', {
+            value: jasmine.createSpy('preventDefault'),
+            writable: true,
+          });
 
           return this.handlerReturnValue;
         }
@@ -283,7 +304,8 @@ describe('event listeners', () => {
   describe('coalescing', () => {
     @Component({
       selector: 'with-clicks-cmpt',
-      template: `<button likes-clicks (click)="count()" md-button>Click me!</button>`
+      template: `<button likes-clicks (click)="count()" md-button>Click me!</button>`,
+      standalone: false,
     })
     class WithClicksCmpt {
       counter = 0;
@@ -292,7 +314,10 @@ describe('event listeners', () => {
       }
     }
 
-    @Directive({selector: '[md-button]'})
+    @Directive({
+      selector: '[md-button]',
+      standalone: false,
+    })
     class MdButton {
       counter = 0;
       @HostListener('click')
@@ -301,7 +326,10 @@ describe('event listeners', () => {
       }
     }
 
-    @Directive({selector: '[likes-clicks]'})
+    @Directive({
+      selector: '[likes-clicks]',
+      standalone: false,
+    })
     class LikesClicks {
       counter = 0;
       @HostListener('click')
@@ -310,11 +338,14 @@ describe('event listeners', () => {
       }
     }
 
-    @Directive({selector: '[returns-false]'})
+    @Directive({
+      selector: '[returns-false]',
+      standalone: false,
+    })
     class ReturnsFalse {
       counter = 0;
       event!: Event;
-      handlerShouldReturn: boolean|undefined = undefined;
+      handlerShouldReturn: boolean | undefined = undefined;
 
       @HostListener('click', ['$event'])
       count(e: Event) {
@@ -322,9 +353,10 @@ describe('event listeners', () => {
         this.event = e;
 
         // stub preventDefault() to check whether it's called
-        Object.defineProperty(
-            this.event, 'preventDefault',
-            {value: jasmine.createSpy('preventDefault'), writable: true});
+        Object.defineProperty(this.event, 'preventDefault', {
+          value: jasmine.createSpy('preventDefault'),
+          writable: true,
+        });
 
         return this.handlerShouldReturn;
       }
@@ -333,13 +365,14 @@ describe('event listeners', () => {
     it('should coalesce multiple event listeners for the same event on the same element', () => {
       @Component({
         selector: 'test-cmpt',
-        template: `<with-clicks-cmpt></with-clicks-cmpt><with-clicks-cmpt></with-clicks-cmpt>`
+        template: `<with-clicks-cmpt></with-clicks-cmpt><with-clicks-cmpt></with-clicks-cmpt>`,
+        standalone: false,
       })
-      class TestCmpt {
-      }
+      class TestCmpt {}
 
-      TestBed.configureTestingModule(
-          {declarations: [TestCmpt, WithClicksCmpt, LikesClicks, MdButton]});
+      TestBed.configureTestingModule({
+        declarations: [TestCmpt, WithClicksCmpt, LikesClicks, MdButton],
+      });
       const noOfEventListenersRegisteredSoFar = getNoOfNativeListeners();
       const fixture = TestBed.createComponent(TestCmpt);
       fixture.detectChanges();
@@ -371,7 +404,8 @@ describe('event listeners', () => {
     it('should coalesce multiple event listeners in presence of queries', () => {
       @Component({
         selector: 'test-cmpt',
-        template: `<button likes-clicks (click)="counter = counter+1">Click me!</button>`
+        template: `<button likes-clicks (click)="counter = counter+1">Click me!</button>`,
+        standalone: false,
       })
       class TestCmpt {
         counter = 0;
@@ -395,20 +429,24 @@ describe('event listeners', () => {
       expect(fixture.componentInstance.counter).toBe(1);
     });
 
-
     it('should try to execute remaining coalesced listeners if one of the listeners throws', () => {
-      @Directive({selector: '[throws-on-clicks]'})
+      @Directive({
+        selector: '[throws-on-clicks]',
+        standalone: false,
+      })
       class ThrowsOnClicks {
         @HostListener('click')
         dontCount() {
-          throw new Error('I was clicked and I don\'t like it!');
+          throw new Error("I was clicked and I don't like it!");
         }
       }
 
-      @Component(
-          {selector: 'test-cmpt', template: `<button throws-on-clicks likes-clicks><button>`})
-      class TestCmpt {
-      }
+      @Component({
+        selector: 'test-cmpt',
+        template: `<button throws-on-clicks likes-clicks><button>`,
+        standalone: false,
+      })
+      class TestCmpt {}
 
       let noOfErrors = 0;
 
@@ -420,7 +458,7 @@ describe('event listeners', () => {
 
       TestBed.configureTestingModule({
         declarations: [TestCmpt, LikesClicks, ThrowsOnClicks],
-        providers: [{provide: ErrorHandler, useClass: CountingErrorHandler}]
+        providers: [{provide: ErrorHandler, useClass: CountingErrorHandler}],
       });
       const fixture = TestBed.createComponent(TestCmpt);
       fixture.detectChanges();
@@ -438,10 +476,10 @@ describe('event listeners', () => {
         selector: 'test-cmpt',
         template: `
           <button returns-false likes-clicks></button>
-        `
+        `,
+        standalone: false,
       })
-      class TestCmpt {
-      }
+      class TestCmpt {}
 
       TestBed.configureTestingModule({declarations: [TestCmpt, ReturnsFalse, LikesClicks]});
       const fixture = TestBed.createComponent(TestCmpt);
@@ -468,7 +506,10 @@ describe('event listeners', () => {
     });
 
     it('should not subscribe twice to the output when there are 2 coalesced listeners', () => {
-      @Directive({selector: '[foo]'})
+      @Directive({
+        selector: '[foo]',
+        standalone: false,
+      })
       class FooDirective {
         @Input('foo') model: any;
         @Output('fooChange') update = new EventEmitter();
@@ -480,13 +521,14 @@ describe('event listeners', () => {
 
       @Component({
         selector: 'test-component',
-        template: `<div [(foo)]="someValue" (fooChange)="fooChange($event)"></div>`
+        template: `<div [(foo)]="someValue" (fooChange)="fooChange($event)"></div>`,
+        standalone: false,
       })
       class TestComponent {
         count = 0;
         someValue = -1;
 
-        @ViewChild(FooDirective) fooDirective: FooDirective|null = null;
+        @ViewChild(FooDirective) fooDirective: FooDirective | null = null;
 
         fooChange() {
           this.count++;
@@ -514,6 +556,7 @@ describe('event listeners', () => {
       @Component({
         selector: 'my-comp',
         template: '<button dirA dirB (click)="count()">Click me!</button>',
+        standalone: false,
       })
       class MyComp {
         counter = 0;
@@ -522,7 +565,10 @@ describe('event listeners', () => {
         }
       }
 
-      @Directive({selector: '[dirA]'})
+      @Directive({
+        selector: '[dirA]',
+        standalone: false,
+      })
       class DirA {
         @HostListener('click')
         count() {
@@ -530,7 +576,10 @@ describe('event listeners', () => {
         }
       }
 
-      @Directive({selector: '[dirB]'})
+      @Directive({
+        selector: '[dirB]',
+        standalone: false,
+      })
       class DirB {
         @HostListener('click')
         count() {
@@ -556,6 +605,7 @@ describe('event listeners', () => {
         template: `
           <button *ngIf="visible" (click)="count()">Click me!</button>
         `,
+        standalone: false,
       })
       class MyComp {
         visible = true;
@@ -589,6 +639,7 @@ describe('event listeners', () => {
         template: `
           <button *ngFor="let button of buttons" (click)="count()">Click me!</button>
         `,
+        standalone: false,
       })
       class MyComp {
         buttons = [1, 2];
@@ -625,6 +676,7 @@ describe('event listeners', () => {
             <button *ngIf="isButtonVisible" (click)="count()">Click me!</button>
           </ng-container>
         `,
+        standalone: false,
       })
       class MyComp {
         isSectionVisible = true;
@@ -664,6 +716,7 @@ describe('event listeners', () => {
 
       @Component({
         template: ``,
+        standalone: false,
       })
       class MyComp {
         @HostListener('click')
@@ -689,6 +742,7 @@ describe('event listeners', () => {
 
       @Component({
         template: ``,
+        standalone: false,
       })
       class MyComp {
         @HostListener('document:click')
@@ -728,8 +782,7 @@ describe('event listeners', () => {
         imports: [HostListenerDir],
         template: `<button hostListenerDir>Click</button>`,
       })
-      class MyComp {
-      }
+      class MyComp {}
 
       const fixture = TestBed.createComponent(MyComp);
       fixture.detectChanges();
@@ -762,8 +815,7 @@ describe('event listeners', () => {
         imports: [HostListenerDir],
         template: `<button hostListenerDir>Click</button>`,
       })
-      class MyComp {
-      }
+      class MyComp {}
 
       const fixture = TestBed.createComponent(MyComp);
       fixture.detectChanges();
@@ -782,7 +834,10 @@ describe('event listeners', () => {
     it('should bind global event listeners on an ng-container directive host', () => {
       let clicks = 0;
 
-      @Directive({selector: '[add-global-listener]'})
+      @Directive({
+        selector: '[add-global-listener]',
+        standalone: false,
+      })
       class AddGlobalListener {
         @HostListener('document:click')
         handleClick() {
@@ -795,10 +850,10 @@ describe('event listeners', () => {
               <ng-container add-global-listener>
                 <button>Click me!</button>
               </ng-container>
-            `
+            `,
+        standalone: false,
       })
-      class MyComp {
-      }
+      class MyComp {}
 
       TestBed.configureTestingModule({declarations: [MyComp, AddGlobalListener]});
       const fixture = TestBed.createComponent(MyComp);
@@ -812,7 +867,10 @@ describe('event listeners', () => {
     it('should bind global event listeners on an ng-template directive host', () => {
       let clicks = 0;
 
-      @Directive({selector: '[add-global-listener]'})
+      @Directive({
+        selector: '[add-global-listener]',
+        standalone: false,
+      })
       class AddGlobalListener {
         @HostListener('document:click')
         handleClick() {
@@ -827,13 +885,15 @@ describe('event listeners', () => {
               </ng-template>
   
               <ng-container [ngTemplateOutlet]="template"></ng-container>
-            `
+            `,
+        standalone: false,
       })
-      class MyComp {
-      }
+      class MyComp {}
 
-      TestBed.configureTestingModule(
-          {declarations: [MyComp, AddGlobalListener], imports: [CommonModule]});
+      TestBed.configureTestingModule({
+        declarations: [MyComp, AddGlobalListener],
+        imports: [CommonModule],
+      });
       const fixture = TestBed.createComponent(MyComp);
       fixture.detectChanges();
       const button = fixture.nativeElement.querySelector('button');
@@ -845,14 +905,20 @@ describe('event listeners', () => {
     it('should bind global event listeners on a structural directive host', () => {
       let clicks = 0;
 
-      @Directive({selector: '[add-global-listener]'})
+      @Directive({
+        selector: '[add-global-listener]',
+        standalone: false,
+      })
       class AddGlobalListener implements OnInit {
         @HostListener('document:click')
         handleClick() {
           clicks++;
         }
 
-        constructor(private _vcr: ViewContainerRef, private _templateRef: TemplateRef<any>) {}
+        constructor(
+          private _vcr: ViewContainerRef,
+          private _templateRef: TemplateRef<any>,
+        ) {}
 
         ngOnInit() {
           this._vcr.createEmbeddedView(this._templateRef);
@@ -864,10 +930,10 @@ describe('event listeners', () => {
               <div *add-global-listener>
                 <button>Click me!</button>
               </div>
-            `
+            `,
+        standalone: false,
       })
-      class MyComp {
-      }
+      class MyComp {}
 
       TestBed.configureTestingModule({declarations: [MyComp, AddGlobalListener]});
       const fixture = TestBed.createComponent(MyComp);

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {InjectionToken, Provider, ɵRuntimeError as RuntimeError} from '@angular/core';
@@ -14,8 +14,8 @@ import {isAbsoluteUrl, isValidPath, normalizePath, normalizeSrc} from '../url';
 /**
  * Config options recognized by the image loader function.
  *
- * @see `ImageLoader`
- * @see `NgOptimizedImage`
+ * @see {@link ImageLoader}
+ * @see {@link NgOptimizedImage}
  * @publicApi
  */
 export interface ImageLoaderConfig {
@@ -28,9 +28,14 @@ export interface ImageLoaderConfig {
    */
   width?: number;
   /**
+   * Whether the loader should generate a URL for a small image placeholder instead of a full-sized
+   * image.
+   */
+  isPlaceholder?: boolean;
+  /**
    * Additional user-provided parameters for use by the ImageLoader.
    */
-  loaderParams?: {[key: string]: any;};
+  loaderParams?: {[key: string]: any};
 }
 
 /**
@@ -45,8 +50,8 @@ export type ImageLoader = (config: ImageLoaderConfig) => string;
  * Noop image loader that does no transformation to the original src and just returns it as is.
  * This loader is used as a default one if more specific logic is not provided in an app config.
  *
- * @see `ImageLoader`
- * @see `NgOptimizedImage`
+ * @see {@link ImageLoader}
+ * @see {@link NgOptimizedImage}
  */
 export const noopImageLoader = (config: ImageLoaderConfig) => config.src;
 
@@ -54,18 +59,18 @@ export const noopImageLoader = (config: ImageLoaderConfig) => config.src;
  * Metadata about the image loader.
  */
 export type ImageLoaderInfo = {
-  name: string,
-  testUrl: (url: string) => boolean
+  name: string;
+  testUrl: (url: string) => boolean;
 };
 
 /**
  * Injection token that configures the image loader function.
  *
- * @see `ImageLoader`
- * @see `NgOptimizedImage`
+ * @see {@link ImageLoader}
+ * @see {@link NgOptimizedImage}
  * @publicApi
  */
-export const IMAGE_LOADER = new InjectionToken<ImageLoader>('ImageLoader', {
+export const IMAGE_LOADER = new InjectionToken<ImageLoader>(ngDevMode ? 'ImageLoader' : '', {
   providedIn: 'root',
   factory: () => noopImageLoader,
 });
@@ -80,7 +85,9 @@ export const IMAGE_LOADER = new InjectionToken<ImageLoader>('ImageLoader', {
  * @returns a set of DI providers corresponding to the configured image loader
  */
 export function createImageLoader(
-    buildUrlFn: (path: string, config: ImageLoaderConfig) => string, exampleUrls?: string[]) {
+  buildUrlFn: (path: string, config: ImageLoaderConfig) => string,
+  exampleUrls?: string[],
+) {
   return function provideImageLoader(path: string) {
     if (!isValidPath(path)) {
       throwInvalidPathError(path, exampleUrls || []);
@@ -110,21 +117,23 @@ export function createImageLoader(
 
 function throwInvalidPathError(path: unknown, exampleUrls: string[]): never {
   throw new RuntimeError(
-      RuntimeErrorCode.INVALID_LOADER_ARGUMENTS,
-      ngDevMode &&
-          `Image loader has detected an invalid path (\`${path}\`). ` +
-              `To fix this, supply a path using one of the following formats: ${
-                  exampleUrls.join(' or ')}`);
+    RuntimeErrorCode.INVALID_LOADER_ARGUMENTS,
+    ngDevMode &&
+      `Image loader has detected an invalid path (\`${path}\`). ` +
+        `To fix this, supply a path using one of the following formats: ${exampleUrls.join(
+          ' or ',
+        )}`,
+  );
 }
 
 function throwUnexpectedAbsoluteUrlError(path: string, url: string): never {
   throw new RuntimeError(
-      RuntimeErrorCode.INVALID_LOADER_ARGUMENTS,
-      ngDevMode &&
-          `Image loader has detected a \`<img>\` tag with an invalid \`ngSrc\` attribute: ${
-              url}. ` +
-              `This image loader expects \`ngSrc\` to be a relative URL - ` +
-              `however the provided value is an absolute URL. ` +
-              `To fix this, provide \`ngSrc\` as a path relative to the base URL ` +
-              `configured for this loader (\`${path}\`).`);
+    RuntimeErrorCode.INVALID_LOADER_ARGUMENTS,
+    ngDevMode &&
+      `Image loader has detected a \`<img>\` tag with an invalid \`ngSrc\` attribute: ${url}. ` +
+        `This image loader expects \`ngSrc\` to be a relative URL - ` +
+        `however the provided value is an absolute URL. ` +
+        `To fix this, provide \`ngSrc\` as a path relative to the base URL ` +
+        `configured for this loader (\`${path}\`).`,
+  );
 }

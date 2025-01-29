@@ -3,9 +3,8 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
-
 
 import {Component, Injectable} from '@angular/core';
 import {ActivatedRoute, Router, Routes} from '@angular/router';
@@ -22,30 +21,32 @@ export class InboxRecord {
   date: string;
   draft: boolean = false;
 
-  constructor(data: {
-    id: string,
-    subject: string,
-    content: string,
-    email: string,
-    firstName: string,
-    lastName: string,
-    date: string,
-    draft?: boolean
-  } = null) {
+  constructor(
+    data: {
+      id: string;
+      subject: string;
+      content: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      date: string;
+      draft?: boolean;
+    } = null,
+  ) {
     if (data) {
       this.setData(data);
     }
   }
 
   setData(record: {
-    id: string,
-    subject: string,
-    content: string,
-    email: string,
-    firstName: string,
-    lastName: string,
-    date: string,
-    draft?: boolean
+    id: string;
+    subject: string;
+    content: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    date: string;
+    draft?: boolean;
   }) {
     this.id = record.id;
     this.subject = record.subject;
@@ -61,24 +62,29 @@ export class InboxRecord {
 @Injectable()
 export class DbService {
   getData(): Promise<InboxRecord[]> {
-    return Promise.resolve(db.data.map((entry: {[key: string]: any}) => new InboxRecord({
-                                         id: entry['id'],
-                                         subject: entry['subject'],
-                                         content: entry['content'],
-                                         email: entry['email'],
-                                         firstName: entry['first-name'],
-                                         lastName: entry['last-name'],
-                                         date: entry['date'],
-                                         draft: entry['draft'],
-                                       })));
+    return Promise.resolve(
+      db.data.map(
+        (entry: {[key: string]: any}) =>
+          new InboxRecord({
+            id: entry['id'],
+            subject: entry['subject'],
+            content: entry['content'],
+            email: entry['email'],
+            firstName: entry['first-name'],
+            lastName: entry['last-name'],
+            date: entry['date'],
+            draft: entry['draft'],
+          }),
+      ),
+    );
   }
 
   drafts(): Promise<InboxRecord[]> {
-    return this.getData().then((data) => data.filter(record => record.draft));
+    return this.getData().then((data) => data.filter((record) => record.draft));
   }
 
   emails(): Promise<InboxRecord[]> {
-    return this.getData().then((data) => data.filter(record => !record.draft));
+    return this.getData().then((data) => data.filter((record) => !record.draft));
   }
 
   email(id: string): Promise<InboxRecord> {
@@ -86,13 +92,21 @@ export class DbService {
   }
 }
 
-@Component({selector: 'inbox', templateUrl: './inbox.html'})
+@Component({
+  selector: 'inbox',
+  templateUrl: './inbox.html',
+  standalone: false,
+})
 export class InboxCmp {
   items: InboxRecord[] = [];
   private ready: boolean = false;
 
-  constructor(public router: Router, db: DbService, route: ActivatedRoute) {
-    route.params.forEach(p => {
+  constructor(
+    public router: Router,
+    db: DbService,
+    route: ActivatedRoute,
+  ) {
+    route.params.forEach((p) => {
       const sortEmailsByDate = p['sort'] === 'date';
 
       db.emails().then((emails) => {
@@ -100,21 +114,28 @@ export class InboxCmp {
         this.items = emails;
 
         if (sortEmailsByDate) {
-          this.items.sort(
-              (a, b) => new Date(a.date).getTime() < new Date(b.date).getTime() ? -1 : 1);
+          this.items.sort((a, b) =>
+            new Date(a.date).getTime() < new Date(b.date).getTime() ? -1 : 1,
+          );
         }
       });
     });
   }
 }
 
-
-@Component({selector: 'drafts', templateUrl: './drafts.html'})
+@Component({
+  selector: 'drafts',
+  templateUrl: './drafts.html',
+  standalone: false,
+})
 export class DraftsCmp {
   items: InboxRecord[] = [];
   private ready: boolean = false;
 
-  constructor(private router: Router, db: DbService) {
+  constructor(
+    private router: Router,
+    db: DbService,
+  ) {
     db.drafts().then((drafts) => {
       this.ready = true;
       this.items = drafts;
@@ -123,11 +144,15 @@ export class DraftsCmp {
 }
 
 export const ROUTER_CONFIG: Routes = [
-  {path: '', pathMatch: 'full', redirectTo: 'inbox'}, {path: 'inbox', component: InboxCmp},
+  {path: '', pathMatch: 'full', redirectTo: 'inbox'},
+  {path: 'inbox', component: InboxCmp},
   {path: 'drafts', component: DraftsCmp},
-  {path: 'detail', loadChildren: () => import('./inbox-detail').then(mod => mod.default)}
+  {path: 'detail', loadChildren: () => import('./inbox-detail').then((mod) => mod.default)},
 ];
 
-@Component({selector: 'inbox-app', templateUrl: './inbox-app.html'})
-export class InboxApp {
-}
+@Component({
+  selector: 'inbox-app',
+  templateUrl: './inbox-app.html',
+  standalone: false,
+})
+export class InboxApp {}

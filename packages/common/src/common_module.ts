@@ -3,15 +3,13 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {NgModule} from '@angular/core';
 
 import {COMMON_DIRECTIVES} from './directives/index';
 import {COMMON_PIPES} from './pipes/index';
-
-
 
 // Note: This does not contain the location providers,
 // as they need some platform specific implementations to work.
@@ -27,5 +25,4 @@ import {COMMON_PIPES} from './pipes/index';
   imports: [COMMON_DIRECTIVES, COMMON_PIPES],
   exports: [COMMON_DIRECTIVES, COMMON_PIPES],
 })
-export class CommonModule {
-}
+export class CommonModule {}

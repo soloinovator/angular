@@ -40,7 +40,7 @@ Note that these two modes differ in terms of whether a new `NgCompiler` instance
 
 ## Asynchronous compilation
 
-In some compilation environments (such as the Webpack-driven compilation inside the Angular CLI), various inputs to the compilation are only producible in an asynchronous fashion. For example, SASS compilation of `styleUrls` that link to SASS files requires spawning a child Webpack compilation. To support this, Angular has an asynchronous interface for loading such resources.
+In some compilation environments (such as the webpack-driven compilation inside the Angular CLI), various inputs to the compilation are only producible in an asynchronous fashion. For example, SASS compilation of `styleUrls` that link to SASS files requires spawning a child webpack compilation. To support this, Angular has an asynchronous interface for loading such resources.
 
 If this interface is used, an additional asynchronous step after `NgCompiler` creation is to call `NgCompiler.analyzeAsync` and await its `Promise`. After this operation completes, all resources have been loaded and the rest of the `NgCompiler` API can be used synchronously.
 
@@ -48,8 +48,6 @@ If this interface is used, an additional asynchronous step after `NgCompiler` cr
 
 Angular compilation generates a number of synthetic files (files which did not exist originally as inputs), depending on configuration. Such files can include:
 
-* `.ngfactory` shim files, if requested.
-* `.ngsummary` shim files, if requested.
 * A flat module index file, if requested.
 * The `__ng_typecheck__.ts` file, which supports template type-checking code.
 

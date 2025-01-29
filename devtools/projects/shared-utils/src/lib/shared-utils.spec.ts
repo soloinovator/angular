@@ -3,14 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {arrayEquals} from 'shared-utils';
 
 describe('arrayEquals', () => {
-  let a;
-  let b;
+  let a: any;
+  let b: any;
 
   describe('true cases', () => {
     afterEach(() => {

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ComponentRef, inject, Injectable} from '@angular/core';
@@ -26,9 +26,9 @@ export type DetachedRouteHandle = {};
 
 /** @internal */
 export type DetachedRouteHandleInternal = {
-  contexts: Map<string, OutletContext>,
-  componentRef: ComponentRef<any>,
-  route: TreeNode<ActivatedRoute>,
+  contexts: Map<string, OutletContext>;
+  componentRef: ComponentRef<any>;
+  route: TreeNode<ActivatedRoute>;
 };
 
 /**
@@ -48,13 +48,13 @@ export abstract class RouteReuseStrategy {
    *
    * Storing a `null` value should erase the previously stored value.
    */
-  abstract store(route: ActivatedRouteSnapshot, handle: DetachedRouteHandle|null): void;
+  abstract store(route: ActivatedRouteSnapshot, handle: DetachedRouteHandle | null): void;
 
   /** Determines if this route (and its subtree) should be reattached */
   abstract shouldAttach(route: ActivatedRouteSnapshot): boolean;
 
   /** Retrieves the previously stored route */
-  abstract retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle|null;
+  abstract retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle | null;
 
   /** Determines if a route should be reused */
   abstract shouldReuseRoute(future: ActivatedRouteSnapshot, curr: ActivatedRouteSnapshot): boolean;
@@ -97,7 +97,7 @@ export abstract class BaseRouteReuseStrategy implements RouteReuseStrategy {
   }
 
   /** Returns `null` because this strategy does not store routes for later re-use. */
-  retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle|null {
+  retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle | null {
     return null;
   }
 
@@ -112,5 +112,4 @@ export abstract class BaseRouteReuseStrategy implements RouteReuseStrategy {
 }
 
 @Injectable({providedIn: 'root'})
-export class DefaultRouteReuseStrategy extends BaseRouteReuseStrategy {
-}
+export class DefaultRouteReuseStrategy extends BaseRouteReuseStrategy {}

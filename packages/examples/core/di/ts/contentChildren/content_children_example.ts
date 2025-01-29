@@ -3,13 +3,16 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // #docregion Component
 import {Component, ContentChildren, Directive, Input, QueryList} from '@angular/core';
 
-@Directive({selector: 'pane'})
+@Directive({
+  selector: 'pane',
+  standalone: false,
+})
 export class Pane {
   @Input() id!: string;
 }
@@ -17,19 +20,20 @@ export class Pane {
 @Component({
   selector: 'tab',
   template: `
-    <div class="top-level">Top level panes: {{serializedPanes}}</div>
-    <div class="nested">Arbitrary nested panes: {{serializedNestedPanes}}</div>
-  `
+    <div class="top-level">Top level panes: {{ serializedPanes }}</div>
+    <div class="nested">Arbitrary nested panes: {{ serializedNestedPanes }}</div>
+  `,
+  standalone: false,
 })
 export class Tab {
   @ContentChildren(Pane) topLevelPanes!: QueryList<Pane>;
   @ContentChildren(Pane, {descendants: true}) arbitraryNestedPanes!: QueryList<Pane>;
 
   get serializedPanes(): string {
-    return this.topLevelPanes ? this.topLevelPanes.map(p => p.id).join(', ') : '';
+    return this.topLevelPanes ? this.topLevelPanes.map((p) => p.id).join(', ') : '';
   }
   get serializedNestedPanes(): string {
-    return this.arbitraryNestedPanes ? this.arbitraryNestedPanes.map(p => p.id).join(', ') : '';
+    return this.arbitraryNestedPanes ? this.arbitraryNestedPanes.map((p) => p.id).join(', ') : '';
   }
 }
 
@@ -49,6 +53,7 @@ export class Tab {
 
     <button (click)="show()">Show 3</button>
   `,
+  standalone: false,
 })
 export class ContentChildrenComp {
   shouldShow = false;

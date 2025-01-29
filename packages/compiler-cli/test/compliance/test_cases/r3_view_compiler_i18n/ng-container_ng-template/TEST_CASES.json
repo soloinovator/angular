@@ -92,6 +92,12 @@
       ],
       "expectations": [
         {
+          "files": [
+            {
+              "generated": "self_closing_tags.js",
+              "expected": "self_closing_tags.js"
+            }
+          ],
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
@@ -157,6 +163,40 @@
       "description": "should handle structural directives",
       "inputFiles": [
         "structural_directives.ts"
+      ],
+      "expectations": [
+        {
+          "files": [
+            {
+              "generated": "structural_directives.js",
+              "expected": "structural_directives.js"
+            }
+          ],
+          "extraChecks": [
+            "verifyPlaceholdersIntegrity",
+            "verifyUniqueConsts"
+          ]
+        }
+      ]
+    },
+    {
+      "description": "should handle structural directives with same placeholder",
+      "inputFiles": [
+        "structural_directives_same_placeholder.ts"
+      ],
+      "expectations": [
+        {
+          "extraChecks": [
+            "verifyPlaceholdersIntegrity",
+            "verifyUniqueConsts"
+          ]
+        }
+      ]
+    },
+    {
+      "description": "should handle templates in sibling i18n blocks",
+      "inputFiles": [
+        "sibling_i18n_blocks.ts"
       ],
       "expectations": [
         {

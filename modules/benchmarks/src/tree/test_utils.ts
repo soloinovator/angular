@@ -3,14 +3,22 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {openBrowser, runBenchmark} from '@angular/build-tooling/bazel/benchmark/driver-utilities';
 import {browser} from 'protractor';
 
-export function runTreeBenchmark({id, prepare, setup, work}: {
-  id: string; prepare ? () : void; setup ? () : void; work(): void;
+export function runTreeBenchmark({
+  id,
+  prepare,
+  setup,
+  work,
+}: {
+  id: string;
+  prepare?(): void;
+  setup?(): void;
+  work(): void;
 }) {
   browser.rootEl = '#root';
   return runBenchmark({
@@ -20,7 +28,7 @@ export function runTreeBenchmark({id, prepare, setup, work}: {
     params: [],
     work: work,
     prepare: prepare,
-    setup: setup
+    setup: setup,
   });
 }
 

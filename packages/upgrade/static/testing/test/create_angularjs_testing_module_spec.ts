@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {getAngularJSGlobal} from '../../../src/common/src/angular1';
@@ -11,7 +11,6 @@ import {withEachNg1Version} from '../../../src/common/test/helpers/common_test_h
 import {createAngularJSTestingModule} from '../src/create_angularjs_testing_module';
 
 import {AppModule, defineAppModule, Inventory} from './mocks';
-
 
 withEachNg1Version(() => {
   describe('AngularJS entry point', () => {
@@ -26,7 +25,7 @@ withEachNg1Version(() => {
       // Configure an AngularJS module that has the AngularJS and Angular injector wired up
       module(createAngularJSTestingModule([AppModule]));
       let inventory: any = undefined;
-      inject(function(shoppingCart: any) {
+      inject(function (shoppingCart: any) {
         inventory = shoppingCart.inventory;
       });
       expect(inventory).toEqual(jasmine.any(Inventory));

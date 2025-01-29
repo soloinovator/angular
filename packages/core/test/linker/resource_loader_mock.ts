@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ResourceLoader} from '@angular/compiler';
@@ -103,9 +103,9 @@ export class MockResourceLoader extends ResourceLoader {
 }
 
 class _PendingRequest {
-  // TODO(issue/24571): remove '!'.
+  // Using non null assertion, these fields are defined below
+  // within the `new Promise` callback (synchronously).
   resolve!: (result: string) => void;
-  // TODO(issue/24571): remove '!'.
   reject!: (error: any) => void;
   promise: Promise<string>;
 
@@ -116,7 +116,7 @@ class _PendingRequest {
     });
   }
 
-  complete(response: string|null) {
+  complete(response: string | null) {
     if (response == null) {
       this.reject(`Failed to load ${this.url}`);
     } else {

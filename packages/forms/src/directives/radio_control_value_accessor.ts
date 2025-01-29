@@ -3,45 +3,55 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Directive, ElementRef, forwardRef, inject, Injectable, Injector, Input, NgModule, OnDestroy, OnInit, Provider, Renderer2, ɵRuntimeError as RuntimeError} from '@angular/core';
+import {
+  Directive,
+  ElementRef,
+  forwardRef,
+  inject,
+  Injectable,
+  Injector,
+  Input,
+  OnDestroy,
+  OnInit,
+  Provider,
+  Renderer2,
+  ɵRuntimeError as RuntimeError,
+} from '@angular/core';
 
 import {RuntimeErrorCode} from '../errors';
 
-import {BuiltInControlValueAccessor, ControlValueAccessor, NG_VALUE_ACCESSOR} from './control_value_accessor';
+import {
+  BuiltInControlValueAccessor,
+  ControlValueAccessor,
+  NG_VALUE_ACCESSOR,
+} from './control_value_accessor';
 import {NgControl} from './ng_control';
-import {CALL_SET_DISABLED_STATE, setDisabledStateDefault, SetDisabledStateOption} from './shared';
+import {CALL_SET_DISABLED_STATE, setDisabledStateDefault} from './shared';
 
 const RADIO_VALUE_ACCESSOR: Provider = {
   provide: NG_VALUE_ACCESSOR,
   useExisting: forwardRef(() => RadioControlValueAccessor),
-  multi: true
+  multi: true,
 };
 
 function throwNameError() {
-  throw new RuntimeError(RuntimeErrorCode.NAME_AND_FORM_CONTROL_NAME_MUST_MATCH, `
+  throw new RuntimeError(
+    RuntimeErrorCode.NAME_AND_FORM_CONTROL_NAME_MUST_MATCH,
+    `
       If you define both a name and a formControlName attribute on your radio button, their values
       must match. Ex: <input type="radio" formControlName="food" name="food">
-    `);
-}
-
-/**
- * Internal-only NgModule that works as a host for the `RadioControlRegistry` tree-shakable
- * provider. Note: the `InternalFormsSharedModule` can not be used here directly, since it's
- * declared *after* the `RadioControlRegistry` class and the `providedIn` doesn't support
- * `forwardRef` logic.
- */
-@NgModule()
-export class RadioControlRegistryModule {
+    `,
+  );
 }
 
 /**
  * @description
  * Class used by Angular to track radio buttons. For internal use only.
  */
-@Injectable({providedIn: RadioControlRegistryModule})
+@Injectable({providedIn: 'root'})
 export class RadioControlRegistry {
   private _accessors: any[] = [];
 
@@ -79,11 +89,13 @@ export class RadioControlRegistry {
   }
 
   private _isSameGroup(
-      controlPair: [NgControl, RadioControlValueAccessor],
-      accessor: RadioControlValueAccessor): boolean {
+    controlPair: [NgControl, RadioControlValueAccessor],
+    accessor: RadioControlValueAccessor,
+  ): boolean {
     if (!controlPair[0].control) return false;
-    return controlPair[0]._parent === accessor._control._parent &&
-        controlPair[1].name === accessor.name;
+    return (
+      controlPair[0]._parent === accessor._control._parent && controlPair[1].name === accessor.name
+    );
   }
 }
 
@@ -109,12 +121,15 @@ export class RadioControlRegistry {
  */
 @Directive({
   selector:
-      'input[type=radio][formControlName],input[type=radio][formControl],input[type=radio][ngModel]',
+    'input[type=radio][formControlName],input[type=radio][formControl],input[type=radio][ngModel]',
   host: {'(change)': 'onChange()', '(blur)': 'onTouched()'},
-  providers: [RADIO_VALUE_ACCESSOR]
+  providers: [RADIO_VALUE_ACCESSOR],
+  standalone: false,
 })
-export class RadioControlValueAccessor extends BuiltInControlValueAccessor implements
-    ControlValueAccessor, OnDestroy, OnInit {
+export class RadioControlValueAccessor
+  extends BuiltInControlValueAccessor
+  implements ControlValueAccessor, OnDestroy, OnInit
+{
   /** @internal */
   // TODO(issue/24571): remove '!'.
   _state!: boolean;
@@ -158,11 +173,14 @@ export class RadioControlValueAccessor extends BuiltInControlValueAccessor imple
   @Input() value: any;
 
   private callSetDisabledState =
-      inject(CALL_SET_DISABLED_STATE, {optional: true}) ?? setDisabledStateDefault;
+    inject(CALL_SET_DISABLED_STATE, {optional: true}) ?? setDisabledStateDefault;
 
   constructor(
-      renderer: Renderer2, elementRef: ElementRef, private _registry: RadioControlRegistry,
-      private _injector: Injector) {
+    renderer: Renderer2,
+    elementRef: ElementRef,
+    private _registry: RadioControlRegistry,
+    private _injector: Injector,
+  ) {
     super(renderer, elementRef);
   }
 
@@ -207,7 +225,7 @@ export class RadioControlValueAccessor extends BuiltInControlValueAccessor imple
      * when an *enabled* control was attached. This bug was fixed in v15 in #47576.
      *
      * This had a side effect: previously, it was possible to instantiate a reactive form control
-     * with `[attr.disabled]=true`, even though the the corresponding control was enabled in the
+     * with `[attr.disabled]=true`, even though the corresponding control was enabled in the
      * model. This resulted in a mismatch between the model and the DOM. Now, because
      * `setDisabledState` is always called, the value in the DOM will be immediately overwritten
      * with the "correct" enabled value.
@@ -219,8 +237,11 @@ export class RadioControlValueAccessor extends BuiltInControlValueAccessor imple
      * continues to work. Specifically, we drop the first call to `setDisabledState` if `disabled`
      * is `false`, and we are not in legacy mode.
      */
-    if (this.setDisabledStateFired || isDisabled ||
-        this.callSetDisabledState === 'whenDisabledForLegacyCode') {
+    if (
+      this.setDisabledStateFired ||
+      isDisabled ||
+      this.callSetDisabledState === 'whenDisabledForLegacyCode'
+    ) {
       this.setProperty('disabled', isDisabled);
     }
     this.setDisabledStateFired = true;
@@ -236,8 +257,12 @@ export class RadioControlValueAccessor extends BuiltInControlValueAccessor imple
   }
 
   private _checkName(): void {
-    if (this.name && this.formControlName && this.name !== this.formControlName &&
-        (typeof ngDevMode === 'undefined' || ngDevMode)) {
+    if (
+      this.name &&
+      this.formControlName &&
+      this.name !== this.formControlName &&
+      (typeof ngDevMode === 'undefined' || ngDevMode)
+    ) {
       throwNameError();
     }
     if (!this.name && this.formControlName) this.name = this.formControlName;

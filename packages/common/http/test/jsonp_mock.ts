@@ -3,29 +3,33 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 export class MockScriptElement {
   constructor(public ownerDocument: MockDocument) {}
 
   listeners: {
-    load?: (event: Event) => void,
-    error?: (err: Error) => void,
+    load?: (event: Event) => void;
+    error?: (err: Error) => void;
   } = {};
 
-  addEventListener(event: 'load'|'error', handler: Function): void {
+  addEventListener(event: 'load' | 'error', handler: Function): void {
     this.listeners[event] = handler as any;
   }
 
-  removeEventListener(event: 'load'|'error'): void {
+  removeEventListener(event: 'load' | 'error'): void {
     delete this.listeners[event];
+  }
+
+  remove() {
+    this.ownerDocument.removeNode(this);
   }
 }
 
 export class MockDocument {
   // TODO(issue/24571): remove '!'.
-  mock!: MockScriptElement|null;
+  mock!: MockScriptElement | null;
   readonly body: any = this;
 
   implementation = {

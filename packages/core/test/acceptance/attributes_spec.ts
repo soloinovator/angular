@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component} from '@angular/core';
@@ -14,9 +14,9 @@ describe('attribute creation', () => {
   it('should create an element', () => {
     @Component({
       template: `<div id="test" title="Hello"></div>`,
+      standalone: false,
     })
-    class Comp {
-    }
+    class Comp {}
 
     TestBed.configureTestingModule({declarations: [Comp]});
     const fixture = TestBed.createComponent(Comp);
@@ -29,14 +29,13 @@ describe('attribute creation', () => {
   it('should allow for setting xlink namespaced attributes', () => {
     @Component({
       template: `<div id="test" xlink:href="bar" title="Hello"></div>`,
+      standalone: false,
     })
-    class Comp {
-    }
+    class Comp {}
 
     TestBed.configureTestingModule({declarations: [Comp]});
     const fixture = TestBed.createComponent(Comp);
     fixture.detectChanges();
-
 
     const div = fixture.debugElement.query(By.css('div')).nativeElement;
     const attrs = div.attributes;
@@ -59,6 +58,7 @@ describe('attribute binding', () => {
   it('should set attribute values', () => {
     @Component({
       template: `<a [attr.href]="url"></a>`,
+      standalone: false,
     })
     class Comp {
       url = 'https://angular.io/robots.txt';
@@ -76,6 +76,7 @@ describe('attribute binding', () => {
   it('should be able to bind multiple attribute values per element', () => {
     @Component({
       template: `<a [attr.id]="id" [attr.href]="url" [attr.tabindex]="'-1'"></a>`,
+      standalone: false,
     })
     class Comp {
       url = 'https://angular.io/robots.txt';
@@ -96,6 +97,7 @@ describe('attribute binding', () => {
   it('should be able to bind multiple attributes in the presence of other bindings', () => {
     @Component({
       template: `<a [id]="id" [attr.href]="url" [title]="'hello'"></a>`,
+      standalone: false,
     })
     class Comp {
       url = 'https://angular.io/robots.txt';
@@ -120,6 +122,7 @@ describe('attribute binding', () => {
           attr.id="my-{{id}}-button"
           [attr.title]="title"
           attr.tabindex="{{1 + 3 + 7}}"></button>`,
+      standalone: false,
     })
     class Comp {
       title = 'hello';
@@ -137,7 +140,6 @@ describe('attribute binding', () => {
     expect(button.getAttribute('title')).toBe('hello');
   });
 
-
   it('should be able to bind attributes both to parent and child nodes', () => {
     @Component({
       template: `
@@ -149,6 +151,7 @@ describe('attribute binding', () => {
           <span attr.title="span-{{title}}" id="custom-span" [attr.tabindex]="-1"></span>
         </button>
       `,
+      standalone: false,
     })
     class Comp {
       title = 'hello';
@@ -174,9 +177,10 @@ describe('attribute binding', () => {
   it('should sanitize attribute values', () => {
     @Component({
       template: `<a [attr.href]="badUrl"></a>`,
+      standalone: false,
     })
     class Comp {
-      badUrl: string|SafeUrl = 'javascript:true';
+      badUrl: string | SafeUrl = 'javascript:true';
     }
 
     TestBed.configureTestingModule({declarations: [Comp]});
@@ -188,8 +192,9 @@ describe('attribute binding', () => {
     expect(a.href.indexOf('unsafe:')).toBe(0);
 
     const domSanitizer: DomSanitizer = TestBed.inject(DomSanitizer);
-    fixture.componentInstance.badUrl =
-        domSanitizer.bypassSecurityTrustUrl('javascript:alert("this is fine")');
+    fixture.componentInstance.badUrl = domSanitizer.bypassSecurityTrustUrl(
+      'javascript:alert("this is fine")',
+    );
     fixture.detectChanges();
 
     // should not start with `unsafe:`.
@@ -211,7 +216,8 @@ describe('attribute interpolation', () => {
         <div attr.title="a{{a}}b{{b}}c"></div>
         <div attr.title="a{{a}}b"></div>
         <div attr.title="{{a}}"></div>
-      `
+      `,
+      standalone: false,
     })
     class App {
       a = 1;
@@ -233,7 +239,7 @@ describe('attribute interpolation', () => {
 
     const divs = fixture.debugElement.queryAll(By.css('div[title]'));
 
-    expect(divs.map(el => el.nativeElement.getAttribute('title'))).toEqual([
+    expect(divs.map((el) => el.nativeElement.getAttribute('title'))).toEqual([
       'a1b2c3d4e5f6g7h8i9j',
       'a1b2c3d4e5f6g7h8i',
       'a1b2c3d4e5f6g7h',

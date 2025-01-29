@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {ChangeDetectionStrategy, ViewEncapsulation} from '../../core';
 import * as o from '../../output/output_ast';
@@ -32,6 +32,12 @@ export interface R3PartialDeclaration {
   type: o.Expression;
 }
 
+// TODO(legacy-partial-output-inputs): Remove in v18.
+// https://github.com/angular/angular/blob/d4b423690210872b5c32a322a6090beda30b05a3/packages/core/src/compiler/compiler_facade_interface.ts#L197-L199
+export type LegacyInputPartialMapping =
+  | string
+  | [bindingPropertyName: string, classPropertyName: string, transformFunction?: o.Expression];
+
 /**
  * Describes the shape of the object that the `ɵɵngDeclareDirective()` function accepts.
  */
@@ -45,7 +51,17 @@ export interface R3DeclareDirectiveMetadata extends R3PartialDeclaration {
    * A mapping of inputs from class property names to binding property names, or to a tuple of
    * binding property name and class property name if the names are different.
    */
-  inputs?: {[classPropertyName: string]: string|[string, string]};
+  inputs?: {
+    [fieldName: string]:
+      | {
+          classPropertyName: string;
+          publicName: string;
+          isSignal: boolean;
+          isRequired: boolean;
+          transformFunction: o.Expression | null;
+        }
+      | LegacyInputPartialMapping;
+  };
 
   /**
    * A mapping of outputs from class property names to binding property names.
@@ -120,6 +136,11 @@ export interface R3DeclareDirectiveMetadata extends R3PartialDeclaration {
   isStandalone?: boolean;
 
   /**
+   * Whether the directive is a signal-based directive. Defaults to false.
+   */
+  isSignal?: boolean;
+
+  /**
    * Additional directives applied to the directive host.
    */
   hostDirectives?: R3DeclareHostDirectiveMetadata[];
@@ -173,10 +194,16 @@ export interface R3DeclareComponentMetadata extends R3DeclareDirectiveMetadata {
   dependencies?: R3DeclareTemplateDependencyMetadata[];
 
   /**
+   * List of defer block dependency functions, ordered by the appearance
+   * of the corresponding deferred block in the template.
+   */
+  deferBlockDependencies?: o.Expression[];
+
+  /**
    * A map of pipe names to an expression referencing the pipe type (possibly a forward reference
    * wrapped in a `forwardRef` invocation) which are used in the template.
    */
-  pipes?: {[pipeName: string]: o.Expression|(() => o.Expression)};
+  pipes?: {[pipeName: string]: o.Expression | (() => o.Expression)};
 
   /**
    * The list of view providers defined in the component.
@@ -211,11 +238,13 @@ export interface R3DeclareComponentMetadata extends R3DeclareDirectiveMetadata {
   preserveWhitespaces?: boolean;
 }
 
-export type R3DeclareTemplateDependencyMetadata = R3DeclareDirectiveDependencyMetadata|
-    R3DeclarePipeDependencyMetadata|R3DeclareNgModuleDependencyMetadata;
+export type R3DeclareTemplateDependencyMetadata =
+  | R3DeclareDirectiveDependencyMetadata
+  | R3DeclarePipeDependencyMetadata
+  | R3DeclareNgModuleDependencyMetadata;
 
 export interface R3DeclareDirectiveDependencyMetadata {
-  kind: 'directive'|'component';
+  kind: 'directive' | 'component';
 
   /**
    * Selector of the directive.
@@ -226,7 +255,7 @@ export interface R3DeclareDirectiveDependencyMetadata {
    * Reference to the directive class (possibly a forward reference wrapped in a `forwardRef`
    * invocation).
    */
-  type: o.Expression|(() => o.Expression);
+  type: o.Expression | (() => o.Expression);
 
   /**
    * Property names of the directive's inputs.
@@ -253,13 +282,13 @@ export interface R3DeclarePipeDependencyMetadata {
    * Reference to the pipe class (possibly a forward reference wrapped in a `forwardRef`
    * invocation).
    */
-  type: o.Expression|(() => o.Expression);
+  type: o.Expression | (() => o.Expression);
 }
 
 export interface R3DeclareNgModuleDependencyMetadata {
   kind: 'ngmodule';
 
-  type: o.Expression|(() => o.Expression);
+  type: o.Expression | (() => o.Expression);
 }
 
 export interface R3DeclareQueryMetadata {
@@ -277,7 +306,7 @@ export interface R3DeclareQueryMetadata {
    * Either an expression representing a type (possibly wrapped in a `forwardRef()`) or
    * `InjectionToken` for the query predicate, or a set of string selectors.
    */
-  predicate: o.Expression|string[];
+  predicate: o.Expression | string[];
 
   /**
    * Whether to include only direct children or all descendants. Defaults to false.
@@ -309,6 +338,9 @@ export interface R3DeclareQueryMetadata {
    * content hooks and ngAfterViewInit for view hooks).
    */
   static?: boolean;
+
+  /** Whether the query is signal-based. */
+  isSignal: boolean;
 }
 
 /**
@@ -387,7 +419,6 @@ export interface R3DeclarePipeMetadata extends R3PartialDeclaration {
   isStandalone?: boolean;
 }
 
-
 /**
  * Describes the shape of the object that the `ɵɵngDeclareFactory()` function accepts.
  *
@@ -404,7 +435,7 @@ export interface R3DeclareFactoryMetadata extends R3PartialDeclaration {
    * If this is `'invalid'`, then one or more of the parameters wasn't resolvable and any attempt to
    * use these deps will result in a runtime error.
    */
-  deps: R3DeclareDependencyMetadata[]|'invalid'|null;
+  deps: R3DeclareDependencyMetadata[] | 'invalid' | null;
 
   /**
    * Type of the target being created by the factory.
@@ -478,7 +509,7 @@ export interface R3DeclareDependencyMetadata {
    * If this dependency is due to the `@Attribute()` decorator, then this is an expression
    * evaluating to the name of the attribute.
    */
-  token: o.Expression|null;
+  token: o.Expression | null;
 
   /**
    * Whether the dependency is injecting an attribute value.
@@ -534,6 +565,23 @@ export interface R3DeclareClassMetadata extends R3PartialDeclaration {
    * omitted if no properties have any decorators.
    */
   propDecorators?: o.Expression;
+}
+
+/**
+ * Describes the shape of the object that the `ɵɵngDeclareClassMetadataAsync()` function accepts.
+ *
+ * This interface serves primarily as documentation, as conformance to this interface is not
+ * enforced during linking.
+ */
+export interface R3DeclareClassMetadataAsync extends R3PartialDeclaration {
+  /** Function that loads the deferred dependencies associated with the component. */
+  resolveDeferredDeps: o.Expression;
+
+  /**
+   * Function that, when invoked with the resolved deferred
+   * dependencies, will return the class metadata.
+   */
+  resolveMetadata: o.Expression;
 }
 
 /**

@@ -3,10 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import ts from 'typescript';
+
 import {basename} from '../../file_system';
 
 // A cache of source files that are typically used across tests and are expensive to parse.
@@ -27,8 +28,13 @@ let sourceFileCache = new Map<string, ts.SourceFile>();
  * is available to verify that the cached `ts.SourceFile` corresponds with the contents on disk.
  */
 export function getCachedSourceFile(
-    fileName: string, load: () => string | undefined): ts.SourceFile|null {
-  if (!/^lib\..+\.d\.ts$/.test(basename(fileName))) {
+  fileName: string,
+  load: () => string | undefined,
+): ts.SourceFile | null {
+  if (
+    !/^lib\..+\.d\.ts$/.test(basename(fileName)) &&
+    !/\/node_modules\/(@angular|rxjs)\//.test(fileName)
+  ) {
     return null;
   }
 

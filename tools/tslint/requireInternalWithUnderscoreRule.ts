@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {RuleFailure} from 'tslint/lib';
@@ -45,8 +45,12 @@ class TypedefWalker extends RuleWalker {
         if (this.hasInternalAnnotation(ranges[i])) return;
       }
     }
-    this.addFailure(this.createFailure(
-        node.getStart(), node.getWidth(),
-        `module-private member ${node.name?.getText()} must be annotated @internal`));
+    this.addFailure(
+      this.createFailure(
+        node.getStart(),
+        node.getWidth(),
+        `module-private member ${node.name?.getText()} must be annotated @internal`,
+      ),
+    );
   }
 }

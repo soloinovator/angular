@@ -3,14 +3,15 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {DirectiveMeta, MatchSource, MetadataReader} from '../../metadata/src/api';
+import {DirectiveMeta, InputMapping, MatchSource, MetadataReader} from '../../metadata/src/api';
 import {ClassDeclaration} from '../../reflection';
-import {BindingPropertyName, ClassPropertyMapping, ClassPropertyName} from '../src/property_mapping';
+import {ClassPropertyMapping, InputOrOutput} from '../src/property_mapping';
 
 import {flattenInheritedDirectiveMetadata} from './inheritance';
+import {isHostDirectiveMetaForGlobalMode} from './util';
 
 const EMPTY_ARRAY: ReadonlyArray<any> = [];
 
@@ -26,9 +27,10 @@ export class HostDirectivesResolver {
       return this.cache.get(metadata.ref.node)!;
     }
 
-    const results = metadata.hostDirectives && metadata.hostDirectives.length > 0 ?
-        this.walkHostDirectives(metadata.hostDirectives, []) :
-        EMPTY_ARRAY;
+    const results =
+      metadata.hostDirectives && metadata.hostDirectives.length > 0
+        ? this.walkHostDirectives(metadata.hostDirectives, [])
+        : EMPTY_ARRAY;
     this.cache.set(metadata.ref.node, results);
     return results;
   }
@@ -38,9 +40,14 @@ export class HostDirectivesResolver {
    * directive metadata representing the host directives that apply to the host.
    */
   private walkHostDirectives(
-      directives: NonNullable<DirectiveMeta['hostDirectives']>,
-      results: DirectiveMeta[]): ReadonlyArray<DirectiveMeta> {
+    directives: NonNullable<DirectiveMeta['hostDirectives']>,
+    results: DirectiveMeta[],
+  ): ReadonlyArray<DirectiveMeta> {
     for (const current of directives) {
+      if (!isHostDirectiveMetaForGlobalMode(current)) {
+        throw new Error('Impossible state: resolving code path in local compilation mode');
+      }
+
       const hostMeta = flattenInheritedDirectiveMetadata(this.metaReader, current.directive);
 
       // This case has been checked for already and produces a diagnostic
@@ -55,8 +62,12 @@ export class HostDirectivesResolver {
       results.push({
         ...hostMeta,
         matchSource: MatchSource.HostDirective,
-        inputs: this.filterMappings(hostMeta.inputs, current.inputs),
-        outputs: this.filterMappings(hostMeta.outputs, current.outputs),
+        inputs: ClassPropertyMapping.fromMappedObject(
+          this.filterMappings(hostMeta.inputs, current.inputs, resolveInput),
+        ),
+        outputs: ClassPropertyMapping.fromMappedObject(
+          this.filterMappings(hostMeta.outputs, current.outputs, resolveOutput),
+        ),
       });
     }
 
@@ -67,11 +78,14 @@ export class HostDirectivesResolver {
    * Filters the class property mappings so that only the allowed ones are present.
    * @param source Property mappings that should be filtered.
    * @param allowedProperties Property mappings that are allowed in the final results.
+   * @param valueResolver Function used to resolve the value that is assigned to the final mapping.
    */
-  private filterMappings(
-      source: ClassPropertyMapping,
-      allowedProperties: {[publicName: string]: string}|null): ClassPropertyMapping {
-    const result: Record<string, BindingPropertyName|[ClassPropertyName, BindingPropertyName]> = {};
+  private filterMappings<T, M extends InputOrOutput>(
+    source: ClassPropertyMapping<M>,
+    allowedProperties: Record<string, string> | null,
+    valueResolver: (bindingName: string, binding: M) => T,
+  ): Record<string, T> {
+    const result: Record<string, T> = {};
 
     if (allowedProperties !== null) {
       for (const publicName in allowedProperties) {
@@ -80,13 +94,30 @@ export class HostDirectivesResolver {
 
           if (bindings !== null) {
             for (const binding of bindings) {
-              result[binding.classPropertyName] = allowedProperties[publicName];
+              result[binding.classPropertyName] = valueResolver(
+                allowedProperties[publicName],
+                binding,
+              );
             }
           }
         }
       }
     }
 
-    return ClassPropertyMapping.fromMappedObject(result);
+    return result;
   }
+}
+
+function resolveInput(bindingName: string, binding: InputMapping): InputMapping {
+  return {
+    bindingPropertyName: bindingName,
+    classPropertyName: binding.classPropertyName,
+    required: binding.required,
+    transform: binding.transform,
+    isSignal: binding.isSignal,
+  };
+}
+
+function resolveOutput(bindingName: string): string {
+  return bindingName;
 }

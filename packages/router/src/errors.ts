@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 /**
  * The list of error codes used in runtime code of the `router` package.
@@ -26,4 +26,6 @@ export const enum RuntimeErrorCode {
   OUTLET_ALREADY_ACTIVATED = 4013,
   INVALID_ROUTE_CONFIG = 4014,
   INVALID_ROOT_URL_SEGMENT = 4015,
+  INFINITE_REDIRECT = 4016,
+  INVALID_ROUTER_LINK_INPUTS = 4016,
 }

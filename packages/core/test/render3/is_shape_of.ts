@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {TI18n, TIcu} from '@angular/core/src/render3/interfaces/i18n';
@@ -18,7 +18,7 @@ import {TView} from '@angular/core/src/render3/interfaces/view';
  * This is later used by `isShapeOf` method to ensure that a particular object has a particular
  * shape.
  *
- * ```
+ * ```ts
  * interface MyShape {
  *   foo: string,
  *   bar: number
@@ -34,7 +34,7 @@ import {TView} from '@angular/core/src/render3/interfaces/view';
  * `MyShape` is refactored to change a set of properties we would like to have a compile time error
  * that the `ExpectedPropertiesOfShape` also needs to be changed.
  *
- * ```
+ * ```ts
  * const ExpectedPropertiesOfShape = <ShapeOf<MyShape>>{foo: true, bar: true};
  * ```
  * The above code will force through compile time checks that the `ExpectedPropertiesOfShape` match
@@ -50,7 +50,7 @@ export type ShapeOf<T> = {
 /**
  * Determines if a particular object is of a given shape (duck-type version of `instanceof`.)
  *
- * ```
+ * ```ts
  * isShapeOf(someObj, {foo: true, bar: true});
  * ```
  *
@@ -61,8 +61,7 @@ export type ShapeOf<T> = {
  */
 export function isShapeOf<T>(obj: any, shapeOf: ShapeOf<T>): obj is T {
   if (typeof obj === 'object' && obj) {
-    return Object.keys(shapeOf).reduce(
-        (prev, key) => prev && obj.hasOwnProperty(key), true as boolean);
+    return Object.keys(shapeOf).every((key) => obj.hasOwnProperty(key));
   }
   return false;
 }
@@ -77,8 +76,9 @@ export function isTI18n(obj: any): obj is TI18n {
 const ShapeOfTI18n: ShapeOf<TI18n> = {
   create: true,
   update: true,
+  ast: true,
+  parentTNodeIndex: true,
 };
-
 
 /**
  * Determines if `obj` matches the shape `TIcu`.
@@ -94,9 +94,8 @@ const ShapeOfTIcu: ShapeOf<TIcu> = {
   cases: true,
   create: true,
   remove: true,
-  update: true
+  update: true,
 };
-
 
 /**
  * Determines if `obj` matches the shape `TView`.
@@ -136,8 +135,8 @@ const ShapeOfTView: ShapeOf<TView> = {
   schemas: true,
   consts: true,
   incompleteFirstPass: true,
+  ssrId: true,
 };
-
 
 /**
  * Determines if `obj` matches the shape `TI18n`.
@@ -165,8 +164,9 @@ const ShapeOfTNode: ShapeOf<TNode> = {
   initialInputs: true,
   inputs: true,
   outputs: true,
-  tViews: true,
+  tView: true,
   next: true,
+  prev: true,
   projectionNext: true,
   child: true,
   parent: true,

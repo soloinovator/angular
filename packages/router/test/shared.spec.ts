@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {convertToParamMap, ParamMap, Params} from '../src/shared';
@@ -43,13 +43,12 @@ describe('ParamsMap', () => {
     expect(map.getAll('name')).toEqual([]);
   });
 
-  it('should not error when trying to call ParamMap.get function using an object created with Object.create() function',
-     () => {
-       const objectToMap: Params = Object.create(null);
-       objectToMap['single'] = 's';
-       objectToMap['multiple'] = ['m1', 'm2'];
-       const paramMaps: ParamMap = convertToParamMap(objectToMap);
-       expect(() => paramMaps.get('single')).not.toThrow();
-       expect(paramMaps.get('single')).toEqual('s');
-     });
+  it('should not error when trying to call ParamMap.get function using an object created with Object.create() function', () => {
+    const objectToMap: Params = Object.create(null);
+    objectToMap['single'] = 's';
+    objectToMap['multiple'] = ['m1', 'm2'];
+    const paramMaps: ParamMap = convertToParamMap(objectToMap);
+    expect(() => paramMaps.get('single')).not.toThrow();
+    expect(paramMaps.get('single')).toEqual('s');
+  });
 });

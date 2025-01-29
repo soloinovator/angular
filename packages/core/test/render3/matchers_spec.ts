@@ -3,15 +3,16 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {createTNode, createTView} from '@angular/core/src/render3/instructions/shared';
+import {createTView} from '@angular/core/src/render3/instructions/shared';
 import {TNodeType} from '@angular/core/src/render3/interfaces/node';
 import {TViewType} from '@angular/core/src/render3/interfaces/view';
 
 import {isShapeOf, ShapeOf} from './is_shape_of';
 import {matchDomElement, matchDomText, matchObjectShape, matchTNode, matchTView} from './matchers';
+import {createTNode} from '@angular/core/src/render3/tnode_manipulation';
 
 describe('render3 matchers', () => {
   const fakeMatcherUtil = {equals: (a: any, b: any) => a === b} as jasmine.MatchersUtil;
@@ -41,13 +42,14 @@ describe('render3 matchers', () => {
     it('should produce human readable errors', () => {
       const matcher = matchMyShape({propA: 'different'});
       expect(matcher.asymmetricMatch(myShape, fakeMatcherUtil)).toEqual(false);
-      expect(matcher.jasmineToString!((value: any) => value + ''))
-          .toEqual('\n  property obj.propA to equal different but got value');
+      expect(matcher.jasmineToString!((value: any) => value + '')).toEqual(
+        '\n  property obj.propA to equal different but got value',
+      );
     });
   });
 
   describe('matchTView', () => {
-    const tView = createTView(TViewType.Root, null, null, 2, 3, null, null, null, null, null);
+    const tView = createTView(TViewType.Root, null, null, 2, 3, null, null, null, null, null, null);
     it('should match', () => {
       expect(tView).toEqual(matchTView());
       expect(tView).toEqual(matchTView({type: TViewType.Root}));
@@ -55,7 +57,7 @@ describe('render3 matchers', () => {
     });
   });
   describe('matchTNode', () => {
-    const tView = createTView(TViewType.Root, null, null, 2, 3, null, null, null, null, null);
+    const tView = createTView(TViewType.Root, null, null, 2, 3, null, null, null, null, null, null);
     const tNode = createTNode(tView, null, TNodeType.Element, 0, 'tagName', []);
 
     it('should match', () => {
@@ -76,8 +78,9 @@ describe('render3 matchers', () => {
     it('should produce human readable error', () => {
       const matcher = matchDomElement('div', {name: 'other'});
       expect(matcher.asymmetricMatch(div, fakeMatcherUtil)).toEqual(false);
-      expect(matcher.jasmineToString!((value: any) => value + ''))
-          .toEqual(`[<DIV name="Name"> != <div name="other">]`);
+      expect(matcher.jasmineToString!((value: any) => value + '')).toEqual(
+        `[<DIV name="Name"> != <div name="other">]`,
+      );
     });
   });
 
@@ -91,8 +94,9 @@ describe('render3 matchers', () => {
     it('should produce human readable error', () => {
       const matcher = matchDomText('other text');
       expect(matcher.asymmetricMatch(text, fakeMatcherUtil)).toEqual(false);
-      expect(matcher.jasmineToString!((value: any) => value + ''))
-          .toEqual(`[#TEXT: "myText" != #TEXT: "other text"]`);
+      expect(matcher.jasmineToString!((value: any) => value + '')).toEqual(
+        `[#TEXT: "myText" != #TEXT: "other text"]`,
+      );
     });
   });
 });

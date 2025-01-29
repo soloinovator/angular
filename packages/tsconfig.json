@@ -13,6 +13,8 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
     "strictPropertyInitialization": true,
     "outDir": "../dist/all/@angular",
     "noImplicitAny": true,
@@ -27,7 +29,7 @@
     },
     "rootDir": ".",
     "inlineSourceMap": true,
-    "lib": ["es2020", "dom"],
+    "lib": ["es2020", "dom", "dom.iterable"],
     "skipDefaultLibCheck": true,
     "skipLibCheck": true,
     "types": ["angular"]
@@ -48,7 +50,6 @@
     // will be removed eventually. See: FW-1392.
     "http/**",
     "language-service/ivy/test/legacy/project",
-    "platform-server/integrationtest",
-    "router/test/aot_ngsummary_test"
+    "platform-server/integrationtest"
   ]
 }

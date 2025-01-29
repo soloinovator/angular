@@ -3,23 +3,22 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Injector, NgModule, Type} from '@angular/core';
+import {ɵangular1 as angular, ɵconstants} from '@angular/upgrade/static';
 
-import * as angular from '../../../src/common/src/angular1';
-import {$INJECTOR, INJECTOR_KEY, UPGRADE_APP_TYPE_KEY} from '../../../src/common/src/constants';
 import {UpgradeAppType} from '../../../src/common/src/util';
 
-let $injector: angular.IInjectorService|null = null;
+let $injector: angular.IInjectorService | null = null;
 let injector: Injector;
 
 export function $injectorFactory() {
   return $injector;
 }
 
-@NgModule({providers: [{provide: $INJECTOR, useFactory: $injectorFactory}]})
+@NgModule({providers: [{provide: ɵconstants.$INJECTOR, useFactory: $injectorFactory}]})
 export class AngularTestingModule {
   constructor(i: Injector) {
     injector = i;
@@ -40,7 +39,7 @@ export class AngularTestingModule {
  * The `Ng2AppModule` is the Angular part of our hybrid application and the `ng1AppModule` is the
  * AngularJS part.
  *
- * <code-example path="upgrade/static/ts/full/module.spec.ts" region="angular-setup"></code-example>
+ * {@example upgrade/static/ts/full/module.spec.ts region='angular-setup'}
  *
  * Once this is done we can get hold of services via the Angular `Injector` as normal.
  * Services that are (or have dependencies on) an upgraded AngularJS service, will be instantiated
@@ -49,9 +48,9 @@ export class AngularTestingModule {
  * In the following code snippet, `HeroesService` is an Angular service that depends upon an
  * AngularJS service, `titleCase`.
  *
- * <code-example path="upgrade/static/ts/full/module.spec.ts" region="angular-spec"></code-example>
+ * {@example upgrade/static/ts/full/module.spec.ts region='angular-spec'}
  *
- * <div class="alert is-important">
+ * <div class="docs-alert docs-alert-important">
  *
  * This helper is for testing services not Components.
  * For Component testing you must still bootstrap a hybrid app. See `UpgradeModule` or
@@ -59,7 +58,7 @@ export class AngularTestingModule {
  *
  * </div>
  *
- * <div class="alert is-important">
+ * <div class="docs-alert docs-alert-important">
  *
  * The resulting configuration does not wire up AngularJS digests to Zone hooks. It is the
  * responsibility of the test writer to call `$rootScope.$apply`, as necessary, to trigger
@@ -67,7 +66,7 @@ export class AngularTestingModule {
  *
  * </div>
  *
- * <div class="alert is-important">
+ * <div class="docs-alert docs-alert-important">
  *
  * The helper sets up global variables to hold the shared Angular and AngularJS injectors.
  *
@@ -92,10 +91,13 @@ export class AngularTestingModule {
  * @publicApi
  */
 export function createAngularTestingModule(
-    angularJSModules: string[], strictDi?: boolean): Type<any> {
-  angular.module_('$$angularJSTestingModule', angularJSModules)
-      .constant(UPGRADE_APP_TYPE_KEY, UpgradeAppType.Static)
-      .factory(INJECTOR_KEY, () => injector);
+  angularJSModules: string[],
+  strictDi?: boolean,
+): Type<any> {
+  angular
+    .module_('$$angularJSTestingModule', angularJSModules)
+    .constant(ɵconstants.UPGRADE_APP_TYPE_KEY, UpgradeAppType.Static)
+    .factory(ɵconstants.INJECTOR_KEY, () => injector);
   $injector = angular.injector(['ng', '$$angularJSTestingModule'], strictDi);
   return AngularTestingModule;
 }

@@ -3,26 +3,29 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 // Make the `$localize()` global function available to the compiled templates, and the direct calls
 // below. This would normally be done inside the application `polyfills.ts` file.
 import '@angular/localize/init';
 
-import {AfterContentInit, AfterViewInit, Component, ContentChildren, Directive, Input, QueryList, ViewChildren} from '@angular/core';
+import {
+  AfterContentInit,
+  AfterViewInit,
+  Component,
+  ContentChildren,
+  Directive,
+  Input,
+  QueryList,
+  ViewChildren,
+} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
-describe('<ng-container>', function() {
+describe('<ng-container>', function () {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [
-        MyComp,
-        NeedsContentChildren,
-        NeedsViewChildren,
-        TextDirective,
-        Simple,
-      ],
+      declarations: [MyComp, NeedsContentChildren, NeedsViewChildren, TextDirective, Simple],
     });
   });
 
@@ -56,7 +59,7 @@ describe('<ng-container>', function() {
     fixture.detectChanges();
 
     const dir = fixture.debugElement.children[0].injector.get(TextDirective);
-    expect(dir).toBeAnInstanceOf(TextDirective);
+    expect(dir).toBeInstanceOf(TextDirective);
     expect(dir.text).toEqual('container');
   });
 
@@ -66,7 +69,7 @@ describe('<ng-container>', function() {
     const fixture = TestBed.createComponent(MyComp);
 
     fixture.detectChanges();
-    const q = fixture.debugElement.children[0].references!['q'];
+    const q = fixture.debugElement.children[0].references['q'];
     fixture.detectChanges();
 
     expect(q.textDirChildren.length).toEqual(1);
@@ -74,40 +77,54 @@ describe('<ng-container>', function() {
   });
 });
 
-@Directive({selector: '[text]'})
+@Directive({
+  selector: '[text]',
+  standalone: false,
+})
 class TextDirective {
-  @Input() public text: string|null = null;
+  @Input() public text: string | null = null;
 }
 
-@Component({selector: 'needs-content-children', template: ''})
+@Component({
+  selector: 'needs-content-children',
+  template: '',
+  standalone: false,
+})
 class NeedsContentChildren implements AfterContentInit {
-  // TODO(issue/24571): remove '!'.
   @ContentChildren(TextDirective) textDirChildren!: QueryList<TextDirective>;
-  // TODO(issue/24571): remove '!'.
-  numberOfChildrenAfterContentInit!: number;
+  numberOfChildrenAfterContentInit: number | undefined;
 
   ngAfterContentInit() {
     this.numberOfChildrenAfterContentInit = this.textDirChildren.length;
   }
 }
 
-@Component({selector: 'needs-view-children', template: '<div text></div>'})
+@Component({
+  selector: 'needs-view-children',
+  template: '<div text></div>',
+  standalone: false,
+})
 class NeedsViewChildren implements AfterViewInit {
-  // TODO(issue/24571): remove '!'.
   @ViewChildren(TextDirective) textDirChildren!: QueryList<TextDirective>;
-  // TODO(issue/24571): remove '!'.
-  numberOfChildrenAfterViewInit!: number;
+  numberOfChildrenAfterViewInit: number | undefined;
 
   ngAfterViewInit() {
     this.numberOfChildrenAfterViewInit = this.textDirChildren.length;
   }
 }
 
-@Component({selector: 'simple', template: 'SIMPLE(<ng-content></ng-content>)'})
-class Simple {
-}
+@Component({
+  selector: 'simple',
+  template: 'SIMPLE(<ng-content></ng-content>)',
+  standalone: false,
+})
+class Simple {}
 
-@Component({selector: 'my-comp', template: ''})
+@Component({
+  selector: 'my-comp',
+  template: '',
+  standalone: false,
+})
 class MyComp {
   ctxBoolProp: boolean = false;
 }

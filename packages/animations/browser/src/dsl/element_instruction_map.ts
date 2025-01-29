@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {AnimationTimelineInstruction} from './animation_timeline_instruction';
 
@@ -17,7 +17,7 @@ export class ElementInstructionMap {
   append(element: any, instructions: AnimationTimelineInstruction[]) {
     let existingInstructions = this._map.get(element);
     if (!existingInstructions) {
-      this._map.set(element, existingInstructions = []);
+      this._map.set(element, (existingInstructions = []));
     }
     existingInstructions.push(...instructions);
   }

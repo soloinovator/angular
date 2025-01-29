@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // Attention:
@@ -22,20 +22,32 @@ export enum ViewEncapsulation {
   Emulated = 0,
   // Historically the 1 value was for `Native` encapsulation which has been removed as of v11.
   None = 2,
-  ShadowDom = 3
+  ShadowDom = 3,
 }
 
 export enum ChangeDetectionStrategy {
   OnPush = 0,
-  Default = 1
+  Default = 1,
 }
 
 export interface Input {
-  bindingPropertyName?: string;
+  alias?: string;
+  required?: boolean;
+  transform?: (value: any) => any;
+  // Note: This field is marked as `internal` in `@angular/core`, but in the compiler
+  // we rely on it for JIT processing at runtime.
+  isSignal: boolean;
+}
+
+/** Flags describing an input for a directive. */
+export enum InputFlags {
+  None = 0,
+  SignalBased = 1 << 0,
+  HasDecoratorInputTransform = 1 << 1,
 }
 
 export interface Output {
-  bindingPropertyName?: string;
+  alias?: string;
 }
 
 export interface HostBinding {
@@ -52,15 +64,15 @@ export interface SchemaMetadata {
 }
 
 export const CUSTOM_ELEMENTS_SCHEMA: SchemaMetadata = {
-  name: 'custom-elements'
+  name: 'custom-elements',
 };
 
 export const NO_ERRORS_SCHEMA: SchemaMetadata = {
-  name: 'no-errors-schema'
+  name: 'no-errors-schema',
 };
 
 export interface Type extends Function {
-  new(...args: any[]): any;
+  new (...args: any[]): any;
 }
 export const Type = Function;
 
@@ -123,46 +135,52 @@ export const enum SelectorFlags {
 
 // These are a copy the CSS types from core/src/render3/interfaces/projection.ts
 // They are duplicated here as they cannot be directly referenced from core.
-export type R3CssSelector = (string|SelectorFlags)[];
+export type R3CssSelector = (string | SelectorFlags)[];
 export type R3CssSelectorList = R3CssSelector[];
 
 function parserSelectorToSimpleSelector(selector: CssSelector): R3CssSelector {
-  const classes = selector.classNames && selector.classNames.length ?
-      [SelectorFlags.CLASS, ...selector.classNames] :
-      [];
+  const classes =
+    selector.classNames && selector.classNames.length
+      ? [SelectorFlags.CLASS, ...selector.classNames]
+      : [];
   const elementName = selector.element && selector.element !== '*' ? selector.element : '';
   return [elementName, ...selector.attrs, ...classes];
 }
 
 function parserSelectorToNegativeSelector(selector: CssSelector): R3CssSelector {
-  const classes = selector.classNames && selector.classNames.length ?
-      [SelectorFlags.CLASS, ...selector.classNames] :
-      [];
+  const classes =
+    selector.classNames && selector.classNames.length
+      ? [SelectorFlags.CLASS, ...selector.classNames]
+      : [];
 
   if (selector.element) {
     return [
-      SelectorFlags.NOT | SelectorFlags.ELEMENT, selector.element, ...selector.attrs, ...classes
+      SelectorFlags.NOT | SelectorFlags.ELEMENT,
+      selector.element,
+      ...selector.attrs,
+      ...classes,
     ];
   } else if (selector.attrs.length) {
     return [SelectorFlags.NOT | SelectorFlags.ATTRIBUTE, ...selector.attrs, ...classes];
   } else {
-    return selector.classNames && selector.classNames.length ?
-        [SelectorFlags.NOT | SelectorFlags.CLASS, ...selector.classNames] :
-        [];
+    return selector.classNames && selector.classNames.length
+      ? [SelectorFlags.NOT | SelectorFlags.CLASS, ...selector.classNames]
+      : [];
   }
 }
 
 function parserSelectorToR3Selector(selector: CssSelector): R3CssSelector {
   const positive = parserSelectorToSimpleSelector(selector);
 
-  const negative: R3CssSelectorList = selector.notSelectors && selector.notSelectors.length ?
-      selector.notSelectors.map(notSelector => parserSelectorToNegativeSelector(notSelector)) :
-      [];
+  const negative: R3CssSelectorList =
+    selector.notSelectors && selector.notSelectors.length
+      ? selector.notSelectors.map((notSelector) => parserSelectorToNegativeSelector(notSelector))
+      : [];
 
   return positive.concat(...negative);
 }
 
-export function parseSelectorToR3Selector(selector: string|null): R3CssSelectorList {
+export function parseSelectorToR3Selector(selector: string | null): R3CssSelectorList {
   return selector ? CssSelector.parse(selector).map(parserSelectorToR3Selector) : [];
 }
 
@@ -180,7 +198,7 @@ export const enum RenderFlags {
   Create = 0b01,
 
   /* Whether to run the update block (e.g. refresh bindings) */
-  Update = 0b10
+  Update = 0b10,
 }
 
 // Pasted from render3/interfaces/node.ts
@@ -203,12 +221,12 @@ export const enum AttributeMarker {
    * ## Example:
    *
    * Given:
-   * ```
-   * <div class="foo bar baz">...<d/vi>
+   * ```html
+   * <div class="foo bar baz">...</div>
    * ```
    *
    * the generated code is:
-   * ```
+   * ```ts
    * var _c1 = [AttributeMarker.Classes, 'foo', 'bar', 'baz'];
    * ```
    */
@@ -222,12 +240,12 @@ export const enum AttributeMarker {
    * ## Example:
    *
    * Given:
-   * ```
+   * ```html
    * <div style="width:100px; height:200px; color:red">...</div>
    * ```
    *
    * the generated code is:
-   * ```
+   * ```ts
    * var _c1 = [AttributeMarker.Styles, 'width', '100px', 'height'. '200px', 'color', 'red'];
    * ```
    */
@@ -238,13 +256,13 @@ export const enum AttributeMarker {
    *
    * For example, given the following HTML:
    *
-   * ```
+   * ```html
    * <div moo="car" [foo]="exp" (bar)="doSth()">
    * ```
    *
    * the generated code is:
    *
-   * ```
+   * ```ts
    * var _c1 = ['moo', 'car', AttributeMarker.Bindings, 'foo', 'bar'];
    * ```
    */
@@ -255,7 +273,7 @@ export const enum AttributeMarker {
    *
    * For example, given the following HTML:
    *
-   * ```
+   * ```html
    * <div *ngFor="let value of values; trackBy:trackBy" dirA [dirB]="value">
    * ```
    *
@@ -280,7 +298,7 @@ export const enum AttributeMarker {
    *
    * For example, given the following HTML:
    *
-   * ```
+   * ```html
    * <h1 attr="value" ngProjectAs="[title]">
    * ```
    *
@@ -297,14 +315,15 @@ export const enum AttributeMarker {
    *
    * For example, given the following HTML:
    *
-   * ```
+   * ```html
    * <div moo="car" foo="value" i18n-foo [bar]="binding" i18n-bar>
    * ```
    *
    * the generated code is:
    *
-   * ```
+   * ```ts
    * var _c1 = ['moo', 'car', AttributeMarker.I18n, 'foo', 'bar'];
+   * ```
    */
   I18n = 6,
 }

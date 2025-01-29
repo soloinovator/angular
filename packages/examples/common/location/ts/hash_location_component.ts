@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // #docregion LocationComponent
@@ -15,9 +15,12 @@ import {Component} from '@angular/core';
   providers: [Location, {provide: LocationStrategy, useClass: HashLocationStrategy}],
   template: `
     <h1>HashLocationStrategy</h1>
-    Current URL is: <code>{{location.path()}}</code><br>
-    Normalize: <code>/foo/bar/</code> is: <code>{{location.normalize('foo/bar')}}</code><br>
-  `
+    Current URL is: <code>{{ location.path() }}</code
+    ><br />
+    Normalize: <code>/foo/bar/</code> is: <code>{{ location.normalize('foo/bar') }}</code
+    ><br />
+  `,
+  standalone: false,
 })
 export class HashLocationComponent {
   location: Location;

@@ -1,7 +1,7 @@
 function MyComponent_div_0_Template(rf, ctx) {
   if (rf & 1) {
     $r3$.ɵɵelementStart(0, "div");
-    $r3$.ɵɵi18nStart(1, 1);
+    $r3$.ɵɵi18nStart(1, 0);
     $r3$.ɵɵelement(2, "span");
     $r3$.ɵɵi18nEnd();
     $r3$.ɵɵelementEnd();
@@ -16,16 +16,16 @@ function MyComponent_div_0_Template(rf, ctx) {
 …
 decls: 1,
 vars: 1,
-consts: function() {
-  __i18nMsg__('Some other content {$startTagSpan}{$interpolation}{$closeTagSpan}', [['startTagSpan', String.raw`\uFFFD#2\uFFFD`], ['interpolation', String.raw`\uFFFD0\uFFFD`], ['closeTagSpan', String.raw`\uFFFD/#2\uFFFD`]], {original_code: {'startTagSpan': '<span>', 'interpolation': '{{ valueA }}', 'closeTagSpan': '</span>'}}, {})
+consts: () => {
+  __i18nMsg__('Some other content {$startTagSpan}{$interpolation}{$closeTagSpan}', [['closeTagSpan', String.raw`\uFFFD/#2\uFFFD`], ['interpolation', String.raw`\uFFFD0\uFFFD`], ['startTagSpan', String.raw`\uFFFD#2\uFFFD`]], {original_code: {'closeTagSpan': '</span>', 'interpolation': '{{ valueA }}', 'startTagSpan': '<span>',}}, {})
   return [
-    [__AttributeMarker.Template__, "ngIf"],
-    $i18n_0$
+    $i18n_0$,
+    [__AttributeMarker.Template__, "ngIf"]
   ];
 },
 template: function MyComponent_Template(rf, ctx) {
   if (rf & 1) {
-    $r3$.ɵɵtemplate(0, MyComponent_div_0_Template, 3, 1, "div", 0);
+    $r3$.ɵɵtemplate(0, MyComponent_div_0_Template, 3, 1, "div", 1);
   }
   if (rf & 2) {
     $r3$.ɵɵproperty("ngIf", ctx.visible);

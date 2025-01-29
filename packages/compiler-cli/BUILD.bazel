@@ -23,7 +23,6 @@ esbuild(
     entry_points = [
         ":index.ts",
         "//packages/compiler-cli:src/bin/ngc.ts",
-        "//packages/compiler-cli/ngcc:main-ngcc.ts",
         "//packages/compiler-cli/ngcc:index.ts",
         "//packages/compiler-cli:src/bin/ng_xi18n.ts",
         "//packages/compiler-cli/linker:index.ts",
@@ -32,19 +31,14 @@ esbuild(
         "//packages/compiler-cli/private:localize.ts",
         "//packages/compiler-cli/private:migrations.ts",
         "//packages/compiler-cli/private:tooling.ts",
-        "//packages/compiler-cli/ngcc:src/locking/lock_file_with_child_process/ngcc_lock_unlocker.ts",
-        "//packages/compiler-cli/ngcc:src/execution/cluster/ngcc_cluster_worker.ts",
     ],
     external = [
         "@angular/compiler",
         "typescript",
-        "tsickle",
         "@babel/core",
         "reflect-metadata",
         "chokidar",
         "convert-source-map",
-        "dependency-graph",
-        "magic-string",
         "semver",
         "@jridgewell/sourcemap-codec",
         "tslib",
@@ -81,6 +75,7 @@ ts_library(
         "//packages/compiler-cli/src/ngtsc/core",
         "//packages/compiler-cli/src/ngtsc/core:api",
         "//packages/compiler-cli/src/ngtsc/diagnostics",
+        "//packages/compiler-cli/src/ngtsc/docs",
         "//packages/compiler-cli/src/ngtsc/file_system",
         "//packages/compiler-cli/src/ngtsc/incremental",
         "//packages/compiler-cli/src/ngtsc/indexer",
@@ -89,17 +84,16 @@ ts_library(
         "//packages/compiler-cli/src/ngtsc/program_driver",
         "//packages/compiler-cli/src/ngtsc/reflection",
         "//packages/compiler-cli/src/ngtsc/shims",
+        "//packages/compiler-cli/src/ngtsc/transform/jit",
         "//packages/compiler-cli/src/ngtsc/translator",
         "//packages/compiler-cli/src/ngtsc/typecheck",
         "//packages/compiler-cli/src/ngtsc/typecheck/api",
         "//packages/compiler-cli/src/ngtsc/util",
-        "//packages/compiler-cli/src/transformers/downlevel_decorators_transform",
         "@npm//@bazel/concatjs",
         "@npm//@types/node",
         "@npm//@types/yargs",
         "@npm//chokidar",
         "@npm//reflect-metadata",
-        "@npm//tsickle",
         "@npm//typescript",
     ],
 )
@@ -121,10 +115,9 @@ pkg_npm(
     # Do not add more to this list.
     # Dependencies on the full npm_package cause long re-builds.
     visibility = [
-        "//aio:__pkg__",
-        "//aio/content/examples:__subpackages__",
-        "//aio/tools/examples:__pkg__",
+        "//adev:__pkg__",
         "//integration:__subpackages__",
+        "//modules/ssr-benchmarks:__subpackages__",
         "//packages/compiler-cli/integrationtest:__pkg__",
     ],
     deps = [
@@ -140,7 +133,7 @@ api_golden_test(
         "//goldens:public-api",
     ],
     entry_point = "angular/packages/compiler-cli/npm_package/src/ngtsc/diagnostics/src/error_code.d.ts",
-    golden = "angular/goldens/public-api/compiler-cli/error_code.md",
+    golden = "angular/goldens/public-api/compiler-cli/error_code.api.md",
 )
 
 api_golden_test(
@@ -150,7 +143,7 @@ api_golden_test(
         "//goldens:public-api",
     ],
     entry_point = "angular/packages/compiler-cli/npm_package/src/ngtsc/diagnostics/src/extended_template_diagnostic_name.d.ts",
-    golden = "angular/goldens/public-api/compiler-cli/extended_template_diagnostic_name.md",
+    golden = "angular/goldens/public-api/compiler-cli/extended_template_diagnostic_name.api.md",
 )
 
 api_golden_test(
@@ -160,7 +153,7 @@ api_golden_test(
         "//goldens:public-api",
     ],
     entry_point = "angular/packages/compiler-cli/npm_package/src/ngtsc/core/api/src/public_options.d.ts",
-    golden = "angular/goldens/public-api/compiler-cli/compiler_options.md",
+    golden = "angular/goldens/public-api/compiler-cli/compiler_options.api.md",
 )
 
 # Controls whether the Ivy compiler produces performance traces as part of each build

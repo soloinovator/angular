@@ -3,13 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import * as o from '../../output/output_ast';
 import {Identifiers as R3} from '../r3_identifiers';
 import {createInjectorType, R3InjectorMetadata} from '../r3_injector_compiler';
 import {R3CompiledExpression} from '../util';
 import {DefinitionMap} from '../view/util';
+
 import {R3DeclareInjectorMetadata} from './api';
 
 /**
@@ -33,15 +34,16 @@ export function compileDeclareInjectorFromMetadata(meta: R3InjectorMetadata): R3
 /**
  * Gathers the declaration fields for an Injector into a `DefinitionMap`.
  */
-function createInjectorDefinitionMap(meta: R3InjectorMetadata):
-    DefinitionMap<R3DeclareInjectorMetadata> {
+function createInjectorDefinitionMap(
+  meta: R3InjectorMetadata,
+): DefinitionMap<R3DeclareInjectorMetadata> {
   const definitionMap = new DefinitionMap<R3DeclareInjectorMetadata>();
 
   definitionMap.set('minVersion', o.literal(MINIMUM_PARTIAL_LINKER_VERSION));
   definitionMap.set('version', o.literal('0.0.0-PLACEHOLDER'));
   definitionMap.set('ngImport', o.importExpr(R3.core));
 
-  definitionMap.set('type', meta.internalType);
+  definitionMap.set('type', meta.type.value);
   definitionMap.set('providers', meta.providers);
   if (meta.imports.length > 0) {
     definitionMap.set('imports', o.literalArr(meta.imports));

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 /* tslint:disable:no-console  */
@@ -18,23 +18,24 @@ import {FormControl, FormGroup, Validators} from '@angular/forms';
       <p *ngIf="name.invalid">Name is invalid.</p>
 
       <div formGroupName="name">
-        <input formControlName="first" placeholder="First name">
-        <input formControlName="last" placeholder="Last name">
+        <input formControlName="first" placeholder="First name" />
+        <input formControlName="last" placeholder="Last name" />
       </div>
-      <input formControlName="email" placeholder="Email">
+      <input formControlName="email" placeholder="Email" />
       <button type="submit">Submit</button>
     </form>
 
     <button (click)="setPreset()">Set preset</button>
-`,
+  `,
+  standalone: false,
 })
 export class NestedFormGroupComp {
   form = new FormGroup({
     name: new FormGroup({
       first: new FormControl('Nancy', Validators.minLength(2)),
-      last: new FormControl('Drew', Validators.required)
+      last: new FormControl('Drew', Validators.required),
     }),
-    email: new FormControl()
+    email: new FormControl(),
   });
 
   get first(): any {
@@ -46,10 +47,10 @@ export class NestedFormGroupComp {
   }
 
   onSubmit() {
-    console.log(this.first.value);  // 'Nancy'
-    console.log(this.name.value);   // {first: 'Nancy', last: 'Drew'}
-    console.log(this.form.value);   // {name: {first: 'Nancy', last: 'Drew'}, email: ''}
-    console.log(this.form.status);  // VALID
+    console.log(this.first.value); // 'Nancy'
+    console.log(this.name.value); // {first: 'Nancy', last: 'Drew'}
+    console.log(this.form.value); // {name: {first: 'Nancy', last: 'Drew'}, email: ''}
+    console.log(this.form.status); // VALID
   }
 
   setPreset() {

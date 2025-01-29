@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {$} from 'protractor';
@@ -14,7 +14,7 @@ describe('tree benchmark detect changes perf', () => {
     await runTreeBenchmark({
       id: 'detectChanges',
       work: () => $('#detectChanges').click(),
-      setup: () => $('#destroyDom').click()
+      setup: () => $('#destroyDom').click(),
     });
   });
 });

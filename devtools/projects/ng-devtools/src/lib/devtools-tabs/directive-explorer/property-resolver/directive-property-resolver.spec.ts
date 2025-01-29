@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Properties, PropType} from 'protocol';
@@ -33,6 +33,7 @@ const properties: Properties = {
           value: {},
         },
       },
+      containerType: null,
     },
     i: {
       editable: false,
@@ -55,6 +56,7 @@ const properties: Properties = {
           value: {},
         },
       },
+      containerType: null,
     },
     p: {
       editable: false,
@@ -77,6 +79,7 @@ const properties: Properties = {
           value: {},
         },
       },
+      containerType: null,
     },
     i_1: {
       editable: true,
@@ -84,12 +87,14 @@ const properties: Properties = {
       preview: 'input i1',
       type: PropType.String,
       value: 'input i1',
+      containerType: null,
     },
     o_1: {
       editable: false,
       expandable: true,
       preview: '',
       type: PropType.Object,
+      containerType: null,
     },
   },
   metadata: {
@@ -101,7 +106,7 @@ const properties: Properties = {
       o: 'o',
       o1: 'o_1',
     },
-    encapsulation: 1,
+    encapsulation: 0,
     onPush: false,
   },
 };

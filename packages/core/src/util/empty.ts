@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {initNgDevMode} from './ng_dev_mode';
 
@@ -14,7 +14,7 @@ import {initNgDevMode} from './ng_dev_mode';
  * code.
  */
 
-export const EMPTY_OBJ: {} = {};
+export const EMPTY_OBJ: never = {} as never;
 export const EMPTY_ARRAY: any[] = [];
 
 // freezing the values prevents any code from accidentally inserting new values in

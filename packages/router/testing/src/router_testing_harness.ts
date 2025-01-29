@@ -3,10 +3,18 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Component, DebugElement, Injectable, Type, ViewChild} from '@angular/core';
+import {
+  Component,
+  DebugElement,
+  Injectable,
+  Type,
+  ViewChild,
+  WritableSignal,
+  signal,
+} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {Router, RouterOutlet, ɵafterNextNavigation as afterNextNavigation} from '@angular/router';
 
@@ -34,12 +42,12 @@ export class RootFixtureService {
 }
 
 @Component({
-  standalone: true,
-  template: '<router-outlet></router-outlet>',
+  template: '<router-outlet [routerOutletData]="routerOutletData()"></router-outlet>',
   imports: [RouterOutlet],
 })
 export class RootCmp {
   @ViewChild(RouterOutlet) outlet?: RouterOutlet;
+  readonly routerOutletData = signal<unknown>(undefined);
 }
 
 /**
@@ -68,23 +76,30 @@ export class RouterTestingHarness {
     return harness;
   }
 
+  /**
+   * Fixture of the root component of the RouterTestingHarness
+   */
+  public readonly fixture: ComponentFixture<{routerOutletData: WritableSignal<unknown>}>;
+
   /** @internal */
-  constructor(private readonly fixture: ComponentFixture<RootCmp>) {}
+  constructor(fixture: ComponentFixture<{routerOutletData: WritableSignal<unknown>}>) {
+    this.fixture = fixture;
+  }
 
   /** Instructs the root fixture to run change detection. */
   detectChanges(): void {
     this.fixture.detectChanges();
   }
   /** The `DebugElement` of the `RouterOutlet` component. `null` if the outlet is not activated. */
-  get routeDebugElement(): DebugElement|null {
-    const outlet = this.fixture.componentInstance.outlet;
+  get routeDebugElement(): DebugElement | null {
+    const outlet = (this.fixture.componentInstance as RootCmp).outlet;
     if (!outlet || !outlet.isActivated) {
       return null;
     }
-    return this.fixture.debugElement.query(v => v.componentInstance === outlet.component);
+    return this.fixture.debugElement.query((v) => v.componentInstance === outlet.component);
   }
   /** The native element of the `RouterOutlet` component. `null` if the outlet is not activated. */
-  get routeNativeElement(): HTMLElement|null {
+  get routeNativeElement(): HTMLElement | null {
     return this.routeDebugElement?.nativeElement ?? null;
   }
 
@@ -104,7 +119,7 @@ export class RouterTestingHarness {
    * @returns The activated component instance of the `RouterOutlet` after navigation completes
    *     (`null` if the outlet does not get activated).
    */
-  async navigateByUrl(url: string): Promise<null|{}>;
+  async navigateByUrl(url: string): Promise<null | {}>;
   /**
    * Triggers a router navigation and waits for it to complete.
    *
@@ -126,28 +141,36 @@ export class RouterTestingHarness {
    * @returns The activated component instance of the `RouterOutlet` after navigation completes.
    */
   async navigateByUrl<T>(url: string, requiredRoutedComponentType: Type<T>): Promise<T>;
-  async navigateByUrl<T>(url: string, requiredRoutedComponentType?: Type<T>): Promise<T|null> {
+  async navigateByUrl<T>(url: string, requiredRoutedComponentType?: Type<T>): Promise<T | null> {
     const router = TestBed.inject(Router);
     let resolveFn!: () => void;
-    const redirectTrackingPromise = new Promise<void>(resolve => {
+    const redirectTrackingPromise = new Promise<void>((resolve) => {
       resolveFn = resolve;
     });
     afterNextNavigation(TestBed.inject(Router), resolveFn);
     await router.navigateByUrl(url);
     await redirectTrackingPromise;
     this.fixture.detectChanges();
-    const outlet = this.fixture.componentInstance.outlet;
+    const outlet = (this.fixture.componentInstance as RootCmp).outlet;
     // The outlet might not be activated if the user is testing a navigation for a guard that
     // rejects
     if (outlet && outlet.isActivated && outlet.activatedRoute.component) {
       const activatedComponent = outlet.component;
-      if (requiredRoutedComponentType !== undefined &&
-          !(activatedComponent instanceof requiredRoutedComponentType)) {
-        throw new Error(`Unexpected routed component type. Expected ${
-            requiredRoutedComponentType.name} but got ${activatedComponent.constructor.name}`);
+      if (
+        requiredRoutedComponentType !== undefined &&
+        !(activatedComponent instanceof requiredRoutedComponentType)
+      ) {
+        throw new Error(
+          `Unexpected routed component type. Expected ${requiredRoutedComponentType.name} but got ${activatedComponent.constructor.name}`,
+        );
       }
       return activatedComponent as T;
     } else {
+      if (requiredRoutedComponentType !== undefined) {
+        throw new Error(
+          `Unexpected routed component type. Expected ${requiredRoutedComponentType.name} but the navigation did not activate any component.`,
+        );
+      }
       return null;
     }
   }

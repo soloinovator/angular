@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Filesystem} from '@angular/service-worker/config';
@@ -17,17 +17,21 @@ export class NodeFilesystem implements Filesystem {
 
   async list(_path: string): Promise<string[]> {
     const dir = this.canonical(_path);
-    const entries = fs.readdirSync(dir).map(
-        (entry: string) => ({entry, stats: fs.statSync(path.join(dir, entry))}));
-    const files = entries.filter((entry: any) => !entry.stats.isDirectory())
-                      .map((entry: any) => path.posix.join(_path, entry.entry));
+    const entries = fs
+      .readdirSync(dir)
+      .map((entry: string) => ({entry, stats: fs.statSync(path.join(dir, entry))}));
+    const files = entries
+      .filter((entry: any) => !entry.stats.isDirectory())
+      .map((entry: any) => path.posix.join(_path, entry.entry));
 
-    return entries.filter((entry: any) => entry.stats.isDirectory())
-        .map((entry: any) => path.posix.join(_path, entry.entry))
-        .reduce(
-            async (list: Promise<string[]>, subdir: string) =>
-                (await list).concat(await this.list(subdir)),
-            Promise.resolve(files));
+    return entries
+      .filter((entry: any) => entry.stats.isDirectory())
+      .map((entry: any) => path.posix.join(_path, entry.entry))
+      .reduce(
+        async (list: Promise<string[]>, subdir: string) =>
+          (await list).concat(await this.list(subdir)),
+        Promise.resolve(files),
+      );
   }
 
   async read(_path: string): Promise<string> {

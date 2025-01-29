@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // NOTE: This is a (slightly improved) version of what is used in ngUpgrade's
@@ -42,7 +42,7 @@ function findMatchingIndex(node: Node, selectors: string[], defaultIndex: number
 
   if (isElement(node)) {
     selectors.some((selector, i) => {
-      if ((selector !== '*') && matchesSelector(node, selector)) {
+      if (selector !== '*' && matchesSelector(node, selector)) {
         matchingIndex = i;
         return true;
       }

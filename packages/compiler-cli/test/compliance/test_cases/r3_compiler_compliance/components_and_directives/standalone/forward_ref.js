@@ -3,8 +3,6 @@ TestComponent.ɵcmp = /*@__PURE__*/ i0.ɵɵdefineComponent({
   selectors: [
     ["test"]
   ],
-  standalone: true,
-  features: [i0.ɵɵStandaloneFeature],
   decls: 1,
   vars: 0,
   template: function TestComponent_Template(rf, ctx) {
@@ -12,8 +10,6 @@ TestComponent.ɵcmp = /*@__PURE__*/ i0.ɵɵdefineComponent({
       i0.ɵɵelement(0, "other-standalone");
     }
   },
-  dependencies: function () {
-    return [StandaloneComponent];
-  },
+  dependencies: () => [StandaloneComponent],
   encapsulation: 2
 });

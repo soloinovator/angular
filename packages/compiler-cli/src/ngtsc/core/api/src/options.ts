@@ -3,13 +3,20 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import ts from 'typescript';
 
-import {BazelAndG3Options, DiagnosticOptions, I18nOptions, LegacyNgcOptions, MiscOptions, NgcCompatibilityOptions, StrictTemplateOptions, TargetOptions} from './public_options';
-
+import {
+  BazelAndG3Options,
+  DiagnosticOptions,
+  I18nOptions,
+  LegacyNgcOptions,
+  MiscOptions,
+  StrictTemplateOptions,
+  TargetOptions,
+} from './public_options';
 
 /**
  * Non-public options which are useful during testing of the compiler.
@@ -31,6 +38,12 @@ export interface TestOnlyOptions {
   _enableTemplateTypeChecker?: boolean;
 
   /**
+   * Whether components that are poisoned should still be processed.
+   * E.g. for generation of type check blocks and diagnostics.
+   */
+  _compilePoisonedComponents?: boolean;
+
+  /**
    * An option to enable ngtsc's internal performance tracing.
    *
    * This should be a path to a JSON file where trace information will be written. This is sensitive
@@ -44,7 +57,76 @@ export interface TestOnlyOptions {
 /**
  * Internal only options for compiler.
  */
-export interface InternalOptions {}
+export interface InternalOptions {
+  /**
+   * Enables the full usage of TestBed APIs within Angular unit tests by emitting class metadata
+   * for each Angular related class.
+   *
+   * This is only intended to be used by the Angular CLI.
+   * Defaults to true if not specified.
+   *
+   * @internal
+   */
+  supportTestBed?: boolean;
+
+  /**
+   * Enables the usage of the JIT compiler in combination with AOT compiled code by emitting
+   * selector scope information for NgModules.
+   *
+   * This is only intended to be used by the Angular CLI.
+   * Defaults to true if not specified.
+   *
+   * @internal
+   */
+  supportJitMode?: boolean;
+
+  /**
+   * Whether block syntax is enabled in the compiler. Defaults to true.
+   * Used in the language service to disable the new syntax for projects that aren't on v17.
+   *
+   * @internal
+   */
+  _enableBlockSyntax?: boolean;
+
+  /**
+   * Whether `@let` syntax is enabled in the compiler.
+   * Defaults to false while the feature is being developed.
+   *
+   * @internal
+   */
+  _enableLetSyntax?: boolean;
+
+  /**
+   * Enables the use of `<link>` elements for component styleUrls instead of inlining the file
+   * content.
+   * This option is intended to be used with a development server that processes and serves
+   * the files on-demand for an application.
+   *
+   * @internal
+   */
+  externalRuntimeStyles?: boolean;
+
+  /**
+   * Detected version of `@angular/core` in the workspace. Used by the
+   * compiler to adjust the output depending on the available symbols.
+   *
+   * @internal
+   */
+  _angularCoreVersion?: string;
+
+  /**
+   * Whether to enable the necessary code generation for hot module reloading.
+   *
+   * @internal
+   */
+  _enableHmr?: boolean;
+
+  // TODO(crisbeto): this is a temporary flag that will be removed in v20.
+  /**
+   * Whether to check the event side of two-way bindings.
+   */
+  _checkTwoWayBoundEvents?: boolean;
+}
 
 /**
  * A merged interface of all of the various Angular compiler options, as well as the standard
@@ -52,10 +134,17 @@ export interface InternalOptions {}
  *
  * Also includes a few miscellaneous options.
  */
-export interface NgCompilerOptions extends ts.CompilerOptions, LegacyNgcOptions, BazelAndG3Options,
-                                           DiagnosticOptions, NgcCompatibilityOptions,
-                                           StrictTemplateOptions, TestOnlyOptions, I18nOptions,
-                                           TargetOptions, InternalOptions, MiscOptions {
+export interface NgCompilerOptions
+  extends ts.CompilerOptions,
+    LegacyNgcOptions,
+    BazelAndG3Options,
+    DiagnosticOptions,
+    StrictTemplateOptions,
+    TestOnlyOptions,
+    I18nOptions,
+    TargetOptions,
+    InternalOptions,
+    MiscOptions {
   // Replace the index signature type from `ts.CompilerOptions` as it is more strict than it needs
   // to be and would conflict with some types from the other interfaces. This is ok because Angular
   // compiler options are actually separate from TS compiler options in the `tsconfig.json` and we

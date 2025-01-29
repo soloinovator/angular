@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {runfiles} from '@bazel/runfiles';
@@ -24,7 +24,7 @@ shx.cd(path.dirname(runfiles.resolve('angular/packages/core/npm_package/package.
 function p(templateStringArray: TemplateStringsArray) {
   const segments = [];
   for (const entry of templateStringArray) {
-    segments.push(...entry.split('/').filter(s => s !== ''));
+    segments.push(...entry.split('/').filter((s) => s !== ''));
   }
   return path.join(...segments);
 }
@@ -53,44 +53,48 @@ describe('@angular/core ng_package', () => {
 
       it('should contain module resolution mappings', () => {
         const data = JSON.parse(shx.cat(packageJson)) as any;
-        expect(data).toEqual(jasmine.objectContaining({
-          module: `./fesm2015/core.mjs`,
-          es2020: `./fesm2020/core.mjs`,
-          esm2020: `./esm2020/core.mjs`,
-          fesm2020: `./fesm2020/core.mjs`,
-          fesm2015: `./fesm2015/core.mjs`,
-          typings: `./index.d.ts`,
-          exports: matchesObjectWithOrder({
-            './schematics/*': {default: './schematics/*.js'},
-            './package.json': {default: './package.json'},
-            '.': {
-              types: './index.d.ts',
-              esm2020: './esm2020/core.mjs',
-              es2020: './fesm2020/core.mjs',
-              es2015: './fesm2015/core.mjs',
-              node: './fesm2015/core.mjs',
-              default: './fesm2020/core.mjs'
-            },
-            './testing': {
-              types: './testing/index.d.ts',
-              esm2020: './esm2020/testing/testing.mjs',
-              es2020: './fesm2020/testing.mjs',
-              es2015: './fesm2015/testing.mjs',
-              node: './fesm2015/testing.mjs',
-              default: './fesm2020/testing.mjs'
-            }
+        expect(data).toEqual(
+          jasmine.objectContaining({
+            module: `./fesm2022/core.mjs`,
+            typings: `./index.d.ts`,
+            exports: matchesObjectWithOrder({
+              './schematics/*': {default: './schematics/*.js'},
+              './event-dispatch-contract.min.js': {default: './event-dispatch-contract.min.js'},
+              './package.json': {default: './package.json'},
+              '.': {
+                types: './index.d.ts',
+                default: './fesm2022/core.mjs',
+              },
+              './primitives/event-dispatch': {
+                types: './primitives/event-dispatch/index.d.ts',
+                default: './fesm2022/primitives/event-dispatch.mjs',
+              },
+              './primitives/signals': {
+                types: './primitives/signals/index.d.ts',
+                default: './fesm2022/primitives/signals.mjs',
+              },
+              './rxjs-interop': {
+                types: './rxjs-interop/index.d.ts',
+                default: './fesm2022/rxjs-interop.mjs',
+              },
+              './testing': {
+                types: './testing/index.d.ts',
+                default: './fesm2022/testing.mjs',
+              },
+            }),
           }),
-        }));
+        );
       });
 
       it('should contain metadata for ng update', () => {
         interface PackageJson {
-          'ng-update': {packageGroup: string[];};
+          'ng-update': {packageGroup: string[]};
         }
 
         expect(shx.cat(packageJson)).not.toContain('NG_UPDATE_PACKAGE_GROUP');
-        expect((JSON.parse(shx.cat(packageJson)) as PackageJson)['ng-update'].packageGroup)
-            .toContain('@angular/core');
+        expect(
+          (JSON.parse(shx.cat(packageJson)) as PackageJson)['ng-update'].packageGroup,
+        ).toContain('@angular/core');
       });
     });
 
@@ -109,45 +113,21 @@ describe('@angular/core ng_package', () => {
       });
     });
 
-    describe('fesm2020', () => {
-      it('should have a fesm2020 file in the /fesm2020 directory', () => {
-        expect(shx.cat('fesm2020/core.mjs')).toContain(`export {`);
+    describe('fesm2022', () => {
+      it('should have a fesm2022 file in the /fesm2022 directory', () => {
+        expect(shx.cat('fesm2022/core.mjs')).toContain(`export {`);
       });
 
       it('should have a source map', () => {
-        expect(shx.cat('fesm2020/core.mjs.map'))
-            .toContain(`{"version":3,"file":"core.mjs","sources":`);
+        expect(shx.cat('fesm2022/core.mjs.map')).toContain(
+          `{"version":3,"file":"core.mjs","sources":`,
+        );
       });
 
       it('should have the version info in the header', () => {
-        expect(shx.cat('fesm2020/core.mjs'))
-            .toMatch(/@license Angular v\d+\.\d+\.\d+(?!-PLACEHOLDER)/);
-      });
-    });
-
-    describe('fesm2015', () => {
-      it('should have a fesm2015 file in the /fesm2015 directory', () => {
-        expect(shx.cat('fesm2015/core.mjs')).toContain(`export {`);
-      });
-
-      it('should have a source map', () => {
-        expect(shx.cat('fesm2015/core.mjs.map'))
-            .toContain(`{"version":3,"file":"core.mjs","sources":`);
-      });
-
-      it('should have the version info in the header', () => {
-        expect(shx.cat('fesm2015/core.mjs'))
-            .toMatch(/@license Angular v\d+\.\d+\.\d+(?!-PLACEHOLDER)/);
-      });
-    });
-
-    describe('esm2020', () => {
-      it('should not contain any *.ngfactory.js files', () => {
-        expect(shx.find('esm2020').filter(f => f.includes('.ngfactory'))).toEqual([]);
-      });
-
-      it('should not contain any *.ngsummary.js files', () => {
-        expect(shx.find('esm2020').filter(f => f.includes('.ngsummary'))).toEqual([]);
+        expect(shx.cat('fesm2022/core.mjs')).toMatch(
+          /@license Angular v\d+\.\d+\.\d+(?!-PLACEHOLDER)/,
+        );
       });
     });
   });
@@ -160,35 +140,21 @@ describe('@angular/core ng_package', () => {
       });
     });
 
-    describe('fesm2020', () => {
-      it('should have a fesm2020 file in the /fesm2020 directory', () => {
-        expect(shx.cat('fesm2020/testing.mjs')).toContain(`export {`);
+    describe('fesm2022', () => {
+      it('should have a fesm2022 file in the /fesm2022 directory', () => {
+        expect(shx.cat('fesm2022/testing.mjs')).toContain(`export {`);
       });
 
       it('should have a source map', () => {
-        expect(shx.cat('fesm2020/testing.mjs.map'))
-            .toContain(`{"version":3,"file":"testing.mjs","sources":`);
+        expect(shx.cat('fesm2022/testing.mjs.map')).toContain(
+          `{"version":3,"file":"testing.mjs","sources":`,
+        );
       });
 
       it('should have the version info in the header', () => {
-        expect(shx.cat('fesm2020/testing.mjs'))
-            .toMatch(/@license Angular v\d+\.\d+\.\d+(?!-PLACEHOLDER)/);
-      });
-    });
-
-    describe('fesm2015', () => {
-      it('should have a fesm105 file in the /fesm2015 directory', () => {
-        expect(shx.cat('fesm2015/testing.mjs')).toContain(`export {`);
-      });
-
-      it('should have a source map', () => {
-        expect(shx.cat('fesm2015/testing.mjs.map'))
-            .toContain(`{"version":3,"file":"testing.mjs","sources":`);
-      });
-
-      it('should have the version info in the header', () => {
-        expect(shx.cat('fesm2015/testing.mjs'))
-            .toMatch(/@license Angular v\d+\.\d+\.\d+(?!-PLACEHOLDER)/);
+        expect(shx.cat('fesm2022/testing.mjs')).toMatch(
+          /@license Angular v\d+\.\d+\.\d+(?!-PLACEHOLDER)/,
+        );
       });
     });
   });

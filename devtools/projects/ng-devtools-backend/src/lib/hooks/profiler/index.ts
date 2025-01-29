@@ -3,8 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
+
+import {ngDebugClient} from '../../ng-debug-api/ng-debug-api';
 
 import {NgProfiler} from './native';
 import {PatchingProfiler} from './polyfill';
@@ -17,8 +19,7 @@ export {Hooks, Profiler} from './shared';
  * Gives priority to NgProfiler, falls back on PatchingProfiler if framework APIs are not present.
  */
 export const selectProfilerStrategy = (): Profiler => {
-  const ng = (window as any).ng;
-  if (typeof ng?.ɵsetProfiler === 'function') {
+  if (typeof ngDebugClient().ɵsetProfiler === 'function') {
     return new NgProfiler();
   }
   return new PatchingProfiler();

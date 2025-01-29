@@ -3,20 +3,20 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 /**
  * An interface that describes the date pipe configuration, which can be provided using the
  * `DATE_PIPE_DEFAULT_OPTIONS` token.
  *
- * @see `DATE_PIPE_DEFAULT_OPTIONS`
+ * @see {@link DATE_PIPE_DEFAULT_OPTIONS}
  *
  * @publicApi
  */
 export interface DatePipeConfig {
-  dateFormat: string;
-  timezone: string;
+  dateFormat?: string;
+  timezone?: string;
 }
 
 /**

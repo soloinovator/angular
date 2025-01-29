@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import ts from 'typescript';
@@ -11,12 +11,17 @@ import ts from 'typescript';
 import {ErrorCode, ngErrorCode} from '../../diagnostics';
 import {findFlatIndexEntryPoint, FlatIndexGenerator} from '../../entry_point';
 import {AbsoluteFsPath, resolve} from '../../file_system';
-import {FactoryGenerator, isShim, ShimAdapter, ShimReferenceTagger, SummaryGenerator} from '../../shims';
-import {FactoryTracker, PerFileShimGenerator, TopLevelShimGenerator} from '../../shims/api';
+import {isShim, ShimAdapter, ShimReferenceTagger} from '../../shims';
+import {PerFileShimGenerator, TopLevelShimGenerator} from '../../shims/api';
 import {TypeCheckShimGenerator} from '../../typecheck';
 import {normalizeSeparators} from '../../util/src/path';
 import {getRootDirs, isNonDeclarationTsPath, RequiredDelegations} from '../../util/src/typescript';
-import {ExtendedTsCompilerHost, NgCompilerAdapter, NgCompilerOptions, UnifiedModulesHost} from '../api';
+import {
+  ExtendedTsCompilerHost,
+  NgCompilerAdapter,
+  NgCompilerOptions,
+  UnifiedModulesHost,
+} from '../api';
 
 // A persistent source of bugs in CompilerHost delegation has been the addition by TS of new,
 // optional methods on ts.CompilerHost. Since these methods are optional, it's not a type error that
@@ -30,80 +35,128 @@ import {ExtendedTsCompilerHost, NgCompilerAdapter, NgCompilerOptions, UnifiedMod
  * If a new method is added to `ts.CompilerHost` which is not delegated, a type error will be
  * generated for this class.
  */
-export class DelegatingCompilerHost implements
-    Omit<RequiredDelegations<ExtendedTsCompilerHost>, 'getSourceFile'|'fileExists'> {
-  constructor(protected delegate: ExtendedTsCompilerHost) {}
+export class DelegatingCompilerHost
+  implements Omit<RequiredDelegations<ExtendedTsCompilerHost>, 'getSourceFile' | 'fileExists'>
+{
+  createHash;
+  directoryExists;
+  fileNameToModuleName;
+  getCancellationToken;
+  getCanonicalFileName;
+  getCurrentDirectory;
+  getDefaultLibFileName;
+  getDefaultLibLocation;
+  getDirectories;
+  getEnvironmentVariable;
+  getModifiedResourceFiles;
+  getNewLine;
+  getParsedCommandLine;
+  getSourceFileByPath;
+  readDirectory;
+  readFile;
+  readResource;
+  transformResource;
+  realpath;
+  resolveModuleNames;
+  resolveTypeReferenceDirectives;
+  resourceNameToFileName;
+  trace;
+  useCaseSensitiveFileNames;
+  writeFile;
+  getModuleResolutionCache;
+  hasInvalidatedResolutions;
+  resolveModuleNameLiterals;
+  resolveTypeReferenceDirectiveReferences;
 
-  private delegateMethod<M extends keyof ExtendedTsCompilerHost>(name: M):
-      ExtendedTsCompilerHost[M] {
-    return this.delegate[name] !== undefined ? (this.delegate[name] as any).bind(this.delegate) :
-                                               undefined;
+  // jsDocParsingMode is not a method like the other elements above
+  // TODO: ignore usage can be dropped once 5.2 support is dropped
+  get jsDocParsingMode() {
+    // @ts-ignore
+    return this.delegate.jsDocParsingMode;
+  }
+  set jsDocParsingMode(mode) {
+    // @ts-ignore
+    this.delegate.jsDocParsingMode = mode;
   }
 
-  // Excluded are 'getSourceFile' and 'fileExists', which are actually implemented by NgCompilerHost
-  // below.
-  createHash = this.delegateMethod('createHash');
-  directoryExists = this.delegateMethod('directoryExists');
-  fileNameToModuleName = this.delegateMethod('fileNameToModuleName');
-  getCancellationToken = this.delegateMethod('getCancellationToken');
-  getCanonicalFileName = this.delegateMethod('getCanonicalFileName');
-  getCurrentDirectory = this.delegateMethod('getCurrentDirectory');
-  getDefaultLibFileName = this.delegateMethod('getDefaultLibFileName');
-  getDefaultLibLocation = this.delegateMethod('getDefaultLibLocation');
-  getDirectories = this.delegateMethod('getDirectories');
-  getEnvironmentVariable = this.delegateMethod('getEnvironmentVariable');
-  getModifiedResourceFiles = this.delegateMethod('getModifiedResourceFiles');
-  getNewLine = this.delegateMethod('getNewLine');
-  getParsedCommandLine = this.delegateMethod('getParsedCommandLine');
-  getSourceFileByPath = this.delegateMethod('getSourceFileByPath');
-  readDirectory = this.delegateMethod('readDirectory');
-  readFile = this.delegateMethod('readFile');
-  readResource = this.delegateMethod('readResource');
-  transformResource = this.delegateMethod('transformResource');
-  realpath = this.delegateMethod('realpath');
-  resolveModuleNames = this.delegateMethod('resolveModuleNames');
-  resolveTypeReferenceDirectives = this.delegateMethod('resolveTypeReferenceDirectives');
-  resourceNameToFileName = this.delegateMethod('resourceNameToFileName');
-  trace = this.delegateMethod('trace');
-  useCaseSensitiveFileNames = this.delegateMethod('useCaseSensitiveFileNames');
-  writeFile = this.delegateMethod('writeFile');
-  getModuleResolutionCache = this.delegateMethod('getModuleResolutionCache');
-  // @ts-ignore 'hasInvalidatedResolutions' is visible (and thus required here) in latest TSC
-  // main. It's already present, so the code works at runtime.
-  // TODO: remove this comment including the suppression once Angular uses a TSC version that
-  // includes this change (github.com/microsoft/TypeScript@a455955).
-  hasInvalidatedResolutions = this.delegateMethod('hasInvalidatedResolutions');
+  constructor(protected delegate: ExtendedTsCompilerHost) {
+    // Excluded are 'getSourceFile' and 'fileExists', which are actually implemented by
+    // NgCompilerHost
+    // below.
+    this.createHash = this.delegateMethod('createHash');
+    this.directoryExists = this.delegateMethod('directoryExists');
+    this.fileNameToModuleName = this.delegateMethod('fileNameToModuleName');
+    this.getCancellationToken = this.delegateMethod('getCancellationToken');
+    this.getCanonicalFileName = this.delegateMethod('getCanonicalFileName');
+    this.getCurrentDirectory = this.delegateMethod('getCurrentDirectory');
+    this.getDefaultLibFileName = this.delegateMethod('getDefaultLibFileName');
+    this.getDefaultLibLocation = this.delegateMethod('getDefaultLibLocation');
+    this.getDirectories = this.delegateMethod('getDirectories');
+    this.getEnvironmentVariable = this.delegateMethod('getEnvironmentVariable');
+    this.getModifiedResourceFiles = this.delegateMethod('getModifiedResourceFiles');
+    this.getNewLine = this.delegateMethod('getNewLine');
+    this.getParsedCommandLine = this.delegateMethod('getParsedCommandLine');
+    this.getSourceFileByPath = this.delegateMethod('getSourceFileByPath');
+    this.readDirectory = this.delegateMethod('readDirectory');
+    this.readFile = this.delegateMethod('readFile');
+    this.readResource = this.delegateMethod('readResource');
+    this.transformResource = this.delegateMethod('transformResource');
+    this.realpath = this.delegateMethod('realpath');
+    this.resolveModuleNames = this.delegateMethod('resolveModuleNames');
+    this.resolveTypeReferenceDirectives = this.delegateMethod('resolveTypeReferenceDirectives');
+    this.resourceNameToFileName = this.delegateMethod('resourceNameToFileName');
+    this.trace = this.delegateMethod('trace');
+    this.useCaseSensitiveFileNames = this.delegateMethod('useCaseSensitiveFileNames');
+    this.writeFile = this.delegateMethod('writeFile');
+    this.getModuleResolutionCache = this.delegateMethod('getModuleResolutionCache');
+    this.hasInvalidatedResolutions = this.delegateMethod('hasInvalidatedResolutions');
+    this.resolveModuleNameLiterals = this.delegateMethod('resolveModuleNameLiterals');
+    this.resolveTypeReferenceDirectiveReferences = this.delegateMethod(
+      'resolveTypeReferenceDirectiveReferences',
+    );
+  }
+
+  private delegateMethod<M extends keyof ExtendedTsCompilerHost>(
+    name: M,
+  ): ExtendedTsCompilerHost[M] {
+    return this.delegate[name] !== undefined
+      ? (this.delegate[name] as any).bind(this.delegate)
+      : undefined;
+  }
 }
 
 /**
  * A wrapper around `ts.CompilerHost` (plus any extension methods from `ExtendedTsCompilerHost`).
  *
  * In order for a consumer to include Angular compilation in their TypeScript compiler, the
- * `ts.Program` must be created with a host that adds Angular-specific files (e.g. factories,
- * summaries, the template type-checking file, etc) to the compilation. `NgCompilerHost` is the
+ * `ts.Program` must be created with a host that adds Angular-specific files (e.g.
+ * the template type-checking file, etc) to the compilation. `NgCompilerHost` is the
  * host implementation which supports this.
  *
  * The interface implementations here ensure that `NgCompilerHost` fully delegates to
  * `ExtendedTsCompilerHost` methods whenever present.
  */
-export class NgCompilerHost extends DelegatingCompilerHost implements
-    RequiredDelegations<ExtendedTsCompilerHost>, ExtendedTsCompilerHost, NgCompilerAdapter {
-  readonly factoryTracker: FactoryTracker|null = null;
-  readonly entryPoint: AbsoluteFsPath|null = null;
+export class NgCompilerHost
+  extends DelegatingCompilerHost
+  implements RequiredDelegations<ExtendedTsCompilerHost>, ExtendedTsCompilerHost, NgCompilerAdapter
+{
+  readonly entryPoint: AbsoluteFsPath | null = null;
   readonly constructionDiagnostics: ts.Diagnostic[];
 
   readonly inputFiles: ReadonlyArray<string>;
   readonly rootDirs: ReadonlyArray<AbsoluteFsPath>;
 
-
   constructor(
-      delegate: ExtendedTsCompilerHost, inputFiles: ReadonlyArray<string>,
-      rootDirs: ReadonlyArray<AbsoluteFsPath>, private shimAdapter: ShimAdapter,
-      private shimTagger: ShimReferenceTagger, entryPoint: AbsoluteFsPath|null,
-      factoryTracker: FactoryTracker|null, diagnostics: ts.Diagnostic[]) {
+    delegate: ExtendedTsCompilerHost,
+    inputFiles: ReadonlyArray<string>,
+    rootDirs: ReadonlyArray<AbsoluteFsPath>,
+    private shimAdapter: ShimAdapter,
+    private shimTagger: ShimReferenceTagger,
+    entryPoint: AbsoluteFsPath | null,
+    diagnostics: ts.Diagnostic[],
+  ) {
     super(delegate);
 
-    this.factoryTracker = factoryTracker;
     this.entryPoint = entryPoint;
     this.constructionDiagnostics = diagnostics;
     this.inputFiles = [...inputFiles, ...shimAdapter.extraInputFiles];
@@ -146,35 +199,13 @@ export class NgCompilerHost extends DelegatingCompilerHost implements
    * of TypeScript and Angular compiler options.
    */
   static wrap(
-      delegate: ts.CompilerHost, inputFiles: ReadonlyArray<string>, options: NgCompilerOptions,
-      oldProgram: ts.Program|null): NgCompilerHost {
-    // TODO(alxhub): remove the fallback to allowEmptyCodegenFiles after verifying that the rest of
-    // our build tooling is no longer relying on it.
-    const allowEmptyCodegenFiles = options.allowEmptyCodegenFiles || false;
-    const shouldGenerateFactoryShims = options.generateNgFactoryShims !== undefined ?
-        options.generateNgFactoryShims :
-        allowEmptyCodegenFiles;
-
-    const shouldGenerateSummaryShims = options.generateNgSummaryShims !== undefined ?
-        options.generateNgSummaryShims :
-        allowEmptyCodegenFiles;
-
-
+    delegate: ts.CompilerHost,
+    inputFiles: ReadonlyArray<string>,
+    options: NgCompilerOptions,
+    oldProgram: ts.Program | null,
+  ): NgCompilerHost {
     const topLevelShimGenerators: TopLevelShimGenerator[] = [];
     const perFileShimGenerators: PerFileShimGenerator[] = [];
-
-    if (shouldGenerateSummaryShims) {
-      // Summary generation.
-      perFileShimGenerators.push(new SummaryGenerator());
-    }
-
-    let factoryTracker: FactoryTracker|null = null;
-    if (shouldGenerateFactoryShims) {
-      const factoryGenerator = new FactoryGenerator();
-      perFileShimGenerators.push(factoryGenerator);
-
-      factoryTracker = factoryGenerator;
-    }
 
     const rootDirs = getRootDirs(delegate, options as ts.CompilerOptions);
 
@@ -190,7 +221,7 @@ export class NgCompilerHost extends DelegatingCompilerHost implements
       normalizedTsInputFiles.push(resolve(inputFile));
     }
 
-    let entryPoint: AbsoluteFsPath|null = null;
+    let entryPoint: AbsoluteFsPath | null = null;
     if (options.flatModuleOutFile != null && options.flatModuleOutFile !== '') {
       entryPoint = findFlatIndexEntryPoint(normalizedTsInputFiles);
       if (entryPoint === null) {
@@ -209,25 +240,39 @@ export class NgCompilerHost extends DelegatingCompilerHost implements
           start: undefined,
           length: undefined,
           messageText:
-              'Angular compiler option "flatModuleOutFile" requires one and only one .ts file in the "files" field.',
+            'Angular compiler option "flatModuleOutFile" requires one and only one .ts file in the "files" field.',
         });
       } else {
         const flatModuleId = options.flatModuleId || null;
         const flatModuleOutFile = normalizeSeparators(options.flatModuleOutFile);
-        const flatIndexGenerator =
-            new FlatIndexGenerator(entryPoint, flatModuleOutFile, flatModuleId);
+        const flatIndexGenerator = new FlatIndexGenerator(
+          entryPoint,
+          flatModuleOutFile,
+          flatModuleId,
+        );
         topLevelShimGenerators.push(flatIndexGenerator);
       }
     }
 
     const shimAdapter = new ShimAdapter(
-        delegate, normalizedTsInputFiles, topLevelShimGenerators, perFileShimGenerators,
-        oldProgram);
-    const shimTagger =
-        new ShimReferenceTagger(perFileShimGenerators.map(gen => gen.extensionPrefix));
+      delegate,
+      normalizedTsInputFiles,
+      topLevelShimGenerators,
+      perFileShimGenerators,
+      oldProgram,
+    );
+    const shimTagger = new ShimReferenceTagger(
+      perFileShimGenerators.map((gen) => gen.extensionPrefix),
+    );
     return new NgCompilerHost(
-        delegate, inputFiles, rootDirs, shimAdapter, shimTagger, entryPoint, factoryTracker,
-        diagnostics);
+      delegate,
+      inputFiles,
+      rootDirs,
+      shimAdapter,
+      shimTagger,
+      entryPoint,
+      diagnostics,
+    );
   }
 
   /**
@@ -250,9 +295,11 @@ export class NgCompilerHost extends DelegatingCompilerHost implements
   }
 
   getSourceFile(
-      fileName: string, languageVersion: ts.ScriptTarget,
-      onError?: ((message: string) => void)|undefined,
-      shouldCreateNewSourceFile?: boolean|undefined): ts.SourceFile|undefined {
+    fileName: string,
+    languageVersionOrOptions: ts.ScriptTarget | ts.CreateSourceFileOptions,
+    onError?: ((message: string) => void) | undefined,
+    shouldCreateNewSourceFile?: boolean | undefined,
+  ): ts.SourceFile | undefined {
     // Is this a previously known shim?
     const shimSf = this.shimAdapter.maybeGenerate(resolve(fileName));
     if (shimSf !== null) {
@@ -261,8 +308,12 @@ export class NgCompilerHost extends DelegatingCompilerHost implements
     }
 
     // No, so it's a file which might need shims (or a file which doesn't exist).
-    const sf =
-        this.delegate.getSourceFile(fileName, languageVersion, onError, shouldCreateNewSourceFile);
+    const sf = this.delegate.getSourceFile(
+      fileName,
+      languageVersionOrOptions,
+      onError,
+      shouldCreateNewSourceFile,
+    );
     if (sf === undefined) {
       return undefined;
     }
@@ -279,22 +330,32 @@ export class NgCompilerHost extends DelegatingCompilerHost implements
     // internally only passes POSIX-like paths.
     //
     // Also note that the `maybeGenerate` check below checks for both `null` and `undefined`.
-    return this.delegate.fileExists(fileName) ||
-        this.shimAdapter.maybeGenerate(resolve(fileName)) != null;
+    return (
+      this.delegate.fileExists(fileName) ||
+      this.shimAdapter.maybeGenerate(resolve(fileName)) != null
+    );
   }
 
-  get unifiedModulesHost(): UnifiedModulesHost|null {
-    return this.fileNameToModuleName !== undefined ? this as UnifiedModulesHost : null;
+  get unifiedModulesHost(): UnifiedModulesHost | null {
+    return this.fileNameToModuleName !== undefined ? (this as UnifiedModulesHost) : null;
   }
 
   private createCachedResolveModuleNamesFunction(): ts.CompilerHost['resolveModuleNames'] {
     const moduleResolutionCache = ts.createModuleResolutionCache(
-        this.getCurrentDirectory(), this.getCanonicalFileName.bind(this));
+      this.getCurrentDirectory(),
+      this.getCanonicalFileName.bind(this),
+    );
 
     return (moduleNames, containingFile, reusedNames, redirectedReference, options) => {
-      return moduleNames.map(moduleName => {
+      return moduleNames.map((moduleName) => {
         const module = ts.resolveModuleName(
-            moduleName, containingFile, options, this, moduleResolutionCache, redirectedReference);
+          moduleName,
+          containingFile,
+          options,
+          this,
+          moduleResolutionCache,
+          redirectedReference,
+        );
         return module.resolvedModule;
       });
     };

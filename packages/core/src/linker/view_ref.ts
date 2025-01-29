@@ -3,15 +3,15 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ChangeDetectorRef} from '../change_detection/change_detector_ref';
 
 /**
- * Represents an Angular [view](guide/glossary#view "Definition").
+ * Represents an Angular view.
  *
- * @see {@link ChangeDetectorRef#usage-notes Change detection usage}
+ * @see [Change detection usage](/api/core/ChangeDetectorRef?tab=usage-notes)
  *
  * @publicApi
  */
@@ -33,12 +33,12 @@ export abstract class ViewRef extends ChangeDetectorRef {
    * @param callback A handler function that cleans up developer-defined data
    * associated with a view. Called when the `destroy()` method is invoked.
    */
-  abstract onDestroy(callback: Function): any /** TODO #9100, replace by void in a major release*/;
+  abstract onDestroy(callback: Function): void;
 }
 
 /**
- * Represents an Angular [view](guide/glossary#view) in a view container.
- * An [embedded view](guide/glossary#view-tree) can be referenced from a component
+ * Represents an Angular view in a view container.
+ * An embedded view can be referenced from a component
  * other than the hosting component whose template defines it, or it can be defined
  * independently by a `TemplateRef`.
  *
@@ -46,14 +46,14 @@ export abstract class ViewRef extends ChangeDetectorRef {
  * a view cannot. Change the structure of elements by inserting, moving, or
  * removing nested views in a view container.
  *
- * @see `ViewContainerRef`
+ * @see {@link ViewContainerRef}
  *
  * @usageNotes
  *
  * The following template breaks down into two separate `TemplateRef` instances,
  * an outer one and an inner one.
  *
- * ```
+ * ```html
  * Count: {{items.length}}
  * <ul>
  *   <li *ngFor="let  item of items">{{item}}</li>
@@ -62,7 +62,7 @@ export abstract class ViewRef extends ChangeDetectorRef {
  *
  * This is the outer `TemplateRef`:
  *
- * ```
+ * ```html
  * Count: {{items.length}}
  * <ul>
  *   <ng-template ngFor let-item [ngForOf]="items"></ng-template>
@@ -71,13 +71,13 @@ export abstract class ViewRef extends ChangeDetectorRef {
  *
  * This is the inner `TemplateRef`:
  *
- * ```
+ * ```html
  *   <li>{{item}}</li>
  * ```
  *
  * The outer and inner `TemplateRef` instances are assembled into views as follows:
  *
- * ```
+ * ```html
  * <!-- ViewRef: outer-0 -->
  * Count: 2
  * <ul>
@@ -99,19 +99,4 @@ export abstract class EmbeddedViewRef<C> extends ViewRef {
    * The root nodes for this embedded view.
    */
   abstract get rootNodes(): any[];
-}
-
-export interface InternalViewRef extends ViewRef {
-  detachFromAppRef(): void;
-  attachToAppRef(appRef: ViewRefTracker): void;
-}
-
-/**
- * Interface for tracking root `ViewRef`s in `ApplicationRef`.
- *
- * NOTE: Importing `ApplicationRef` here directly creates circular dependency, which is why we have
- * a subset of the `ApplicationRef` interface `ViewRefTracker` here.
- */
-export interface ViewRefTracker {
-  detachView(viewRef: ViewRef): void;
 }

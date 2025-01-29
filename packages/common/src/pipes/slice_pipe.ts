@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Pipe, PipeTransform} from '@angular/core';
@@ -48,7 +48,6 @@ import {invalidPipeArgumentError} from './invalid_pipe_argument_error';
 @Pipe({
   name: 'slice',
   pure: false,
-  standalone: true,
 })
 export class SlicePipe implements PipeTransform {
   /**
@@ -67,12 +66,19 @@ export class SlicePipe implements PipeTransform {
    *   - **if negative**: return all items before `end` index from the end of the list or string.
    */
   transform<T>(value: ReadonlyArray<T>, start: number, end?: number): Array<T>;
-  transform(value: null|undefined, start: number, end?: number): null;
-  transform<T>(value: ReadonlyArray<T>|null|undefined, start: number, end?: number): Array<T>|null;
+  transform(value: null | undefined, start: number, end?: number): null;
+  transform<T>(
+    value: ReadonlyArray<T> | null | undefined,
+    start: number,
+    end?: number,
+  ): Array<T> | null;
   transform(value: string, start: number, end?: number): string;
-  transform(value: string|null|undefined, start: number, end?: number): string|null;
-  transform<T>(value: ReadonlyArray<T>|string|null|undefined, start: number, end?: number):
-      Array<T>|string|null {
+  transform(value: string | null | undefined, start: number, end?: number): string | null;
+  transform<T>(
+    value: ReadonlyArray<T> | string | null | undefined,
+    start: number,
+    end?: number,
+  ): Array<T> | string | null {
     if (value == null) return null;
 
     if (!this.supports(value)) {

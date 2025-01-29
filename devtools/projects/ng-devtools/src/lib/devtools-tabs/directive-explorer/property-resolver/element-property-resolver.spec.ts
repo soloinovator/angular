@@ -3,19 +3,22 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Properties, PropType} from 'protocol';
 
+import {IndexedNode} from '../directive-forest/index-forest';
+
 import {ElementPropertyResolver} from './element-property-resolver';
 
-const mockIndexedNode = {
+const mockIndexedNode: IndexedNode = {
   component: {
     name: 'FooCmp',
     id: 0,
     isElement: false,
   },
+  hydration: null,
   directives: [
     {
       id: 1,
@@ -54,6 +57,7 @@ const fooNestedProperties: Properties = {
           value: {},
         },
       },
+      containerType: null,
     },
   },
 };
@@ -66,6 +70,7 @@ const barNestedProps: Properties = {
       preview: 'undefined',
       type: PropType.Undefined,
       value: undefined,
+      containerType: null,
     },
   },
 };
@@ -105,7 +110,6 @@ describe('ElementPropertyResolver', () => {
     });
     const fooController = resolver.getDirectiveController('FooCmp');
     expect(fooController).toBeTruthy();
-    // tslint:disable-next-line: no-non-null-assertion
     const fooProps = fooController!.getExpandedProperties();
     expect(fooProps).toEqual([
       {
@@ -125,7 +129,6 @@ describe('ElementPropertyResolver', () => {
 
     const barController = resolver.getDirectiveController('BarDir');
     expect(barController).toBeTruthy();
-    // tslint:disable-next-line: no-non-null-assertion
     const barProps = barController!.getExpandedProperties();
     expect(barProps).toEqual([
       {

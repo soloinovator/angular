@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import ts from 'typescript';
@@ -55,8 +55,12 @@ export class StringConcatBuiltinFn extends KnownFn {
     for (const arg of args) {
       const resolved = arg instanceof EnumValue ? arg.resolved : arg;
 
-      if (typeof resolved === 'string' || typeof resolved === 'number' ||
-          typeof resolved === 'boolean' || resolved == null) {
+      if (
+        typeof resolved === 'string' ||
+        typeof resolved === 'number' ||
+        typeof resolved === 'boolean' ||
+        resolved == null
+      ) {
         // Cast to `any`, because `concat` will convert
         // anything to a string, but TS only allows strings.
         result = result.concat(resolved as any);
@@ -65,25 +69,5 @@ export class StringConcatBuiltinFn extends KnownFn {
       }
     }
     return result;
-  }
-}
-
-export class ObjectAssignBuiltinFn extends KnownFn {
-  override evaluate(node: ts.CallExpression, args: ResolvedValueArray): ResolvedValue {
-    if (args.length === 0) {
-      return DynamicValue.fromUnsupportedSyntax(node);
-    }
-    for (const arg of args) {
-      if (arg instanceof DynamicValue) {
-        return DynamicValue.fromDynamicInput(node, arg);
-      } else if (!(arg instanceof Map)) {
-        return DynamicValue.fromUnsupportedSyntax(node);
-      }
-    }
-    const [target, ...sources] = args as Map<string, ResolvedValue>[];
-    for (const source of sources) {
-      source.forEach((value, key) => target.set(key, value));
-    }
-    return target;
   }
 }

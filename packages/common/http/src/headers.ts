@@ -3,13 +3,13 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 interface Update {
   name: string;
-  value?: string|string[];
-  op: 'a'|'s'|'d';
+  value?: string | string[];
+  op: 'a' | 's' | 'd';
 }
 
 /**
@@ -26,7 +26,6 @@ export class HttpHeaders {
   // TODO(issue/24571): remove '!'.
   private headers!: Map<string, string[]>;
 
-
   /**
    * Internal map of lowercased header names to the normalized
    * form of the name (the form seen first).
@@ -36,52 +35,45 @@ export class HttpHeaders {
   /**
    * Complete the lazy initialization of this object (needed before reading).
    */
-  private lazyInit!: HttpHeaders|Function|null;
+  private lazyInit!: HttpHeaders | Function | null;
 
   /**
    * Queued updates to be materialized the next initialization.
    */
-  private lazyUpdate: Update[]|null = null;
+  private lazyUpdate: Update[] | null = null;
 
   /**  Constructs a new HTTP header object with the given values.*/
 
-  constructor(headers?: string|{[name: string]: string | string[]}) {
+  constructor(
+    headers?: string | {[name: string]: string | number | (string | number)[]} | Headers,
+  ) {
     if (!headers) {
       this.headers = new Map<string, string[]>();
     } else if (typeof headers === 'string') {
       this.lazyInit = () => {
         this.headers = new Map<string, string[]>();
-        headers.split('\n').forEach(line => {
+        headers.split('\n').forEach((line) => {
           const index = line.indexOf(':');
           if (index > 0) {
             const name = line.slice(0, index);
-            const key = name.toLowerCase();
             const value = line.slice(index + 1).trim();
-            this.maybeSetNormalizedName(name, key);
-            if (this.headers.has(key)) {
-              this.headers.get(key)!.push(value);
-            } else {
-              this.headers.set(key, [value]);
-            }
+            this.addHeaderEntry(name, value);
           }
         });
       };
+    } else if (typeof Headers !== 'undefined' && headers instanceof Headers) {
+      this.headers = new Map<string, string[]>();
+      headers.forEach((value: string, name: string) => {
+        this.addHeaderEntry(name, value);
+      });
     } else {
       this.lazyInit = () => {
         if (typeof ngDevMode === 'undefined' || ngDevMode) {
           assertValidHeaders(headers);
         }
         this.headers = new Map<string, string[]>();
-        Object.keys(headers).forEach(name => {
-          let values: string|string[] = headers[name];
-          const key = name.toLowerCase();
-          if (typeof values === 'string') {
-            values = [values];
-          }
-          if (values.length > 0) {
-            this.headers.set(key, values);
-            this.maybeSetNormalizedName(name, key);
-          }
+        Object.entries(headers).forEach(([name, values]) => {
+          this.setHeaderEntries(name, values);
         });
       };
     }
@@ -107,7 +99,7 @@ export class HttpHeaders {
    *
    * @returns The value string if the header exists, null otherwise
    */
-  get(name: string): string|null {
+  get(name: string): string | null {
     this.init();
 
     const values = this.headers.get(name.toLowerCase());
@@ -132,7 +124,7 @@ export class HttpHeaders {
    *
    * @returns A string of values if the header exists, null otherwise.
    */
-  getAll(name: string): string[]|null {
+  getAll(name: string): string[] | null {
     this.init();
 
     return this.headers.get(name.toLowerCase()) || null;
@@ -148,7 +140,7 @@ export class HttpHeaders {
    * @returns A clone of the HTTP headers object with the value appended to the given header.
    */
 
-  append(name: string, value: string|string[]): HttpHeaders {
+  append(name: string, value: string | string[]): HttpHeaders {
     return this.clone({name, value, op: 'a'});
   }
   /**
@@ -161,7 +153,7 @@ export class HttpHeaders {
    *
    * @returns A clone of the HTTP headers object with the newly set header value.
    */
-  set(name: string, value: string|string[]): HttpHeaders {
+  set(name: string, value: string | string[]): HttpHeaders {
     return this.clone({name, value, op: 's'});
   }
   /**
@@ -172,7 +164,7 @@ export class HttpHeaders {
    *
    * @returns A clone of the HTTP headers object with the given value deleted.
    */
-  delete(name: string, value?: string|string[]): HttpHeaders {
+  delete(name: string, value?: string | string[]): HttpHeaders {
     return this.clone({name, value, op: 'd'});
   }
 
@@ -191,7 +183,7 @@ export class HttpHeaders {
       }
       this.lazyInit = null;
       if (!!this.lazyUpdate) {
-        this.lazyUpdate.forEach(update => this.applyUpdate(update));
+        this.lazyUpdate.forEach((update) => this.applyUpdate(update));
         this.lazyUpdate = null;
       }
     }
@@ -199,7 +191,7 @@ export class HttpHeaders {
 
   private copyFrom(other: HttpHeaders) {
     other.init();
-    Array.from(other.headers.keys()).forEach(key => {
+    Array.from(other.headers.keys()).forEach((key) => {
       this.headers.set(key, other.headers.get(key)!);
       this.normalizedNames.set(key, other.normalizedNames.get(key)!);
     });
@@ -207,8 +199,7 @@ export class HttpHeaders {
 
   private clone(update: Update): HttpHeaders {
     const clone = new HttpHeaders();
-    clone.lazyInit =
-        (!!this.lazyInit && this.lazyInit instanceof HttpHeaders) ? this.lazyInit : this;
+    clone.lazyInit = !!this.lazyInit && this.lazyInit instanceof HttpHeaders ? this.lazyInit : this;
     clone.lazyUpdate = (this.lazyUpdate || []).concat([update]);
     return clone;
   }
@@ -240,7 +231,7 @@ export class HttpHeaders {
           if (!existing) {
             return;
           }
-          existing = existing.filter(value => toDelete.indexOf(value) === -1);
+          existing = existing.filter((value) => toDelete.indexOf(value) === -1);
           if (existing.length === 0) {
             this.headers.delete(key);
             this.normalizedNames.delete(key);
@@ -252,28 +243,50 @@ export class HttpHeaders {
     }
   }
 
+  private addHeaderEntry(name: string, value: string) {
+    const key = name.toLowerCase();
+    this.maybeSetNormalizedName(name, key);
+    if (this.headers.has(key)) {
+      this.headers.get(key)!.push(value);
+    } else {
+      this.headers.set(key, [value]);
+    }
+  }
+
+  private setHeaderEntries(name: string, values: any) {
+    const headerValues = (Array.isArray(values) ? values : [values]).map((value) =>
+      value.toString(),
+    );
+    const key = name.toLowerCase();
+    this.headers.set(key, headerValues);
+    this.maybeSetNormalizedName(name, key);
+  }
+
   /**
    * @internal
    */
   forEach(fn: (name: string, values: string[]) => void) {
     this.init();
-    Array.from(this.normalizedNames.keys())
-        .forEach(key => fn(this.normalizedNames.get(key)!, this.headers.get(key)!));
+    Array.from(this.normalizedNames.keys()).forEach((key) =>
+      fn(this.normalizedNames.get(key)!, this.headers.get(key)!),
+    );
   }
 }
 
 /**
  * Verifies that the headers object has the right shape: the values
- * must be either strings or arrays. Throws an error if an invalid
+ * must be either strings, numbers or arrays. Throws an error if an invalid
  * header value is present.
  */
-function assertValidHeaders(headers: Record<string, unknown>):
-    asserts headers is Record<string, string|string[]> {
+function assertValidHeaders(
+  headers: Record<string, unknown> | Headers,
+): asserts headers is Record<string, string | string[] | number | number[]> {
   for (const [key, value] of Object.entries(headers)) {
-    if (typeof value !== 'string' && !Array.isArray(value)) {
+    if (!(typeof value === 'string' || typeof value === 'number') && !Array.isArray(value)) {
       throw new Error(
-          `Unexpected value of the \`${key}\` header provided. ` +
-          `Expecting either a string or an array, but got: \`${value}\`.`);
+        `Unexpected value of the \`${key}\` header provided. ` +
+          `Expecting either a string, a number or an array, but got: \`${value}\`.`,
+      );
     }
   }
 }

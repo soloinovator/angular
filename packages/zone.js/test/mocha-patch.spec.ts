@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // Extra Mocha-specific typings to make sure typescript compiler is happy
@@ -21,13 +21,13 @@ declare function after(fn: () => void): void;
 
 import {ifEnvSupports} from './test-util';
 
-ifEnvSupports('Mocha', function() {
+ifEnvSupports('Mocha', function () {
   describe('Mocha BDD-style', () => {
     let throwOnAsync = false;
-    let beforeEachZone: Zone|null = null;
-    let itZone: Zone|null = null;
+    let beforeEachZone: Zone | null = null;
+    let itZone: Zone | null = null;
     const syncZone = Zone.current;
-    let beforeZone: Zone|null = null;
+    let beforeZone: Zone | null = null;
 
     before(() => {
       beforeZone = Zone.current;
@@ -39,7 +39,7 @@ ifEnvSupports('Mocha', function() {
       throwOnAsync = true;
     }
 
-    beforeEach(() => beforeEachZone = Zone.current);
+    beforeEach(() => (beforeEachZone = Zone.current));
 
     it('should throw on async in describe', () => {
       expect(Zone.currentTask).toBeTruthy();
@@ -60,10 +60,16 @@ ifEnvSupports('Mocha', function() {
     });
   });
 
+  (describe as any).skip('skip describe', () => {
+    test('test', () => {
+      fail('should not be here');
+    });
+  });
+
   suite('Mocha TDD-style', () => {
-    let testZone: Zone|null = null;
-    let beforeEachZone: Zone|null = null;
-    let suiteSetupZone: Zone|null = null;
+    let testZone: Zone | null = null;
+    let beforeEachZone: Zone | null = null;
+    let suiteSetupZone: Zone | null = null;
 
     suiteSetup(() => {
       suiteSetupZone = Zone.current;
@@ -93,6 +99,10 @@ ifEnvSupports('Mocha', function() {
 
     suiteTeardown(() => {
       expect(suiteSetupZone).toBe(Zone.current);
+    });
+
+    (it as any).skip('test skip', () => {
+      fail('should not be here');
     });
   });
 

@@ -3,13 +3,28 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 // #docplaster
-import {Component, Directive, ElementRef, EventEmitter, Injectable, Injector, Input, NgModule, Output} from '@angular/core';
+import {
+  Component,
+  Directive,
+  ElementRef,
+  EventEmitter,
+  Injectable,
+  Injector,
+  Input,
+  NgModule,
+  Output,
+} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
 import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
-import {downgradeComponent, downgradeInjectable, UpgradeComponent, UpgradeModule} from '@angular/upgrade/static';
+import {
+  downgradeComponent,
+  downgradeInjectable,
+  UpgradeComponent,
+  UpgradeModule,
+} from '@angular/upgrade/static';
 
 declare var angular: ng.IAngularStatic;
 
@@ -33,11 +48,14 @@ export class TextFormatter {
   // This template uses the upgraded `ng1-hero` component
   // Note that because its element is compiled by Angular we must use camelCased attribute names
   template: `<header><ng-content selector="h1"></ng-content></header>
-             <ng-content selector=".extra"></ng-content>
-             <div *ngFor="let hero of heroes">
-               <ng1-hero [hero]="hero" (onRemove)="removeHero.emit(hero)"><strong>Super Hero</strong></ng1-hero>
-             </div>
-             <button (click)="addHero.emit()">Add Hero</button>`,
+    <ng-content selector=".extra"></ng-content>
+    <div *ngFor="let hero of heroes">
+      <ng1-hero [hero]="hero" (onRemove)="removeHero.emit(hero)"
+        ><strong>Super Hero</strong></ng1-hero
+      >
+    </div>
+    <button (click)="addHero.emit()">Add Hero</button>`,
+  standalone: false,
 })
 export class Ng2HeroesComponent {
   @Input() heroes!: Hero[];
@@ -53,19 +71,20 @@ export class HeroesService {
   heroes: Hero[] = [
     {name: 'superman', description: 'The man of steel'},
     {name: 'wonder woman', description: 'Princess of the Amazons'},
-    {name: 'thor', description: 'The hammer-wielding god'}
+    {name: 'thor', description: 'The hammer-wielding god'},
   ];
 
   // #docregion use-ng1-upgraded-service
   constructor(textFormatter: TextFormatter) {
     // Change all the hero names to title case, using the "upgraded" AngularJS service
-    this.heroes.forEach((hero: Hero) => hero.name = textFormatter.titleCase(hero.name));
+    this.heroes.forEach((hero: Hero) => (hero.name = textFormatter.titleCase(hero.name)));
   }
   // #enddocregion
 
   addHero() {
-    this.heroes =
-        this.heroes.concat([{name: 'Kamala Khan', description: 'Epic shape-shifting healer'}]);
+    this.heroes = this.heroes.concat([
+      {name: 'Kamala Khan', description: 'Epic shape-shifting healer'},
+    ]);
   }
 
   removeHero(hero: Hero) {
@@ -76,12 +95,15 @@ export class HeroesService {
 
 // #docregion ng1-hero-wrapper
 // This Angular directive will act as an interface to the "upgraded" AngularJS component
-@Directive({selector: 'ng1-hero'})
+@Directive({
+  selector: 'ng1-hero',
+  standalone: false,
+})
 export class Ng1HeroComponentWrapper extends UpgradeComponent {
   // The names of the input and output properties here must match the names of the
   // `<` and `&` bindings in the AngularJS component that is being wrapped
   @Input() hero!: Hero;
-  @Output() onRemove!: EventEmitter<void>;
+  @Output() onRemove: EventEmitter<void> = new EventEmitter();
 
   constructor(elementRef: ElementRef, injector: Injector) {
     // We must pass the name of the directive as used by AngularJS to the super
@@ -98,11 +120,11 @@ export class Ng1HeroComponentWrapper extends UpgradeComponent {
     HeroesService,
     // #docregion upgrade-ng1-service
     // Register an Angular provider whose value is the "upgraded" AngularJS service
-    {provide: TextFormatter, useFactory: (i: any) => i.get('textFormatter'), deps: ['$injector']}
+    {provide: TextFormatter, useFactory: (i: any) => i.get('textFormatter'), deps: ['$injector']},
     // #enddocregion
   ],
   // We must import `UpgradeModule` to get access to the AngularJS core services
-  imports: [BrowserModule, UpgradeModule]
+  imports: [BrowserModule, UpgradeModule],
 })
 // #docregion bootstrap-ng1
 export class Ng2AppModule {
@@ -118,7 +140,6 @@ export class Ng2AppModule {
 // #enddocregion bootstrap-ng1
 // #enddocregion ng2-module
 
-
 // This Angular 1 module represents the AngularJS pieces of the application
 export const ng1AppModule: ng.IModule = angular.module('ng1AppModule', []);
 
@@ -130,7 +151,7 @@ ng1AppModule.component('ng1Hero', {
   template: `<div class="title" ng-transclude></div>
              <h2>{{ $ctrl.hero.name }}</h2>
              <p>{{ $ctrl.hero.description }}</p>
-             <button ng-click="$ctrl.onRemove()">Remove</button>`
+             <button ng-click="$ctrl.onRemove()">Remove</button>`,
 });
 // #enddocregion
 
@@ -157,9 +178,9 @@ ng1AppModule.component('exampleApp', {
   // compilation)
   controller: [
     'heroesService',
-    function(heroesService: HeroesService) {
+    function (heroesService: HeroesService) {
       this.heroesService = heroesService;
-    }
+    },
   ],
   // This template makes use of the downgraded `ng2-heroes` component
   // Note that because its element is compiled by AngularJS we must use kebab-case attributes
@@ -168,10 +189,9 @@ ng1AppModule.component('exampleApp', {
           <ng2-heroes [heroes]="$ctrl.heroesService.heroes" (add-hero)="$ctrl.heroesService.addHero()" (remove-hero)="$ctrl.heroesService.removeHero($event)">
             <h1>Heroes</h1>
             <p class="extra">There are {{ $ctrl.heroesService.heroes.length }} heroes.</p>
-          </ng2-heroes>`
+          </ng2-heroes>`,
 });
 // #enddocregion
-
 
 // #docregion bootstrap-ng2
 // We bootstrap the Angular module as we would do in a normal Angular app.

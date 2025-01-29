@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {sha1} from './sha1';
@@ -17,15 +17,16 @@ export interface Manifest {
   index: string;
   assetGroups?: AssetGroupConfig[];
   dataGroups?: DataGroupConfig[];
-  navigationUrls: {positive: boolean, regex: string}[];
-  navigationRequestStrategy: 'freshness'|'performance';
+  navigationUrls: {positive: boolean; regex: string}[];
+  navigationRequestStrategy: 'freshness' | 'performance';
+  applicationMaxAge?: number;
   hashTable: {[url: string]: string};
 }
 
 export interface AssetGroupConfig {
   name: string;
-  installMode: 'prefetch'|'lazy';
-  updateMode: 'prefetch'|'lazy';
+  installMode: 'prefetch' | 'lazy';
+  updateMode: 'prefetch' | 'lazy';
   urls: string[];
   patterns: string[];
   cacheQueryOptions?: CacheQueryOptions;
@@ -34,7 +35,7 @@ export interface AssetGroupConfig {
 export interface DataGroupConfig {
   name: string;
   version: number;
-  strategy: 'freshness'|'performance';
+  strategy: 'freshness' | 'performance';
   patterns: string[];
   maxSize: number;
   maxAge: number;

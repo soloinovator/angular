@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import './common/microtasks.spec';
@@ -11,6 +11,7 @@ import './common/zone.spec';
 import './common/task.spec';
 import './common/util.spec';
 import './common/Promise.spec';
+import './common/queue-microtask.spec';
 import './common/fetch.spec';
 import './common/Error.spec';
 import './common/setInterval.spec';

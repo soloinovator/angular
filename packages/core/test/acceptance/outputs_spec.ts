@@ -3,27 +3,46 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CommonModule} from '@angular/common';
-import {Component, Directive, EventEmitter, Input, OnDestroy, Output, ViewChild} from '@angular/core';
+import {
+  Component,
+  Directive,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
+  ViewChild,
+} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 
 describe('outputs', () => {
-  @Component({selector: 'button-toggle', template: ''})
+  @Component({
+    selector: 'button-toggle',
+    template: '',
+    standalone: false,
+  })
   class ButtonToggle {
-    @Output('change') change = new EventEmitter();
+    @Output('change') change = new EventEmitter<void>();
 
-    @Output('reset') resetStream = new EventEmitter();
+    @Output('reset') resetStream = new EventEmitter<void>();
   }
 
-  @Directive({selector: '[otherDir]'})
+  @Directive({
+    selector: '[otherDir]',
+    standalone: false,
+  })
   class OtherDir {
-    @Output('change') changeStream = new EventEmitter();
+    @Output('change') changeStream = new EventEmitter<void>();
   }
 
-  @Component({selector: 'destroy-comp', template: ''})
+  @Component({
+    selector: 'destroy-comp',
+    template: '',
+    standalone: false,
+  })
   class DestroyComp implements OnDestroy {
     events: string[] = [];
     ngOnDestroy() {
@@ -31,15 +50,21 @@ describe('outputs', () => {
     }
   }
 
-  @Directive({selector: '[myButton]'})
+  @Directive({
+    selector: '[myButton]',
+    standalone: false,
+  })
   class MyButton {
-    @Output() click = new EventEmitter();
+    @Output() click = new EventEmitter<void>();
   }
 
   it('should call component output function when event is emitted', () => {
     let counter = 0;
 
-    @Component({template: '<button-toggle (change)="onChange()"></button-toggle>'})
+    @Component({
+      template: '<button-toggle (change)="onChange()"></button-toggle>',
+      standalone: false,
+    })
     class App {
       @ViewChild(ButtonToggle) buttonToggle!: ButtonToggle;
       onChange() {
@@ -61,8 +86,10 @@ describe('outputs', () => {
     let counter = 0;
     let resetCounter = 0;
 
-    @Component(
-        {template: '<button-toggle (change)="onChange()" (reset)="onReset()"></button-toggle>'})
+    @Component({
+      template: '<button-toggle (change)="onChange()" (reset)="onReset()"></button-toggle>',
+      standalone: false,
+    })
     class App {
       @ViewChild(ButtonToggle) buttonToggle!: ButtonToggle;
       onChange() {
@@ -84,7 +111,10 @@ describe('outputs', () => {
   });
 
   it('should eval component output expression when event is emitted', () => {
-    @Component({template: '<button-toggle (change)="counter = counter + 1"></button-toggle>'})
+    @Component({
+      template: '<button-toggle (change)="counter = counter + 1"></button-toggle>',
+      standalone: false,
+    })
     class App {
       @ViewChild(ButtonToggle) buttonToggle!: ButtonToggle;
       counter = 0;
@@ -103,8 +133,10 @@ describe('outputs', () => {
   it('should unsubscribe from output when view is destroyed', () => {
     let counter = 0;
 
-    @Component(
-        {template: '<button-toggle *ngIf="condition" (change)="onChange()"></button-toggle>'})
+    @Component({
+      template: '<button-toggle *ngIf="condition" (change)="onChange()"></button-toggle>',
+      standalone: false,
+    })
     class App {
       @ViewChild(ButtonToggle) buttonToggle!: ButtonToggle;
       condition = true;
@@ -136,7 +168,8 @@ describe('outputs', () => {
         <div *ngIf="condition">
           <button-toggle *ngIf="condition2" (change)="onChange()"></button-toggle>
         </div>
-      `
+      `,
+      standalone: false,
     })
     class App {
       @ViewChild(ButtonToggle) buttonToggle!: ButtonToggle;
@@ -173,7 +206,8 @@ describe('outputs', () => {
           <button-toggle (change)="onChange()"></button-toggle>
           <destroy-comp></destroy-comp>
         </div>
-      `
+      `,
+      standalone: false,
     })
     class App {
       @ViewChild(ButtonToggle) buttonToggle!: ButtonToggle;
@@ -187,8 +221,10 @@ describe('outputs', () => {
         changeCounter++;
       }
     }
-    TestBed.configureTestingModule(
-        {imports: [CommonModule], declarations: [App, ButtonToggle, DestroyComp]});
+    TestBed.configureTestingModule({
+      imports: [CommonModule],
+      declarations: [App, ButtonToggle, DestroyComp],
+    });
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const {buttonToggle, destroyComp} = fixture.componentInstance;
@@ -216,7 +252,10 @@ describe('outputs', () => {
   it('should fire event listeners along with outputs if they match', () => {
     let counter = 0;
 
-    @Component({template: '<button myButton (click)="onClick()">Click me</button>'})
+    @Component({
+      template: '<button myButton (click)="onClick()">Click me</button>',
+      standalone: false,
+    })
     class App {
       @ViewChild(MyButton) buttonDir!: MyButton;
       onClick() {
@@ -240,7 +279,10 @@ describe('outputs', () => {
   it('should work with two outputs of the same name', () => {
     let counter = 0;
 
-    @Component({template: '<button-toggle (change)="onChange()" otherDir></button-toggle>'})
+    @Component({
+      template: '<button-toggle (change)="onChange()" otherDir></button-toggle>',
+      standalone: false,
+    })
     class App {
       @ViewChild(ButtonToggle) buttonToggle!: ButtonToggle;
       @ViewChild(OtherDir) otherDir!: OtherDir;
@@ -262,14 +304,18 @@ describe('outputs', () => {
   it('should work with an input and output of the same name', () => {
     let counter = 0;
 
-    @Directive({selector: '[otherChangeDir]'})
+    @Directive({
+      selector: '[otherChangeDir]',
+      standalone: false,
+    })
     class OtherChangeDir {
       @Input() change!: boolean;
     }
 
     @Component({
       template:
-          '<button-toggle (change)="onChange()" otherChangeDir [change]="change"></button-toggle>'
+        '<button-toggle (change)="onChange()" otherChangeDir [change]="change"></button-toggle>',
+      standalone: false,
     })
     class App {
       @ViewChild(ButtonToggle) buttonToggle!: ButtonToggle;

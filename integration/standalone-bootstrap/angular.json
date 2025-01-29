@@ -11,11 +11,14 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist",
+            "outputHashing": "none",
+            "outputPath": {
+              "base": "dist",
+              "browser": ""
+            },
             "index": "src/index.html",
-            "main": "src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -24,23 +27,17 @@
             "assets": ["src/favicon.ico", "src/assets"],
             "styles": ["src/styles.css"],
             "scripts": [],
-            "progress": false
+            "optimization": false,
+            "progress": false,
+            "browser": "src/main.ts"
           },
           "configurations": {
             "production": {
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.prod.ts"
-                }
-              ],
               "optimization": true,
-              "outputHashing": "all",
+              "outputHashing": "none",
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
               "budgets": [
                 {
                   "type": "initial",
@@ -57,35 +54,35 @@
           }
         },
         "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
+          "builder": "@angular/build:dev-server",
           "options": {
-            "browserTarget": "standalone-bootstrap:build"
+            "buildTarget": "standalone-bootstrap:build"
           },
           "configurations": {
             "dev": {
-              "browserTarget": "standalone-bootstrap:build:dev"
+              "buildTarget": "standalone-bootstrap:build:dev"
             },
             "production": {
-              "browserTarget": "standalone-bootstrap:build:production"
+              "buildTarget": "standalone-bootstrap:build:production"
             },
             "ci": {},
             "ci-production": {
-              "browserTarget": "standalone-bootstrap:build:production"
+              "buildTarget": "standalone-bootstrap:build:production"
             }
           }
         },
         "extract-i18n": {
-          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "builder": "@angular/build:extract-i18n",
           "options": {
-            "browserTarget": "standalone-bootstrap:build"
+            "buildTarget": "standalone-bootstrap:build"
           }
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "src/test.ts",
             "polyfills": [
-              "zone.js"
+              "zone.js",
+              "zone.js/testing"
             ],
             "tsConfig": "tsconfig.spec.json",
             "karmaConfig": "karma.conf.js",
@@ -97,14 +94,14 @@
           }
         },
         "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
+          "builder": "@angular/build:tslint",
           "options": {
             "tsConfig": ["tsconfig.app.json", "tsconfig.spec.json", "e2e/tsconfig.json"],
             "exclude": ["**/node_modules/**"]
           }
         },
         "e2e": {
-          "builder": "@angular-devkit/build-angular:protractor",
+          "builder": "@angular-devkit/build-angular:private-protractor",
           "options": {
             "protractorConfig": "e2e/protractor.conf.js",
             "devServerTarget": "standalone-bootstrap:serve",
@@ -124,5 +121,11 @@
         }
       }
     }
+  },
+  "cli": {
+    "cache": {
+      "enabled": false
+    },
+    "analytics": false
   }
 }

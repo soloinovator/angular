@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Inject, Injectable, LOCALE_ID} from '@angular/core';
@@ -28,7 +28,11 @@ export abstract class NgLocalization {
  * - the plural category otherwise
  */
 export function getPluralCategory(
-    value: number, cases: string[], ngLocalization: NgLocalization, locale?: string): string {
+  value: number,
+  cases: string[],
+  ngLocalization: NgLocalization,
+  locale?: string,
+): string {
   let key = `=${value}`;
 
   if (cases.indexOf(key) > -1) {

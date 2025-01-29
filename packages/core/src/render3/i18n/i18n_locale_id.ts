@@ -3,12 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {DEFAULT_LOCALE_ID} from '../../i18n/localization';
 import {assertDefined} from '../../util/assert';
-
 
 /**
  * The locale id that the application is currently using (for translations and ICU expressions).
@@ -25,7 +24,7 @@ let LOCALE_ID = DEFAULT_LOCALE_ID;
  * @param localeId
  */
 export function setLocaleId(localeId: string) {
-  assertDefined(localeId, `Expected localeId to be defined`);
+  ngDevMode && assertDefined(localeId, `Expected localeId to be defined`);
   if (typeof localeId === 'string') {
     LOCALE_ID = localeId.toLowerCase().replace(/_/g, '-');
   }

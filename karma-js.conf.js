@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 const browserProvidersConf = require('./browser-providers.conf');
@@ -12,7 +12,14 @@ const {hostname} = require('os');
 const seed = process.env.JASMINE_RANDOM_SEED || String(Math.random()).slice(-5);
 console.info(`Jasmine random seed: ${seed}`);
 
-module.exports = function(config) {
+const isBazel = !!process.env.TEST_TARGET;
+
+if (!process.env.KARMA_WEB_TEST_MODE && isBazel && process.env.TEST_TARGET.includes('_saucelabs')) {
+  console.info(`Saucelabs target detected: ${process.env.TEST_TARGET}`);
+  process.env.KARMA_WEB_TEST_MODE = 'SL_REQUIRED';
+}
+
+module.exports = function (config) {
   const conf = {
     frameworks: ['jasmine'],
 
@@ -35,19 +42,11 @@ module.exports = function(config) {
       {pattern: 'node_modules/angular-1.8/angular?(.min).js', included: false, watched: false},
       {pattern: 'node_modules/angular-mocks-1.8/angular-mocks.js', included: false, watched: false},
 
-      'node_modules/core-js-bundle/index.js',
       'node_modules/jasmine-ajax/lib/mock-ajax.js',
 
       // Static test assets.
       {pattern: 'packages/platform-browser/test/static_assets/**/*', included: false},
       {pattern: 'packages/platform-browser/test/browser/static_assets/**/*', included: false},
-
-      // Serve polyfills necessary for testing the `elements` package.
-      {
-        pattern: 'node_modules/@webcomponents/custom-elements/**/*.js',
-        included: false,
-        watched: false,
-      },
 
       'node_modules/reflect-metadata/Reflect.js',
 
@@ -56,12 +55,7 @@ module.exports = function(config) {
 
     customLaunchers: browserProvidersConf.customLaunchers,
 
-    plugins: [
-      'karma-jasmine',
-      'karma-sauce-launcher',
-      'karma-chrome-launcher',
-      'karma-sourcemap-loader',
-    ],
+    plugins: ['karma-jasmine', 'karma-chrome-launcher', 'karma-sourcemap-loader'],
 
     preprocessors: {
       '**/*.js': ['sourcemap'],
@@ -107,27 +101,36 @@ module.exports = function(config) {
     set: () => {},
   });
 
-  if (process.env['SAUCE_TUNNEL_IDENTIFIER']) {
-    console.log(`SAUCE_TUNNEL_IDENTIFIER: ${process.env.SAUCE_TUNNEL_IDENTIFIER}`);
+  if (isBazel) {
+    // Add the custom Saucelabs daemon to the plugins
+    const saucelabsDaemonLauncher = require('./tools/saucelabs-daemon/launcher/index.cjs').default;
+    conf.plugins.push(saucelabsDaemonLauncher);
+  } else {
+    conf.plugins.push('karma-sauce-launcher');
 
-    const tunnelIdentifier = process.env['SAUCE_TUNNEL_IDENTIFIER'];
+    if (process.env['SAUCE_TUNNEL_IDENTIFIER']) {
+      console.log(`SAUCE_TUNNEL_IDENTIFIER: ${process.env.SAUCE_TUNNEL_IDENTIFIER}`);
 
-    // Setup the Saucelabs plugin so that it can launch browsers using the proper tunnel.
-    conf.sauceLabs.build = tunnelIdentifier;
-    conf.sauceLabs.tunnelIdentifier = tunnelIdentifier;
+      const tunnelIdentifier = process.env['SAUCE_TUNNEL_IDENTIFIER'];
 
-    // Patch the `saucelabs` package so that `karma-sauce-launcher` does not attempt downloading
-    // the test logs from upstream and tries re-uploading them with the Karma enhanced details.
-    // This slows-down tests/browser restarting and can decrease stability.
-    // https://github.com/karma-runner/karma-sauce-launcher/blob/59b0c5c877448e064ad56449cd906743721c6b62/src/launcher/launcher.ts#L72-L79.
-    require('saucelabs').default.prototype.downloadJobAsset = () => Promise.resolve('<FAKE-LOGS>');
+      // Setup the Saucelabs plugin so that it can launch browsers using the proper tunnel.
+      conf.sauceLabs.build = tunnelIdentifier;
+      conf.sauceLabs.tunnelIdentifier = tunnelIdentifier;
+
+      // Patch the `saucelabs` package so that `karma-sauce-launcher` does not attempt downloading
+      // the test logs from upstream and tries re-uploading them with the Karma enhanced details.
+      // This slows-down tests/browser restarting and can decrease stability.
+      // https://github.com/karma-runner/karma-sauce-launcher/blob/59b0c5c877448e064ad56449cd906743721c6b62/src/launcher/launcher.ts#L72-L79.
+      require('saucelabs').default.prototype.downloadJobAsset = () =>
+        Promise.resolve('<FAKE-LOGS>');
+    }
   }
 
   // For SauceLabs jobs, we set up a domain which resolves to the machine which launched
   // the tunnel. We do this because devices are sometimes not able to properly resolve
   // `localhost` or `127.0.0.1` through the SauceLabs tunnel. Using a domain that does not
   // resolve to anything on SauceLabs VMs ensures that such requests are always resolved through
-  // the tunnel, and resolve to the actual tunnel host machine (commonly the CircleCI VMs).
+  // the tunnel, and resolve to the actual tunnel host machine (commonly the GHA VMs).
   // More context can be found in: https://github.com/angular/angular/pull/35171.
   if (process.env.SAUCE_LOCALHOST_ALIAS_DOMAIN) {
     conf.hostname = process.env.SAUCE_LOCALHOST_ALIAS_DOMAIN;
@@ -148,7 +151,8 @@ module.exports = function(config) {
         break;
       default:
         throw new Error(
-            `Unrecognized process.env.KARMA_WEB_TEST_MODE: ${process.env.KARMA_WEB_TEST_MODE}`);
+          `Unrecognized process.env.KARMA_WEB_TEST_MODE: ${process.env.KARMA_WEB_TEST_MODE}`,
+        );
     }
   } else {
     // Run the test locally

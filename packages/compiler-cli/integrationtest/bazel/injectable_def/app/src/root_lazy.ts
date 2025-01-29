@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, NgModule, Optional, Self} from '@angular/core';
@@ -13,6 +13,7 @@ import {Service} from './root_service';
 @Component({
   selector: 'lazy-route',
   template: '{{service}}:{{serviceInLazyInjector}}',
+  standalone: false,
 })
 export class RouteComponent {
   service: boolean;
@@ -25,11 +26,6 @@ export class RouteComponent {
 
 @NgModule({
   declarations: [RouteComponent],
-  imports: [
-    RouterModule.forChild([
-      {path: '', pathMatch: 'prefix', component: RouteComponent},
-    ]),
-  ],
+  imports: [RouterModule.forChild([{path: '', pathMatch: 'prefix', component: RouteComponent}])],
 })
-export class LazyModule {
-}
+export class LazyModule {}

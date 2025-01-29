@@ -6,7 +6,7 @@ export const caretaker: CaretakerConfig = {
   githubQueries: [
     {
       name: 'Merge Queue',
-      query: `is:pr is:open status:success label:"action: merge"`,
+      query: `is:pr is:open label:"action: merge"`,
     },
     {
       name: 'Merge Assistance Queue',
@@ -14,7 +14,7 @@ export const caretaker: CaretakerConfig = {
     },
     {
       name: 'Initial Triage Queue',
-      query: `is:open no:milestone`,
+      query: `is:open no:milestone -draft:true`,
     },
   ],
   caretakerGroup: 'angular-caretaker',

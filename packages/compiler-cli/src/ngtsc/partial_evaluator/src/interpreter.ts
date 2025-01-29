@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import ts from 'typescript';
@@ -11,17 +11,21 @@ import ts from 'typescript';
 import {Reference} from '../../imports';
 import {OwningModule} from '../../imports/src/references';
 import {DependencyTracker} from '../../incremental/api';
-import {Declaration, DeclarationKind, DeclarationNode, EnumMember, FunctionDefinition, isConcreteDeclaration, ReflectionHost, SpecialDeclarationKind} from '../../reflection';
+import {Declaration, DeclarationNode, FunctionDefinition, ReflectionHost} from '../../reflection';
 import {isDeclaration} from '../../util/src/typescript';
 
 import {ArrayConcatBuiltinFn, ArraySliceBuiltinFn, StringConcatBuiltinFn} from './builtin';
 import {DynamicValue} from './dynamic';
-import {ForeignFunctionResolver} from './interface';
-import {resolveKnownDeclaration} from './known_declaration';
-import {EnumValue, KnownFn, ResolvedModule, ResolvedValue, ResolvedValueArray, ResolvedValueMap} from './result';
+import type {ForeignFunctionResolver} from './interface';
+import {
+  EnumValue,
+  KnownFn,
+  ResolvedModule,
+  ResolvedValue,
+  ResolvedValueArray,
+  ResolvedValueMap,
+} from './result';
 import {SyntheticValue} from './synthetic';
-
-
 
 /**
  * Tracks the scope of a function body, which includes `ResolvedValue`s for the parameters of that
@@ -64,12 +68,14 @@ const BINARY_OPERATORS = new Map<ts.SyntaxKind, BinaryOperatorDef>([
   [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken, literalBinaryOp((a, b) => a >>> b)],
   [ts.SyntaxKind.AsteriskAsteriskToken, literalBinaryOp((a, b) => Math.pow(a, b))],
   [ts.SyntaxKind.AmpersandAmpersandToken, referenceBinaryOp((a, b) => a && b)],
-  [ts.SyntaxKind.BarBarToken, referenceBinaryOp((a, b) => a || b)]
+  [ts.SyntaxKind.BarBarToken, referenceBinaryOp((a, b) => a || b)],
 ]);
 
 const UNARY_OPERATORS = new Map<ts.SyntaxKind, (a: any) => any>([
-  [ts.SyntaxKind.TildeToken, a => ~a], [ts.SyntaxKind.MinusToken, a => -a],
-  [ts.SyntaxKind.PlusToken, a => +a], [ts.SyntaxKind.ExclamationToken, a => !a]
+  [ts.SyntaxKind.TildeToken, (a) => ~a],
+  [ts.SyntaxKind.MinusToken, (a) => -a],
+  [ts.SyntaxKind.PlusToken, (a) => +a],
+  [ts.SyntaxKind.ExclamationToken, (a) => !a],
 ]);
 
 interface Context {
@@ -77,7 +83,7 @@ interface Context {
   /**
    * The module name (if any) which was used to reach the currently resolving symbols.
    */
-  absoluteModuleName: string|null;
+  absoluteModuleName: string | null;
 
   /**
    * A file name representing the context in which the current `absoluteModuleName`, if any, was
@@ -89,8 +95,10 @@ interface Context {
 }
 export class StaticInterpreter {
   constructor(
-      private host: ReflectionHost, private checker: ts.TypeChecker,
-      private dependencyTracker: DependencyTracker|null) {}
+    private host: ReflectionHost,
+    private checker: ts.TypeChecker,
+    private dependencyTracker: DependencyTracker | null,
+  ) {}
 
   visit(node: ts.Expression, context: Context): ResolvedValue {
     return this.visitExpression(node, context);
@@ -147,8 +155,10 @@ export class StaticInterpreter {
     return result;
   }
 
-  private visitArrayLiteralExpression(node: ts.ArrayLiteralExpression, context: Context):
-      ResolvedValue {
+  private visitArrayLiteralExpression(
+    node: ts.ArrayLiteralExpression,
+    context: Context,
+  ): ResolvedValue {
     const array: ResolvedValueArray = [];
     for (let i = 0; i < node.elements.length; i++) {
       const element = node.elements[i];
@@ -161,8 +171,10 @@ export class StaticInterpreter {
     return array;
   }
 
-  protected visitObjectLiteralExpression(node: ts.ObjectLiteralExpression, context: Context):
-      ResolvedValue {
+  protected visitObjectLiteralExpression(
+    node: ts.ObjectLiteralExpression,
+    context: Context,
+  ): ResolvedValue {
     const map: ResolvedValueMap = new Map<string, ResolvedValue>();
     for (let i = 0; i < node.properties.length; i++) {
       const property = node.properties[i];
@@ -190,7 +202,9 @@ export class StaticInterpreter {
           spread.getExports().forEach((value, key) => map.set(key, value));
         } else {
           return DynamicValue.fromDynamicInput(
-              node, DynamicValue.fromInvalidExpressionType(property, spread));
+            node,
+            DynamicValue.fromInvalidExpressionType(property, spread),
+          );
         }
       } else {
         return DynamicValue.fromUnknown(node);
@@ -203,9 +217,9 @@ export class StaticInterpreter {
     const pieces: string[] = [node.head.text];
     for (let i = 0; i < node.templateSpans.length; i++) {
       const span = node.templateSpans[i];
-      const value = literal(
-          this.visit(span.expression, context),
-          () => DynamicValue.fromDynamicString(span.expression));
+      const value = literal(this.visit(span.expression, context), () =>
+        DynamicValue.fromDynamicString(span.expression),
+      );
       if (value instanceof DynamicValue) {
         return DynamicValue.fromDynamicInput(node, value);
       }
@@ -217,7 +231,7 @@ export class StaticInterpreter {
   private visitIdentifier(node: ts.Identifier, context: Context): ResolvedValue {
     const decl = this.host.getDeclarationOfIdentifier(node);
     if (decl === null) {
-      if (node.originalKeywordKind === ts.SyntaxKind.UndefinedKeyword) {
+      if (ts.identifierToKeywordKind(node) === ts.SyntaxKind.UndefinedKeyword) {
         return undefined;
       } else {
         // Check if the symbol here is imported.
@@ -232,15 +246,8 @@ export class StaticInterpreter {
         return DynamicValue.fromUnknownIdentifier(node);
       }
     }
-    if (decl.known !== null) {
-      return resolveKnownDeclaration(decl.known);
-    } else if (
-        isConcreteDeclaration(decl) && decl.identity !== null &&
-        decl.identity.kind === SpecialDeclarationKind.DownleveledEnum) {
-      return this.getResolvedEnum(decl.node, decl.identity.enumMembers, context);
-    }
     const declContext = {...context, ...joinModuleContext(context, node, decl)};
-    const result = this.visitAmbiguousDeclaration(decl, declContext);
+    const result = this.visitDeclaration(decl.node, declContext);
     if (result instanceof Reference) {
       // Only record identifiers to non-synthetic references. Synthetic references may not have the
       // same value at runtime as they do at compile time, so it's not legal to refer to them by the
@@ -307,7 +314,7 @@ export class StaticInterpreter {
   private visitEnumDeclaration(node: ts.EnumDeclaration, context: Context): ResolvedValue {
     const enumRef = this.getReference(node, context);
     const map = new Map<string, EnumValue>();
-    node.members.forEach(member => {
+    node.members.forEach((member) => {
       const name = this.stringNameFromPropertyName(member.name, context);
       if (name !== undefined) {
         const resolved = member.initializer && this.visit(member.initializer, context);
@@ -317,8 +324,10 @@ export class StaticInterpreter {
     return map;
   }
 
-  private visitElementAccessExpression(node: ts.ElementAccessExpression, context: Context):
-      ResolvedValue {
+  private visitElementAccessExpression(
+    node: ts.ElementAccessExpression,
+    context: Context,
+  ): ResolvedValue {
     const lhs = this.visitExpression(node.expression, context);
     if (lhs instanceof DynamicValue) {
       return DynamicValue.fromDynamicInput(node, lhs);
@@ -334,8 +343,10 @@ export class StaticInterpreter {
     return this.accessHelper(node, lhs, rhs, context);
   }
 
-  private visitPropertyAccessExpression(node: ts.PropertyAccessExpression, context: Context):
-      ResolvedValue {
+  private visitPropertyAccessExpression(
+    node: ts.PropertyAccessExpression,
+    context: Context,
+  ): ResolvedValue {
     const lhs = this.visitExpression(node.expression, context);
     const rhs = node.name.text;
     // TODO: handle reference to class declaration.
@@ -351,33 +362,23 @@ export class StaticInterpreter {
       return DynamicValue.fromUnknown(node);
     }
 
-    return new ResolvedModule(declarations, decl => {
-      if (decl.known !== null) {
-        return resolveKnownDeclaration(decl.known);
-      }
-
+    return new ResolvedModule(declarations, (decl) => {
       const declContext = {
         ...context,
         ...joinModuleContext(context, node, decl),
       };
 
       // Visit both concrete and inline declarations.
-      return this.visitAmbiguousDeclaration(decl, declContext);
+      return this.visitDeclaration(decl.node, declContext);
     });
   }
 
-  private visitAmbiguousDeclaration(decl: Declaration, declContext: Context) {
-    return decl.kind === DeclarationKind.Inline && decl.implementation !== undefined &&
-            !isDeclaration(decl.implementation) ?
-        // Inline declarations whose `implementation` is a `ts.Expression` should be visited as
-        // an expression.
-        this.visitExpression(decl.implementation, declContext) :
-        // Otherwise just visit the `node` as a declaration.
-        this.visitDeclaration(decl.node, declContext);
-  }
-
-  private accessHelper(node: ts.Node, lhs: ResolvedValue, rhs: string|number, context: Context):
-      ResolvedValue {
+  private accessHelper(
+    node: ts.Node,
+    lhs: ResolvedValue,
+    rhs: string | number,
+    context: Context,
+  ): ResolvedValue {
     const strIndex = `${rhs}`;
     if (lhs instanceof Map) {
       if (lhs.has(strIndex)) {
@@ -406,8 +407,9 @@ export class StaticInterpreter {
       if (this.host.isClass(ref)) {
         const module = owningModule(context, lhs.bestGuessOwningModule);
         let value: ResolvedValue = undefined;
-        const member = this.host.getMembersOfClass(ref).find(
-            member => member.isStatic && member.name === strIndex);
+        const member = this.host
+          .getMembersOfClass(ref)
+          .find((member) => member.isStatic && member.name === strIndex);
         if (member !== undefined) {
           if (member.value !== null) {
             value = this.visitExpression(member.value, context);
@@ -420,7 +422,9 @@ export class StaticInterpreter {
         return value;
       } else if (isDeclaration(ref)) {
         return DynamicValue.fromDynamicInput(
-            node, DynamicValue.fromExternalReference(ref, lhs as Reference<ts.Declaration>));
+          node,
+          DynamicValue.fromExternalReference(ref, lhs as Reference<ts.Declaration>),
+        );
       }
     } else if (lhs instanceof DynamicValue) {
       return DynamicValue.fromDynamicInput(node, lhs);
@@ -457,15 +461,18 @@ export class StaticInterpreter {
 
     const resolveFfrExpr = (expr: ts.Expression) => {
       let contextExtension: {
-        absoluteModuleName?: string|null,
-        resolutionContext?: string,
+        absoluteModuleName?: string | null;
+        resolutionContext?: string;
       } = {};
 
       // TODO(alxhub): the condition `fn.body === null` here is vestigial - we probably _do_ want to
       // change the context like this even for non-null function bodies. But, this is being
       // redesigned as a refactoring with no behavior changes so that should be done as a follow-up.
-      if (fn.body === null && expr.getSourceFile() !== node.expression.getSourceFile() &&
-          lhs.bestGuessOwningModule !== null) {
+      if (
+        fn.body === null &&
+        expr.getSourceFile() !== node.expression.getSourceFile() &&
+        lhs.bestGuessOwningModule !== null
+      ) {
         contextExtension = {
           absoluteModuleName: lhs.bestGuessOwningModule.specifier,
           resolutionContext: lhs.bestGuessOwningModule.resolutionContext,
@@ -479,7 +486,9 @@ export class StaticInterpreter {
     // foreignFunctionResolver, if one is specified.
     if (fn.body === null && context.foreignFunctionResolver !== undefined) {
       const unresolvable = DynamicValue.fromDynamicInput(
-          node, DynamicValue.fromExternalReference(node.expression, lhs));
+        node,
+        DynamicValue.fromExternalReference(node.expression, lhs),
+      );
       return context.foreignFunctionResolver(lhs, node, resolveFfrExpr, unresolvable);
     }
 
@@ -513,8 +522,11 @@ export class StaticInterpreter {
     return res;
   }
 
-  private visitFunctionBody(node: ts.CallExpression, fn: FunctionDefinition, context: Context):
-      ResolvedValue {
+  private visitFunctionBody(
+    node: ts.CallExpression,
+    fn: FunctionDefinition,
+    context: Context,
+  ): ResolvedValue {
     if (fn.body === null) {
       return DynamicValue.fromUnknown(node);
     } else if (fn.body.length !== 1 || !ts.isReturnStatement(fn.body[0])) {
@@ -536,12 +548,15 @@ export class StaticInterpreter {
       newScope.set(param.node, arg);
     });
 
-    return ret.expression !== undefined ? this.visitExpression(ret.expression, calleeContext) :
-                                          undefined;
+    return ret.expression !== undefined
+      ? this.visitExpression(ret.expression, calleeContext)
+      : undefined;
   }
 
-  private visitConditionalExpression(node: ts.ConditionalExpression, context: Context):
-      ResolvedValue {
+  private visitConditionalExpression(
+    node: ts.ConditionalExpression,
+    context: Context,
+  ): ResolvedValue {
     const condition = this.visitExpression(node.condition, context);
     if (condition instanceof DynamicValue) {
       return DynamicValue.fromDynamicInput(node, condition);
@@ -554,8 +569,10 @@ export class StaticInterpreter {
     }
   }
 
-  private visitPrefixUnaryExpression(node: ts.PrefixUnaryExpression, context: Context):
-      ResolvedValue {
+  private visitPrefixUnaryExpression(
+    node: ts.PrefixUnaryExpression,
+    context: Context,
+  ): ResolvedValue {
     const operatorKind = node.operator;
     if (!UNARY_OPERATORS.has(operatorKind)) {
       return DynamicValue.fromUnsupportedSyntax(node);
@@ -579,12 +596,12 @@ export class StaticInterpreter {
     const opRecord = BINARY_OPERATORS.get(tokenKind)!;
     let lhs: ResolvedValue, rhs: ResolvedValue;
     if (opRecord.literal) {
-      lhs = literal(
-          this.visitExpression(node.left, context),
-          value => DynamicValue.fromInvalidExpressionType(node.left, value));
-      rhs = literal(
-          this.visitExpression(node.right, context),
-          value => DynamicValue.fromInvalidExpressionType(node.right, value));
+      lhs = literal(this.visitExpression(node.left, context), (value) =>
+        DynamicValue.fromInvalidExpressionType(node.left, value),
+      );
+      rhs = literal(this.visitExpression(node.right, context), (value) =>
+        DynamicValue.fromInvalidExpressionType(node.right, value),
+      );
     } else {
       lhs = this.visitExpression(node.left, context);
       rhs = this.visitExpression(node.right, context);
@@ -598,8 +615,10 @@ export class StaticInterpreter {
     }
   }
 
-  private visitParenthesizedExpression(node: ts.ParenthesizedExpression, context: Context):
-      ResolvedValue {
+  private visitParenthesizedExpression(
+    node: ts.ParenthesizedExpression,
+    context: Context,
+  ): ResolvedValue {
     return this.visitExpression(node.expression, context);
   }
 
@@ -630,9 +649,11 @@ export class StaticInterpreter {
     const path: ts.BindingElement[] = [];
     let closestDeclaration: ts.Node = node;
 
-    while (ts.isBindingElement(closestDeclaration) ||
-           ts.isArrayBindingPattern(closestDeclaration) ||
-           ts.isObjectBindingPattern(closestDeclaration)) {
+    while (
+      ts.isBindingElement(closestDeclaration) ||
+      ts.isArrayBindingPattern(closestDeclaration) ||
+      ts.isObjectBindingPattern(closestDeclaration)
+    ) {
       if (ts.isBindingElement(closestDeclaration)) {
         path.unshift(closestDeclaration);
       }
@@ -640,14 +661,16 @@ export class StaticInterpreter {
       closestDeclaration = closestDeclaration.parent;
     }
 
-    if (!ts.isVariableDeclaration(closestDeclaration) ||
-        closestDeclaration.initializer === undefined) {
+    if (
+      !ts.isVariableDeclaration(closestDeclaration) ||
+      closestDeclaration.initializer === undefined
+    ) {
       return DynamicValue.fromUnknown(node);
     }
 
     let value = this.visit(closestDeclaration.initializer, context);
     for (const element of path) {
-      let key: number|string;
+      let key: number | string;
       if (ts.isArrayBindingPattern(element.parent)) {
         key = element.parent.elements.indexOf(element);
       } else {
@@ -667,7 +690,7 @@ export class StaticInterpreter {
     return value;
   }
 
-  private stringNameFromPropertyName(node: ts.PropertyName, context: Context): string|undefined {
+  private stringNameFromPropertyName(node: ts.PropertyName, context: Context): string | undefined {
     if (ts.isIdentifier(node) || ts.isStringLiteral(node) || ts.isNumericLiteral(node)) {
       return node.text;
     } else if (ts.isComputedPropertyName(node)) {
@@ -676,20 +699,6 @@ export class StaticInterpreter {
     } else {
       return undefined;
     }
-  }
-
-  private getResolvedEnum(node: ts.Declaration, enumMembers: EnumMember[], context: Context):
-      ResolvedValue {
-    const enumRef = this.getReference(node, context);
-    const map = new Map<string, EnumValue>();
-    enumMembers.forEach(member => {
-      const name = this.stringNameFromPropertyName(member.name, context);
-      if (name !== undefined) {
-        const resolved = this.visit(member.initializer, context);
-        map.set(name, new EnumValue(enumRef, name, resolved));
-      }
-    });
-    return map;
   }
 
   private getReference<T extends DeclarationNode>(node: T, context: Context): Reference<T> {
@@ -733,23 +742,35 @@ export class StaticInterpreter {
     }
 
     const declContext: Context = {...context, ...joinModuleContext(context, node, decl)};
-    return this.visitAmbiguousDeclaration(decl, declContext);
+    return this.visitDeclaration(decl.node, declContext);
   }
 }
 
-function isFunctionOrMethodReference(ref: Reference<ts.Node>):
-    ref is Reference<ts.FunctionDeclaration|ts.MethodDeclaration|ts.FunctionExpression> {
-  return ts.isFunctionDeclaration(ref.node) || ts.isMethodDeclaration(ref.node) ||
-      ts.isFunctionExpression(ref.node);
+function isFunctionOrMethodReference(
+  ref: Reference<ts.Node>,
+): ref is Reference<ts.FunctionDeclaration | ts.MethodDeclaration | ts.FunctionExpression> {
+  return (
+    ts.isFunctionDeclaration(ref.node) ||
+    ts.isMethodDeclaration(ref.node) ||
+    ts.isFunctionExpression(ref.node)
+  );
 }
 
 function literal(
-    value: ResolvedValue, reject: (value: ResolvedValue) => ResolvedValue): ResolvedValue {
+  value: ResolvedValue,
+  reject: (value: ResolvedValue) => ResolvedValue,
+): ResolvedValue {
   if (value instanceof EnumValue) {
     value = value.resolved;
   }
-  if (value instanceof DynamicValue || value === null || value === undefined ||
-      typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+  if (
+    value instanceof DynamicValue ||
+    value === null ||
+    value === undefined ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
     return value;
   }
   return reject(value);
@@ -765,17 +786,22 @@ function isVariableDeclarationDeclared(node: ts.VariableDeclaration): boolean {
   }
   const varStmt = declList.parent;
   const modifiers = ts.getModifiers(varStmt);
-  return modifiers !== undefined &&
-      modifiers.some(mod => mod.kind === ts.SyntaxKind.DeclareKeyword);
+  return (
+    modifiers !== undefined && modifiers.some((mod) => mod.kind === ts.SyntaxKind.DeclareKeyword)
+  );
 }
 
 const EMPTY = {};
 
-function joinModuleContext(existing: Context, node: ts.Node, decl: Declaration): {
-  absoluteModuleName?: string,
-  resolutionContext?: string,
+function joinModuleContext(
+  existing: Context,
+  node: ts.Node,
+  decl: Declaration,
+): {
+  absoluteModuleName?: string;
+  resolutionContext?: string;
 } {
-  if (decl.viaModule !== null && decl.viaModule !== existing.absoluteModuleName) {
+  if (typeof decl.viaModule === 'string' && decl.viaModule !== existing.absoluteModuleName) {
     return {
       absoluteModuleName: decl.viaModule,
       resolutionContext: node.getSourceFile().fileName,
@@ -785,7 +811,7 @@ function joinModuleContext(existing: Context, node: ts.Node, decl: Declaration):
   }
 }
 
-function owningModule(context: Context, override: OwningModule|null = null): OwningModule|null {
+function owningModule(context: Context, override: OwningModule | null = null): OwningModule | null {
   let specifier = context.absoluteModuleName;
   if (override !== null) {
     specifier = override.specifier;

@@ -13,6 +13,7 @@ ts_library(
         "//packages/compiler-cli/src/ngtsc/testing",
         "//packages/compiler-cli/src/ngtsc/typecheck/api",
         "//packages/language-service/src",
+        "//packages/language-service/src/utils",
         "//packages/language-service/testing",
         "@npm//typescript",
     ],
@@ -22,8 +23,10 @@ jasmine_node_test(
     name = "test",
     data = [
         "//packages/compiler-cli/src/ngtsc/testing/fake_common:npm_package",
-        "//packages/compiler-cli/src/ngtsc/testing/fake_core:npm_package",
+        "//packages/core:npm_package",
+        "@npm//rxjs",
     ],
+    shard_count = 4,
     deps = [
         ":test_lib",
     ],

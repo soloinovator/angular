@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, Input} from '@angular/core';
@@ -16,13 +16,15 @@ describe('embedded views', () => {
     @Component({
       selector: 'child-cmp',
       template: 'Child',
+      standalone: false,
     })
     class ChildCmp {
-      @Input() addItemFn: Function|undefined;
+      @Input() addItemFn: Function | undefined;
     }
 
     @Component({
       template: `<child-cmp *ngIf="true" [addItemFn]="addItem.bind(this)"></child-cmp>`,
+      standalone: false,
     })
     class TestCmp {
       item: string = 'CmpItem';
@@ -44,9 +46,11 @@ describe('embedded views', () => {
   });
 
   it('should resolve template input variables through the implicit receiver', () => {
-    @Component({template: `<ng-template let-a [ngIf]="true">{{this.a}}</ng-template>`})
-    class TestCmp {
-    }
+    @Component({
+      template: `<ng-template let-a [ngIf]="true">{{a}}</ng-template>`,
+      standalone: false,
+    })
+    class TestCmp {}
 
     TestBed.configureTestingModule({declarations: [TestCmp]});
     const fixture = TestBed.createComponent(TestCmp);
@@ -60,7 +64,8 @@ describe('embedded views', () => {
       template: `
         <ng-template [ngIf]="true">
           <ng-template [ngIf]="true">{{this.myProp}}{{myProp}}</ng-template>
-        </ng-template>`
+        </ng-template>`,
+      standalone: false,
     })
     class TestCmp {
       myProp = 'Hello';

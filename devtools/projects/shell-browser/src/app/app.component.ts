@@ -3,41 +3,45 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ChangeDetectorRef, Component, NgZone, OnInit} from '@angular/core';
-import {Events, MessageBus, PriorityAwareMessageBus} from 'protocol';
-
-import {injectScripts} from './inject';
-import {ZoneAwareChromeMessageBus} from './zone-aware-chrome-message-bus';
+import {ChangeDetectorRef, Component, inject, OnInit} from '@angular/core';
+import {DevToolsComponent} from 'ng-devtools';
+import {Events, MessageBus} from 'protocol';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
-  providers: [
-    {
-      provide: MessageBus,
-      useFactory(ngZone: NgZone): MessageBus<Events> {
-        const port = chrome.runtime.connect({
-          name: '' + chrome.devtools.inspectedWindow.tabId,
-        });
-        return new PriorityAwareMessageBus(new ZoneAwareChromeMessageBus(port, ngZone));
-      },
-      deps: [NgZone],
-    },
-  ],
+  imports: [DevToolsComponent],
 })
 export class AppComponent implements OnInit {
-  constructor(private _cd: ChangeDetectorRef) {}
-
+  private _cd = inject(ChangeDetectorRef);
+  private readonly _messageBus = inject<MessageBus<Events>>(MessageBus);
+  private onProfilingStartedListener = () => {
+    this._messageBus.emit('enableTimingAPI');
+  };
+  private onProfilingStoppedListener = () => {
+    this._messageBus.emit('disableTimingAPI');
+  };
   ngOnInit(): void {
     chrome.devtools.network.onNavigated.addListener(() => {
       window.location.reload();
     });
+    const chromeDevToolsPerformance = chrome.devtools.performance;
+    chromeDevToolsPerformance?.onProfilingStarted?.addListener?.(this.onProfilingStartedListener);
+    chromeDevToolsPerformance?.onProfilingStopped?.addListener?.(this.onProfilingStoppedListener);
 
-    injectScripts(['app/backend_bundle.js']);
     this._cd.detectChanges();
+  }
+  ngOnDestroy(): void {
+    const chromeDevToolsPerformance = chrome.devtools.performance;
+    chromeDevToolsPerformance?.onProfilingStarted?.removeListener?.(
+      this.onProfilingStartedListener,
+    );
+    chromeDevToolsPerformance?.onProfilingStopped?.removeListener?.(
+      this.onProfilingStoppedListener,
+    );
   }
 }

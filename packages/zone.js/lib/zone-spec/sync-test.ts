@@ -3,33 +3,37 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-class SyncTestZoneSpec implements ZoneSpec {
-  runZone = Zone.current;
+import {ZoneType} from '../zone-impl';
 
-  constructor(namePrefix: string) {
-    this.name = 'syncTestZone for ' + namePrefix;
-  }
+export function patchSyncTest(Zone: ZoneType): void {
+  class SyncTestZoneSpec implements ZoneSpec {
+    runZone = Zone.current;
 
-  // ZoneSpec implementation below.
-
-  name: string;
-
-  onScheduleTask(delegate: ZoneDelegate, current: Zone, target: Zone, task: Task): Task {
-    switch (task.type) {
-      case 'microTask':
-      case 'macroTask':
-        throw new Error(`Cannot call ${task.source} from within a sync test (${this.name}).`);
-      case 'eventTask':
-        task = delegate.scheduleTask(target, task);
-        break;
+    constructor(namePrefix: string) {
+      this.name = 'syncTestZone for ' + namePrefix;
     }
-    return task;
-  }
-}
 
-// Export the class so that new instances can be created with proper
-// constructor params.
-(Zone as any)['SyncTestZoneSpec'] = SyncTestZoneSpec;
+    // ZoneSpec implementation below.
+
+    name: string;
+
+    onScheduleTask(delegate: ZoneDelegate, current: Zone, target: Zone, task: Task): Task {
+      switch (task.type) {
+        case 'microTask':
+        case 'macroTask':
+          throw new Error(`Cannot call ${task.source} from within a sync test (${this.name}).`);
+        case 'eventTask':
+          task = delegate.scheduleTask(target, task);
+          break;
+      }
+      return task;
+    }
+  }
+
+  // Export the class so that new instances can be created with proper
+  // constructor params.
+  (Zone as any)['SyncTestZoneSpec'] = SyncTestZoneSpec;
+}

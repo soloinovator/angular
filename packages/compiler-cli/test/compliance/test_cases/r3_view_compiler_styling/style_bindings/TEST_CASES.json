@@ -84,6 +84,42 @@
           ]
         }
       ]
+    },
+    {
+      "description": "should support style bindings with a colon at the start of the applied style",
+      "inputFiles": [
+        "colon_style.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Incorrect template",
+          "files": [
+            "colon_style.js"
+          ]
+        }
+      ]
+    },
+    {
+      "description": "should handle duplicate style bindings",
+      "inputFiles": [
+        "duplicate_style_bindings.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Incorrect template"
+        }
+      ]
+    },
+    {
+      "description": "should not mangle css custom property names",
+      "inputFiles": [
+        "css_custom_properties.ts"
+      ],
+      "expectations": [
+        {
+          "failureMessage": "Incorrect template"
+        }
+      ]
     }
   ]
 }

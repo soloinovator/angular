@@ -3,17 +3,19 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ɵsetRootDomAdapter as setRootDomAdapter} from '@angular/common';
 import {ɵBrowserDomAdapter as BrowserDomAdapter} from '@angular/platform-browser';
-import domino from 'domino';
+
+import domino from './bundled-domino';
 
 export function setDomTypes() {
   // Make all Domino types available in the global env.
-  Object.assign(global, domino.impl);
-  (global as any)['KeyboardEvent'] = domino.impl.Event;
+  // NB: Any changes here should also be done in `packages/platform-server/init/src/shims.ts`.
+  Object.assign(globalThis, domino.impl);
+  (globalThis as any)['KeyboardEvent'] = domino.impl.Event;
 }
 
 /**
@@ -63,7 +65,7 @@ export class DominoAdapter extends BrowserDomAdapter {
   }
 
   /** @deprecated No longer being used in Ivy code. To be removed in version 14. */
-  override getGlobalEventTarget(doc: Document, target: string): EventTarget|null {
+  override getGlobalEventTarget(doc: Document, target: string): EventTarget | null {
     if (target === 'window') {
       return doc.defaultView;
     }

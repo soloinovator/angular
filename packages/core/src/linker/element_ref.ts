@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {TNode} from '../render3/interfaces/node';
@@ -49,25 +49,14 @@ export function createElementRef(tNode: TNode, lView: LView): ElementRef {
 // and could do better codegen in the future.
 export class ElementRef<T = any> {
   /**
-   * The underlying native element or `null` if direct access to native elements is not supported
-   * (e.g. when the application runs in a web worker).
-   *
    * <div class="callout is-critical">
    *   <header>Use with caution</header>
    *   <p>
    *    Use this API as the last resort when direct access to DOM is needed. Use templating and
-   *    data-binding provided by Angular instead. Alternatively you can take a look at {@link
-   * Renderer2}
-   *    which provides API that can safely be used even when direct access to native elements is not
-   *    supported.
-   *   </p>
-   *   <p>
-   *    Relying on direct DOM access creates tight coupling between your application and rendering
-   *    layers which will make it impossible to separate the two and deploy your application into a
-   *    web worker.
+   *    data-binding provided by Angular instead. Alternatively you can take a look at
+   *    {@link Renderer2} which provides an API that can be safely used.
    *   </p>
    * </div>
-   *
    */
   public nativeElement: T;
 
@@ -88,6 +77,6 @@ export class ElementRef<T = any> {
  * @param value value to unwrap
  * @returns `nativeElement` if `ElementRef` otherwise returns value as is.
  */
-export function unwrapElementRef<T, R>(value: T|ElementRef<R>): T|R {
+export function unwrapElementRef<T, R>(value: T | ElementRef<R>): T | R {
   return value instanceof ElementRef ? value.nativeElement : value;
 }

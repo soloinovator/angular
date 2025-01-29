@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {$, browser, by, element, ExpectedConditions} from 'protractor';
@@ -25,7 +25,9 @@ describe('ngTemplateOutlet', () => {
       browser.get(URL);
       waitForElement('ng-template-outlet-example');
       expect(element.all(by.css('ng-template-outlet-example span')).getText()).toEqual([
-        'Hello', 'Hello World!', 'Ahoj Svet!'
+        'Hello',
+        'Hello World!',
+        'Ahoj Svet!',
       ]);
     });
   });

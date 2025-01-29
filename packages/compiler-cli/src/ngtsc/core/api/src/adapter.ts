@@ -3,13 +3,12 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import ts from 'typescript';
 
 import {AbsoluteFsPath} from '../../../file_system';
-import {FactoryTracker} from '../../../shims/api';
 
 import {ExtendedTsCompilerHost, UnifiedModulesHost} from './interfaces';
 
@@ -18,17 +17,20 @@ import {ExtendedTsCompilerHost, UnifiedModulesHost} from './interfaces';
  * `NgCompilerAdapter`.
  */
 export type ExtendedCompilerHostMethods =
-    // Used to normalize filenames for the host system. Important for proper case-sensitive file
-    // handling.
-    'getCanonicalFileName'|
-    // An optional method of `ts.CompilerHost` where an implementer can override module resolution.
-    'resolveModuleNames'|
-    // Retrieve the current working directory. Unlike in `ts.ModuleResolutionHost`, this is a
-    // required method.
-    'getCurrentDirectory'|
-    // Additional methods of `ExtendedTsCompilerHost` related to resource files (e.g. HTML
-    // templates). These are optional.
-    'getModifiedResourceFiles'|'readResource'|'resourceNameToFileName'|'transformResource';
+  // Used to normalize filenames for the host system. Important for proper case-sensitive file
+  // handling.
+  | 'getCanonicalFileName'
+  // An optional method of `ts.CompilerHost` where an implementer can override module resolution.
+  | 'resolveModuleNames'
+  // Retrieve the current working directory. Unlike in `ts.ModuleResolutionHost`, this is a
+  // required method.
+  | 'getCurrentDirectory'
+  // Additional methods of `ExtendedTsCompilerHost` related to resource files (e.g. HTML
+  // templates). These are optional.
+  | 'getModifiedResourceFiles'
+  | 'readResource'
+  | 'resourceNameToFileName'
+  | 'transformResource';
 
 /**
  * Adapter for `NgCompiler` that allows it to be used in various circumstances, such as
@@ -38,12 +40,12 @@ export type ExtendedCompilerHostMethods =
  * which is relied upon by `NgCompiler`. A consumer of `NgCompiler` can therefore use the
  * `NgCompilerHost` or implement `NgCompilerAdapter` itself.
  */
-export interface NgCompilerAdapter extends
-    // getCurrentDirectory is removed from `ts.ModuleResolutionHost` because it's optional, and
-    // incompatible with the `ts.CompilerHost` version which isn't. The combination of these two
-    // still satisfies `ts.ModuleResolutionHost`.
-        Omit<ts.ModuleResolutionHost, 'getCurrentDirectory'>,
-    Pick<ExtendedTsCompilerHost, 'getCurrentDirectory'|ExtendedCompilerHostMethods>,
+export interface NgCompilerAdapter
+  // getCurrentDirectory is removed from `ts.ModuleResolutionHost` because it's optional, and
+  // incompatible with the `ts.CompilerHost` version which isn't. The combination of these two
+  // still satisfies `ts.ModuleResolutionHost`.
+  extends Omit<ts.ModuleResolutionHost, 'getCurrentDirectory'>,
+    Pick<ExtendedTsCompilerHost, 'getCurrentDirectory' | ExtendedCompilerHostMethods>,
     SourceFileTypeIdentifier {
   /**
    * A path to a single file which represents the entrypoint of an Angular Package Format library,
@@ -52,7 +54,7 @@ export interface NgCompilerAdapter extends
    * This is used to emit a flat module index if requested, and can be left `null` if that is not
    * required.
    */
-  readonly entryPoint: AbsoluteFsPath|null;
+  readonly entryPoint: AbsoluteFsPath | null;
 
   /**
    * An array of `ts.Diagnostic`s that occurred during construction of the `ts.Program`.
@@ -69,19 +71,12 @@ export interface NgCompilerAdapter extends
   readonly ignoreForEmit: Set<ts.SourceFile>;
 
   /**
-   * A tracker for usage of symbols in `.ngfactory` shims.
-   *
-   * This can be left `null` if such shims are not a part of the `ts.Program`.
-   */
-  readonly factoryTracker: FactoryTracker|null;
-
-  /**
    * A specialized interface provided in some environments (such as Bazel) which overrides how
    * import specifiers are generated.
    *
    * If not required, this can be `null`.
    */
-  readonly unifiedModulesHost: UnifiedModulesHost|null;
+  readonly unifiedModulesHost: UnifiedModulesHost | null;
 
   /**
    * Resolved list of root directories explicitly set in, or inferred from, the tsconfig.

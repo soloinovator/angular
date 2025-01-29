@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // Converts a string that represents a URL into a URL class instance.
@@ -20,7 +20,7 @@ export function isAbsoluteUrl(src: string): boolean {
 // Given a URL, extract the hostname part.
 // If a URL is a relative one - the URL is returned as is.
 export function extractHostname(url: string): string {
-  return isAbsoluteUrl(url) ? (new URL(url)).hostname : url;
+  return isAbsoluteUrl(url) ? new URL(url).hostname : url;
 }
 
 export function isValidPath(path: unknown): boolean {

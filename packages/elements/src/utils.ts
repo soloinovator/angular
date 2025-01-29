@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {ComponentFactoryResolver, Injector, Type} from '@angular/core';
 
@@ -20,42 +20,19 @@ export const scheduler = {
     const id = setTimeout(taskFn, delay);
     return () => clearTimeout(id);
   },
-
-  /**
-   * Schedule a callback to be called before the next render.
-   * (If `window.requestAnimationFrame()` is not available, use `scheduler.schedule()` instead.)
-   *
-   * Returns a function that when executed will cancel the scheduled function.
-   */
-  scheduleBeforeRender(taskFn: () => void): () => void {
-    // TODO(gkalpak): Implement a better way of accessing `requestAnimationFrame()`
-    //                (e.g. accounting for vendor prefix, SSR-compatibility, etc).
-    if (typeof window === 'undefined') {
-      // For SSR just schedule immediately.
-      return scheduler.schedule(taskFn, 0);
-    }
-
-    if (typeof window.requestAnimationFrame === 'undefined') {
-      const frameMs = 16;
-      return scheduler.schedule(taskFn, frameMs);
-    }
-
-    const id = window.requestAnimationFrame(taskFn);
-    return () => window.cancelAnimationFrame(id);
-  },
 };
 
 /**
  * Convert a camelCased string to kebab-cased.
  */
 export function camelToDashCase(input: string): string {
-  return input.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`);
+  return input.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`);
 }
 
 /**
  * Check whether the input is an `Element`.
  */
-export function isElement(node: Node|null): node is Element {
+export function isElement(node: Node | null): node is Element {
   return !!node && node.nodeType === Node.ELEMENT_NODE;
 }
 
@@ -83,8 +60,13 @@ let _matches: (this: any, selector: string) => boolean;
 export function matchesSelector(el: any, selector: string): boolean {
   if (!_matches) {
     const elProto = <any>Element.prototype;
-    _matches = elProto.matches || elProto.matchesSelector || elProto.mozMatchesSelector ||
-        elProto.msMatchesSelector || elProto.oMatchesSelector || elProto.webkitMatchesSelector;
+    _matches =
+      elProto.matches ||
+      elProto.matchesSelector ||
+      elProto.mozMatchesSelector ||
+      elProto.msMatchesSelector ||
+      elProto.oMatchesSelector ||
+      elProto.webkitMatchesSelector;
   }
   return el.nodeType === Node.ELEMENT_NODE ? _matches.call(el, selector) : false;
 }
@@ -98,10 +80,13 @@ export function strictEquals(value1: any, value2: any): boolean {
 
 /** Gets a map of default set of attributes to observe and the properties they affect. */
 export function getDefaultAttributeToPropertyInputs(
-    inputs: {propName: string, templateName: string}[]) {
-  const attributeToPropertyInputs: {[key: string]: string} = {};
-  inputs.forEach(({propName, templateName}) => {
-    attributeToPropertyInputs[camelToDashCase(templateName)] = propName;
+  inputs: {propName: string; templateName: string; transform?: (value: any) => any}[],
+) {
+  const attributeToPropertyInputs: {
+    [key: string]: [propName: string, transform: ((value: any) => any) | undefined];
+  } = {};
+  inputs.forEach(({propName, templateName, transform}) => {
+    attributeToPropertyInputs[camelToDashCase(templateName)] = [propName, transform];
   });
 
   return attributeToPropertyInputs;
@@ -112,8 +97,15 @@ export function getDefaultAttributeToPropertyInputs(
  * are defined.
  */
 export function getComponentInputs(
-    component: Type<any>, injector: Injector): {propName: string, templateName: string}[] {
-  const componentFactoryResolver: ComponentFactoryResolver = injector.get(ComponentFactoryResolver);
+  component: Type<any>,
+  injector: Injector,
+): {
+  propName: string;
+  templateName: string;
+  transform?: (value: any) => any;
+  isSignal: boolean;
+}[] {
+  const componentFactoryResolver = injector.get(ComponentFactoryResolver);
   const componentFactory = componentFactoryResolver.resolveComponentFactory(component);
   return componentFactory.inputs;
 }

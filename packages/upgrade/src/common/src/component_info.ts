@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 /**
@@ -20,7 +20,10 @@ export class PropertyBinding {
   bindAttr: string;
   bindonAttr: string;
 
-  constructor(public prop: string, public attr: string) {
+  constructor(
+    public prop: string,
+    public attr: string,
+  ) {
     this.bracketAttr = `[${this.attr}]`;
     this.parenAttr = `(${this.attr})`;
     this.bracketParenAttr = `[(${this.attr})]`;

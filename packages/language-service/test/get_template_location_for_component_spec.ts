@@ -3,12 +3,17 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {initMockFileSystem} from '@angular/compiler-cli/src/ngtsc/file_system/testing';
 
-import {assertFileNames, createModuleAndProjectWithDeclarations, humanizeDocumentSpanLike, LanguageServiceTestEnv} from '../testing';
+import {
+  assertFileNames,
+  createModuleAndProjectWithDeclarations,
+  humanizeDocumentSpanLike,
+  LanguageServiceTestEnv,
+} from '../testing';
 
 describe('get template location for component', () => {
   beforeEach(() => {
@@ -22,10 +27,11 @@ describe('get template location for component', () => {
 
       @Component({
         template: '<div>{{ myProp }}</div>',
+        standalone: false,
       })
       export class AppCmp {
         myProp!: string;
-      }`
+      }`,
     };
     const env = LanguageServiceTestEnv.setup();
     const project = createModuleAndProjectWithDeclarations(env, 'test', files);
@@ -45,11 +51,12 @@ describe('get template location for component', () => {
 
             @Component({
               templateUrl: './app.html',
+              standalone: false,
             })
             export class AppCmp {
               myProp!: string;
             }`,
-      'app.html': '<div>{{ myProp }}</div>'
+      'app.html': '<div>{{ myProp }}</div>',
     };
     const env = LanguageServiceTestEnv.setup();
     const project = createModuleAndProjectWithDeclarations(env, 'test', files);
@@ -68,17 +75,19 @@ describe('get template location for component', () => {
 
       @Component({
         templateUrl: './template1.html',
+        standalone: false,
       })
       export class Template1 {
       }
       @Component({
         templateUrl: './template2.html',
+        standalone: false,
       })
       export class Template2 {
       }
       `,
       'template1.html': '',
-      'template2.html': ''
+      'template2.html': '',
     };
     const env = LanguageServiceTestEnv.setup();
     const project = createModuleAndProjectWithDeclarations(env, 'test', files);
@@ -99,7 +108,10 @@ describe('get template location for component', () => {
       'app.ts': `
       import {Directive} from '@angular/core';
 
-      @Directive({selector: 'my-dir'})
+      @Directive({
+        selector: 'my-dir',
+        standalone: false,
+      })
       export class MyDir {
       }`,
     };
@@ -119,7 +131,10 @@ describe('get template location for component', () => {
 
       const x = 1;
 
-      @Component({template: 'abc'})
+      @Component({
+        template: 'abc',
+        standalone: false,
+      })
       export class MyDir {
       }`,
     };
@@ -137,7 +152,10 @@ describe('get template location for component', () => {
       'app.ts': `
       import {Component} from '@angular/core';
 
-      @Component({template: 'abc'})
+      @Component({
+        template: 'abc',
+        standalone: false,
+      })
       export class MyDir {
       }`,
     };

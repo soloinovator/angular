@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {isFunction} from './util';
@@ -20,11 +20,11 @@ export function isThenable<T>(obj: unknown): obj is Thenable<T> {
  * Synchronous, promise-like object.
  */
 export class SyncPromise<T> {
-  protected value: T|undefined;
+  protected value: T | undefined;
   private resolved = false;
   private callbacks: ((value: T) => unknown)[] = [];
 
-  static all<T>(valuesOrPromises: (T|Thenable<T>)[]): SyncPromise<T[]> {
+  static all<T>(valuesOrPromises: (T | Thenable<T>)[]): SyncPromise<T[]> {
     const aggrPromise = new SyncPromise<T[]>();
 
     let resolvedCount = 0;
@@ -36,7 +36,7 @@ export class SyncPromise<T> {
 
     valuesOrPromises.forEach((p, idx) => {
       if (isThenable(p)) {
-        p.then(v => resolve(idx, v));
+        p.then((v) => resolve(idx, v));
       } else {
         resolve(idx, p);
       }
@@ -53,7 +53,7 @@ export class SyncPromise<T> {
     this.resolved = true;
 
     // Run the queued callbacks.
-    this.callbacks.forEach(callback => callback(value));
+    this.callbacks.forEach((callback) => callback(value));
     this.callbacks.length = 0;
   }
 

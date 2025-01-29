@@ -3,29 +3,38 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {AST, TmplAstNode} from '@angular/compiler';
 import {NgCompiler} from '@angular/compiler-cli/src/ngtsc/core';
 import {absoluteFrom} from '@angular/compiler-cli/src/ngtsc/file_system';
 import {MetaKind, PipeMeta} from '@angular/compiler-cli/src/ngtsc/metadata';
 import {PerfPhase} from '@angular/compiler-cli/src/ngtsc/perf';
-import {ProgramDriver} from '@angular/compiler-cli/src/ngtsc/program_driver';
-import {SymbolKind} from '@angular/compiler-cli/src/ngtsc/typecheck/api';
+import {SymbolKind, TemplateTypeChecker} from '@angular/compiler-cli/src/ngtsc/typecheck/api';
 import ts from 'typescript';
 
-import {convertToTemplateDocumentSpan, createLocationKey, FilePosition, getParentClassMeta, getRenameTextAndSpanAtPosition, getTargetDetailsAtTemplatePosition, TemplateLocationDetails} from './references_and_rename_utils';
-import {collectMemberMethods, findTightestNode} from './ts_utils';
+import {
+  convertToTemplateDocumentSpan,
+  FilePosition,
+  getParentClassMeta,
+  getRenameTextAndSpanAtPosition,
+  getTargetDetailsAtTemplatePosition,
+  TemplateLocationDetails,
+} from './references_and_rename_utils';
+import {collectMemberMethods, findTightestNode} from './utils/ts_utils';
 import {getTemplateInfoAtPosition, TemplateInfo} from './utils';
 
 export class ReferencesBuilder {
-  private readonly ttc = this.compiler.getTemplateTypeChecker();
+  private readonly ttc: TemplateTypeChecker;
 
   constructor(
-      private readonly driver: ProgramDriver, private readonly tsLS: ts.LanguageService,
-      private readonly compiler: NgCompiler) {}
+    private readonly tsLS: ts.LanguageService,
+    private readonly compiler: NgCompiler,
+  ) {
+    this.ttc = this.compiler.getTemplateTypeChecker();
+  }
 
-  getReferencesAtPosition(filePath: string, position: number): ts.ReferenceEntry[]|undefined {
+  getReferencesAtPosition(filePath: string, position: number): ts.ReferenceEntry[] | undefined {
     this.ttc.generateAllTypeCheckBlocks();
     const templateInfo = getTemplateInfoAtPosition(filePath, position, this.compiler);
     if (templateInfo === undefined) {
@@ -34,8 +43,10 @@ export class ReferencesBuilder {
     return this.getReferencesAtTemplatePosition(templateInfo, position);
   }
 
-  private getReferencesAtTemplatePosition(templateInfo: TemplateInfo, position: number):
-      ts.ReferenceEntry[]|undefined {
+  private getReferencesAtTemplatePosition(
+    templateInfo: TemplateInfo,
+    position: number,
+  ): ts.ReferenceEntry[] | undefined {
     const allTargetDetails = getTargetDetailsAtTemplatePosition(templateInfo, position, this.ttc);
     if (allTargetDetails === null) {
       return undefined;
@@ -52,8 +63,10 @@ export class ReferencesBuilder {
     return allReferences.length > 0 ? allReferences : undefined;
   }
 
-  private getReferencesAtTypescriptPosition(fileName: string, position: number):
-      ts.ReferenceEntry[]|undefined {
+  private getReferencesAtTypescriptPosition(
+    fileName: string,
+    position: number,
+  ): ts.ReferenceEntry[] | undefined {
     const refs = this.tsLS.getReferencesAtPosition(fileName, position);
     if (refs === undefined) {
       return undefined;
@@ -62,7 +75,11 @@ export class ReferencesBuilder {
     const entries: ts.ReferenceEntry[] = [];
     for (const ref of refs) {
       if (this.ttc.isTrackedTypeCheckFile(absoluteFrom(ref.fileName))) {
-        const entry = convertToTemplateDocumentSpan(ref, this.ttc, this.driver.getProgram());
+        const entry = convertToTemplateDocumentSpan(
+          ref,
+          this.ttc,
+          this.compiler.getCurrentProgram(),
+        );
         if (entry !== null) {
           entries.push(entry);
         }
@@ -127,28 +144,38 @@ interface DirectFromTemplateRenameContext {
   templatePosition: number;
 
   /** The target node in the template AST that corresponds to the template position. */
-  requestNode: AST|TmplAstNode;
+  requestNode: AST | TmplAstNode;
 }
 
-type IndirectRenameContext = PipeRenameContext|SelectorRenameContext;
+type IndirectRenameContext = PipeRenameContext | SelectorRenameContext;
 type RenameRequest =
-    IndirectRenameContext|DirectFromTemplateRenameContext|DirectFromTypescriptRenameContext;
+  | IndirectRenameContext
+  | DirectFromTemplateRenameContext
+  | DirectFromTypescriptRenameContext;
 
-function isDirectRenameContext(context: RenameRequest): context is DirectFromTemplateRenameContext|
-    DirectFromTypescriptRenameContext {
-  return context.type === RequestKind.DirectFromTemplate ||
-      context.type === RequestKind.DirectFromTypeScript;
+function isDirectRenameContext(
+  context: RenameRequest,
+): context is DirectFromTemplateRenameContext | DirectFromTypescriptRenameContext {
+  return (
+    context.type === RequestKind.DirectFromTemplate ||
+    context.type === RequestKind.DirectFromTypeScript
+  );
 }
 
 export class RenameBuilder {
-  private readonly ttc = this.compiler.getTemplateTypeChecker();
+  private readonly ttc: TemplateTypeChecker;
 
   constructor(
-      private readonly driver: ProgramDriver, private readonly tsLS: ts.LanguageService,
-      private readonly compiler: NgCompiler) {}
+    private readonly tsLS: ts.LanguageService,
+    private readonly compiler: NgCompiler,
+  ) {
+    this.ttc = this.compiler.getTemplateTypeChecker();
+  }
 
-  getRenameInfo(filePath: string, position: number):
-      Omit<ts.RenameInfoSuccess, 'kind'|'kindModifiers'>|ts.RenameInfoFailure {
+  getRenameInfo(
+    filePath: string,
+    position: number,
+  ): Omit<ts.RenameInfoSuccess, 'kind' | 'kindModifiers'> | ts.RenameInfoFailure {
     return this.compiler.perfRecorder.inPhase(PerfPhase.LsReferencesAndRenames, () => {
       const templateInfo = getTemplateInfoAtPosition(filePath, position, this.compiler);
       // We could not get a template at position so we assume the request came from outside the
@@ -183,14 +210,11 @@ export class RenameBuilder {
       if (allTargetDetails === null) {
         return {
           canRename: false,
-          localizedErrorMessage: 'Could not find template node at position.'
+          localizedErrorMessage: 'Could not find template node at position.',
         };
       }
       const {templateTarget} = allTargetDetails[0];
-      const templateTextAndSpan = getRenameTextAndSpanAtPosition(
-          templateTarget,
-          position,
-      );
+      const templateTextAndSpan = getRenameTextAndSpanAtPosition(templateTarget, position);
       if (templateTextAndSpan === null) {
         return {canRename: false, localizedErrorMessage: 'Could not determine template node text.'};
       }
@@ -204,7 +228,7 @@ export class RenameBuilder {
     });
   }
 
-  findRenameLocations(filePath: string, position: number): readonly ts.RenameLocation[]|null {
+  findRenameLocations(filePath: string, position: number): readonly ts.RenameLocation[] | null {
     this.ttc.generateAllTypeCheckBlocks();
     return this.compiler.perfRecorder.inPhase(PerfPhase.LsReferencesAndRenames, () => {
       const templateInfo = getTemplateInfoAtPosition(filePath, position, this.compiler);
@@ -221,8 +245,10 @@ export class RenameBuilder {
     });
   }
 
-  private findRenameLocationsAtTemplatePosition(templateInfo: TemplateInfo, position: number):
-      readonly ts.RenameLocation[]|null {
+  private findRenameLocationsAtTemplatePosition(
+    templateInfo: TemplateInfo,
+    position: number,
+  ): readonly ts.RenameLocation[] | null {
     const allTargetDetails = getTargetDetailsAtTemplatePosition(templateInfo, position, this.ttc);
     if (allTargetDetails === null) {
       return null;
@@ -245,8 +271,9 @@ export class RenameBuilder {
     return allRenameLocations.length > 0 ? allRenameLocations : null;
   }
 
-  findRenameLocationsAtTypescriptPosition(renameRequest: RenameRequest):
-      readonly ts.RenameLocation[]|null {
+  findRenameLocationsAtTypescriptPosition(
+    renameRequest: RenameRequest,
+  ): readonly ts.RenameLocation[] | null {
     return this.compiler.perfRecorder.inPhase(PerfPhase.LsReferencesAndRenames, () => {
       const renameInfo = getExpectedRenameTextAndInitialRenameEntries(renameRequest);
       if (renameInfo === null) {
@@ -256,8 +283,12 @@ export class RenameBuilder {
       const {fileName, position} = getRenameRequestPosition(renameRequest);
       const findInStrings = false;
       const findInComments = false;
-      const locations =
-          this.tsLS.findRenameLocations(fileName, position, findInStrings, findInComments);
+      const locations = this.tsLS.findRenameLocations(
+        fileName,
+        position,
+        findInStrings,
+        findInComments,
+      );
       if (locations === undefined) {
         return null;
       }
@@ -265,7 +296,11 @@ export class RenameBuilder {
       for (const location of locations) {
         if (this.ttc.isTrackedTypeCheckFile(absoluteFrom(location.fileName))) {
           const entry = convertToTemplateDocumentSpan(
-              location, this.ttc, this.driver.getProgram(), expectedRenameText);
+            location,
+            this.ttc,
+            this.compiler.getCurrentProgram(),
+            expectedRenameText,
+          );
           // There is no template node whose text matches the original rename request. Bail on
           // renaming completely rather than providing incomplete results.
           if (entry === null) {
@@ -276,7 +311,7 @@ export class RenameBuilder {
           if (!isDirectRenameContext(renameRequest)) {
             // Discard any non-template results for non-direct renames. We should only rename
             // template results + the name/selector/alias `ts.Expression`. The other results
-            // will be the the `ts.Identifier` of the transform method (pipe rename) or the
+            // will be the `ts.Identifier` of the transform method (pipe rename) or the
             // directive class (selector rename).
             continue;
           }
@@ -292,8 +327,8 @@ export class RenameBuilder {
     });
   }
 
-  private getTsNodeAtPosition(filePath: string, position: number): ts.Node|null {
-    const sf = this.driver.getProgram().getSourceFile(filePath);
+  private getTsNodeAtPosition(filePath: string, position: number): ts.Node | null {
+    const sf = this.compiler.getCurrentProgram().getSourceFile(filePath);
     if (!sf) {
       return null;
     }
@@ -301,13 +336,16 @@ export class RenameBuilder {
   }
 
   private buildRenameRequestsFromTemplateDetails(
-      allTargetDetails: TemplateLocationDetails[], templatePosition: number): RenameRequest[]|null {
+    allTargetDetails: TemplateLocationDetails[],
+    templatePosition: number,
+  ): RenameRequest[] | null {
     const renameRequests: RenameRequest[] = [];
     for (const targetDetails of allTargetDetails) {
       for (const location of targetDetails.typescriptLocations) {
         if (targetDetails.symbol.kind === SymbolKind.Pipe) {
-          const meta =
-              this.compiler.getMeta(targetDetails.symbol.classSymbol.tsSymbol.valueDeclaration);
+          const meta = this.compiler.getMeta(
+            targetDetails.symbol.classSymbol.tsSymbol.valueDeclaration,
+          );
           if (meta === null || meta.kind !== MetaKind.Pipe) {
             return null;
           }
@@ -321,7 +359,7 @@ export class RenameBuilder {
             type: RequestKind.DirectFromTemplate,
             templatePosition,
             requestNode: targetDetails.templateTarget,
-            renamePosition: location
+            renamePosition: location,
           };
           renameRequests.push(renameRequest);
         }
@@ -330,8 +368,10 @@ export class RenameBuilder {
     return renameRequests;
   }
 
-  private buildRenameRequestAtTypescriptPosition(filePath: string, position: number): RenameRequest
-      |null {
+  private buildRenameRequestAtTypescriptPosition(
+    filePath: string,
+    position: number,
+  ): RenameRequest | null {
     const requestNode = this.getTsNodeAtPosition(filePath, position);
     if (requestNode === null) {
       return null;
@@ -344,15 +384,19 @@ export class RenameBuilder {
     }
   }
 
-  private buildPipeRenameRequest(meta: PipeMeta): PipeRenameContext|null {
-    if (!ts.isClassDeclaration(meta.ref.node) || meta.nameExpr === null ||
-        !ts.isStringLiteral(meta.nameExpr)) {
+  private buildPipeRenameRequest(meta: PipeMeta): PipeRenameContext | null {
+    if (
+      !ts.isClassDeclaration(meta.ref.node) ||
+      meta.nameExpr === null ||
+      !ts.isStringLiteral(meta.nameExpr)
+    ) {
       return null;
     }
-    const typeChecker = this.driver.getProgram().getTypeChecker();
+    const typeChecker = this.compiler.getCurrentProgram().getTypeChecker();
     const memberMethods = collectMemberMethods(meta.ref.node, typeChecker) ?? [];
-    const pipeTransformNode: ts.MethodDeclaration|undefined =
-        memberMethods.find(m => m.name.getText() === 'transform');
+    const pipeTransformNode: ts.MethodDeclaration | undefined = memberMethods.find(
+      (m) => m.name.getText() === 'transform',
+    );
     if (pipeTransformNode === undefined) {
       return null;
     }
@@ -362,7 +406,7 @@ export class RenameBuilder {
       renamePosition: {
         fileName: pipeTransformNode.getSourceFile().fileName,
         position: pipeTransformNode.getStart(),
-      }
+      },
     };
   }
 }
@@ -372,15 +416,18 @@ export class RenameBuilder {
  * `ts.RenameLocation`s to have and creates an initial entry for indirect renames (one which is
  * required for the rename operation, but cannot be found by the native TS LS).
  */
-function getExpectedRenameTextAndInitialRenameEntries(renameRequest: RenameRequest):
-    {expectedRenameText: string, entries: ts.RenameLocation[]}|null {
+function getExpectedRenameTextAndInitialRenameEntries(
+  renameRequest: RenameRequest,
+): {expectedRenameText: string; entries: ts.RenameLocation[]} | null {
   let expectedRenameText: string;
   const entries: ts.RenameLocation[] = [];
   if (renameRequest.type === RequestKind.DirectFromTypeScript) {
     expectedRenameText = renameRequest.requestNode.getText();
   } else if (renameRequest.type === RequestKind.DirectFromTemplate) {
-    const templateNodeText =
-        getRenameTextAndSpanAtPosition(renameRequest.requestNode, renameRequest.templatePosition);
+    const templateNodeText = getRenameTextAndSpanAtPosition(
+      renameRequest.requestNode,
+      renameRequest.templatePosition,
+    );
     if (templateNodeText === null) {
       return null;
     }
@@ -406,11 +453,13 @@ function getExpectedRenameTextAndInitialRenameEntries(renameRequest: RenameReque
  * locations.
  */
 function getRenameRequestPosition(renameRequest: RenameRequest): FilePosition {
-  const fileName = renameRequest.type === RequestKind.DirectFromTypeScript ?
-      renameRequest.requestNode.getSourceFile().fileName :
-      renameRequest.renamePosition.fileName;
-  const position = renameRequest.type === RequestKind.DirectFromTypeScript ?
-      renameRequest.requestNode.getStart() :
-      renameRequest.renamePosition.position;
+  const fileName =
+    renameRequest.type === RequestKind.DirectFromTypeScript
+      ? renameRequest.requestNode.getSourceFile().fileName
+      : renameRequest.renamePosition.fileName;
+  const position =
+    renameRequest.type === RequestKind.DirectFromTypeScript
+      ? renameRequest.requestNode.getStart()
+      : renameRequest.renamePosition.position;
   return {fileName, position};
 }

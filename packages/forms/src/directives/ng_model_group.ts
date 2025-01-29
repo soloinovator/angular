@@ -3,10 +3,21 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Directive, forwardRef, Host, Inject, Input, OnDestroy, OnInit, Optional, Self, SkipSelf} from '@angular/core';
+import {
+  Directive,
+  forwardRef,
+  Host,
+  Inject,
+  Input,
+  OnDestroy,
+  OnInit,
+  Optional,
+  Self,
+  SkipSelf,
+} from '@angular/core';
 
 import {NG_ASYNC_VALIDATORS, NG_VALIDATORS} from '../validators';
 
@@ -18,7 +29,7 @@ import {AsyncValidator, AsyncValidatorFn, Validator, ValidatorFn} from './valida
 
 export const modelGroupProvider: any = {
   provide: ControlContainer,
-  useExisting: forwardRef(() => NgModelGroup)
+  useExisting: forwardRef(() => NgModelGroup),
 };
 
 /**
@@ -47,21 +58,28 @@ export const modelGroupProvider: any = {
  * @ngModule FormsModule
  * @publicApi
  */
-@Directive({selector: '[ngModelGroup]', providers: [modelGroupProvider], exportAs: 'ngModelGroup'})
+@Directive({
+  selector: '[ngModelGroup]',
+  providers: [modelGroupProvider],
+  exportAs: 'ngModelGroup',
+  standalone: false,
+})
 export class NgModelGroup extends AbstractFormGroupDirective implements OnInit, OnDestroy {
   /**
    * @description
    * Tracks the name of the `NgModelGroup` bound to the directive. The name corresponds
    * to a key in the parent `NgForm`.
    */
-  // TODO(issue/24571): remove '!'.
-  @Input('ngModelGroup') override name!: string;
+  @Input('ngModelGroup') override name: string = '';
 
   constructor(
-      @Host() @SkipSelf() parent: ControlContainer,
-      @Optional() @Self() @Inject(NG_VALIDATORS) validators: (Validator|ValidatorFn)[],
-      @Optional() @Self() @Inject(NG_ASYNC_VALIDATORS) asyncValidators:
-          (AsyncValidator|AsyncValidatorFn)[]) {
+    @Host() @SkipSelf() parent: ControlContainer,
+    @Optional() @Self() @Inject(NG_VALIDATORS) validators: (Validator | ValidatorFn)[],
+    @Optional()
+    @Self()
+    @Inject(NG_ASYNC_VALIDATORS)
+    asyncValidators: (AsyncValidator | AsyncValidatorFn)[],
+  ) {
     super();
     this._parent = parent;
     this._setValidators(validators);
@@ -70,8 +88,11 @@ export class NgModelGroup extends AbstractFormGroupDirective implements OnInit, 
 
   /** @internal */
   override _checkParentType(): void {
-    if (!(this._parent instanceof NgModelGroup) && !(this._parent instanceof NgForm) &&
-        (typeof ngDevMode === 'undefined' || ngDevMode)) {
+    if (
+      !(this._parent instanceof NgModelGroup) &&
+      !(this._parent instanceof NgForm) &&
+      (typeof ngDevMode === 'undefined' || ngDevMode)
+    ) {
       throw modelGroupParentException();
     }
   }

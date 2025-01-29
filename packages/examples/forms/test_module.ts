@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, NgModule} from '@angular/core';
@@ -22,17 +22,27 @@ import * as simpleFormControlExample from './ts/simpleFormControl/module';
 import * as simpleFormGroupExample from './ts/simpleFormGroup/module';
 import * as simpleNgModelExample from './ts/simpleNgModel/module';
 
-@Component({selector: 'example-app', template: '<router-outlet></router-outlet>'})
-export class TestsAppComponent {
-}
+@Component({
+  selector: 'example-app',
+  template: '<router-outlet></router-outlet>',
+  standalone: false,
+})
+export class TestsAppComponent {}
 
 @NgModule({
   imports: [
-    formBuilderExample.AppModule, nestedFormArrayExample.AppModule,
-    nestedFormGroupExample.AppModule, ngModelGroupExample.AppModule, radioButtonsExample.AppModule,
-    reactiveRadioButtonsExample.AppModule, reactiveSelectControlExample.AppModule,
-    selectControlExample.AppModule, simpleFormExample.AppModule, simpleFormControlExample.AppModule,
-    simpleFormGroupExample.AppModule, simpleNgModelExample.AppModule,
+    formBuilderExample.AppModule,
+    nestedFormArrayExample.AppModule,
+    nestedFormGroupExample.AppModule,
+    ngModelGroupExample.AppModule,
+    radioButtonsExample.AppModule,
+    reactiveRadioButtonsExample.AppModule,
+    reactiveSelectControlExample.AppModule,
+    selectControlExample.AppModule,
+    simpleFormExample.AppModule,
+    simpleFormControlExample.AppModule,
+    simpleFormGroupExample.AppModule,
+    simpleNgModelExample.AppModule,
 
     // Router configuration so that the individual e2e tests can load their
     // app components.
@@ -48,11 +58,10 @@ export class TestsAppComponent {
       {path: 'simpleForm', component: simpleFormExample.AppComponent},
       {path: 'simpleFormControl', component: simpleFormControlExample.AppComponent},
       {path: 'simpleFormGroup', component: simpleFormGroupExample.AppComponent},
-      {path: 'simpleNgModel', component: simpleNgModelExample.AppComponent}
-    ])
+      {path: 'simpleNgModel', component: simpleNgModelExample.AppComponent},
+    ]),
   ],
   declarations: [TestsAppComponent],
-  bootstrap: [TestsAppComponent]
+  bootstrap: [TestsAppComponent],
 })
-export class TestsAppModule {
-}
+export class TestsAppModule {}

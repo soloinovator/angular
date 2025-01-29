@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import ts from 'typescript/lib/tsserverlibrary';
+import ts from 'typescript';
 
 import {LanguageService} from '../../src/language_service';
 
@@ -17,8 +17,11 @@ export class OpenBuffer {
   private _cursor: number = 0;
 
   constructor(
-      private ngLS: LanguageService, private projectFileName: string,
-      private scriptInfo: ts.server.ScriptInfo) {}
+    private ngLS: LanguageService,
+    private project: ts.server.Project,
+    private projectFileName: string,
+    private scriptInfo: ts.server.ScriptInfo,
+  ) {}
 
   get cursor(): number {
     return this._cursor;
@@ -32,6 +35,11 @@ export class OpenBuffer {
   set contents(newContents: string) {
     const snapshot = this.scriptInfo.getSnapshot();
     this.scriptInfo.editContent(0, snapshot.getLength(), newContents);
+
+    // As of TypeScript 5.2 we need to trigger graph update manually in order to satisfy the
+    // following assertion:
+    // https://github.com/microsoft/TypeScript/commit/baf872cba4eb3fbc5e5914385ce534902ae13639#diff-fad6af6557c1406192e30af30e0113a5eb327d60f9e2588bdce6667d619ebd04R1503
+    this.project.updateGraph();
     // If the cursor goes beyond the new length of the buffer, clamp it to the end of the buffer.
     if (this._cursor > newContents.length) {
       this._cursor = newContents.length;
@@ -60,25 +68,38 @@ export class OpenBuffer {
    * Execute the `getDefinitionAndBoundSpan` operation in the Language Service at the cursor
    * location in this buffer.
    */
-  getDefinitionAndBoundSpan(): ts.DefinitionInfoAndBoundSpan|undefined {
+  getDefinitionAndBoundSpan(): ts.DefinitionInfoAndBoundSpan | undefined {
     return this.ngLS.getDefinitionAndBoundSpan(this.scriptInfo.fileName, this._cursor);
   }
 
-  getCompletionsAtPosition(options?: ts.GetCompletionsAtPositionOptions):
-      ts.WithMetadata<ts.CompletionInfo>|undefined {
+  getCompletionsAtPosition(
+    options?: ts.GetCompletionsAtPositionOptions,
+  ): ts.WithMetadata<ts.CompletionInfo> | undefined {
     return this.ngLS.getCompletionsAtPosition(this.scriptInfo.fileName, this._cursor, options);
   }
 
   getCompletionEntryDetails(
-      entryName: string, formatOptions?: ts.FormatCodeOptions|ts.FormatCodeSettings,
-      preferences?: ts.UserPreferences, data?: ts.CompletionEntryData): ts.CompletionEntryDetails
-      |undefined {
+    entryName: string,
+    formatOptions?: ts.FormatCodeOptions | ts.FormatCodeSettings,
+    preferences?: ts.UserPreferences,
+    data?: ts.CompletionEntryData,
+  ): ts.CompletionEntryDetails | undefined {
     return this.ngLS.getCompletionEntryDetails(
-        this.scriptInfo.fileName, this._cursor, entryName, formatOptions, preferences, data);
+      this.scriptInfo.fileName,
+      this._cursor,
+      entryName,
+      formatOptions,
+      preferences,
+      data,
+    );
   }
 
   getTcb() {
     return this.ngLS.getTcb(this.scriptInfo.fileName, this._cursor);
+  }
+
+  getOutliningSpans() {
+    return this.ngLS.getOutliningSpans(this.scriptInfo.fileName);
   }
 
   getTemplateLocationForComponent() {
@@ -114,7 +135,7 @@ export class OpenBuffer {
  * Given a text snippet which contains exactly one cursor symbol ('¦'), extract both the offset of
  * that cursor within the text as well as the text snippet without the cursor.
  */
-function extractCursorInfo(textWithCursor: string): {cursor: number, text: string} {
+function extractCursorInfo(textWithCursor: string): {cursor: number; text: string} {
   const cursor = textWithCursor.indexOf('¦');
   if (cursor === -1 || textWithCursor.indexOf('¦', cursor + 1) !== -1) {
     throw new Error(`Expected to find exactly one cursor symbol '¦'`);

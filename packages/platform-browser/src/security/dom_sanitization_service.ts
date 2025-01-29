@@ -3,15 +3,33 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {DOCUMENT} from '@angular/common';
-import {forwardRef, Inject, Injectable, Injector, Sanitizer, SecurityContext, ɵ_sanitizeHtml as _sanitizeHtml, ɵ_sanitizeUrl as _sanitizeUrl, ɵallowSanitizationBypassAndThrow as allowSanitizationBypassOrThrow, ɵbypassSanitizationTrustHtml as bypassSanitizationTrustHtml, ɵbypassSanitizationTrustResourceUrl as bypassSanitizationTrustResourceUrl, ɵbypassSanitizationTrustScript as bypassSanitizationTrustScript, ɵbypassSanitizationTrustStyle as bypassSanitizationTrustStyle, ɵbypassSanitizationTrustUrl as bypassSanitizationTrustUrl, ɵBypassType as BypassType, ɵgetSanitizationBypassType as getSanitizationBypassType, ɵunwrapSafeValue as unwrapSafeValue, ɵXSS_SECURITY_URL as XSS_SECURITY_URL} from '@angular/core';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  Sanitizer,
+  SecurityContext,
+  ɵ_sanitizeHtml as _sanitizeHtml,
+  ɵ_sanitizeUrl as _sanitizeUrl,
+  ɵallowSanitizationBypassAndThrow as allowSanitizationBypassOrThrow,
+  ɵbypassSanitizationTrustHtml as bypassSanitizationTrustHtml,
+  ɵbypassSanitizationTrustResourceUrl as bypassSanitizationTrustResourceUrl,
+  ɵbypassSanitizationTrustScript as bypassSanitizationTrustScript,
+  ɵbypassSanitizationTrustStyle as bypassSanitizationTrustStyle,
+  ɵbypassSanitizationTrustUrl as bypassSanitizationTrustUrl,
+  ɵBypassType as BypassType,
+  ɵRuntimeError as RuntimeError,
+  ɵunwrapSafeValue as unwrapSafeValue,
+  ɵXSS_SECURITY_URL as XSS_SECURITY_URL,
+} from '@angular/core';
+
+import {RuntimeErrorCode} from '../errors';
 
 export {SecurityContext};
-
-
 
 /**
  * Marker interface for a value that's safe to use in a particular context.
@@ -97,7 +115,7 @@ export abstract class DomSanitizer implements Sanitizer {
    * For any other security context, this method throws an error if provided
    * with a plain string.
    */
-  abstract sanitize(context: SecurityContext, value: SafeValue|string|null): string|null;
+  abstract sanitize(context: SecurityContext, value: SafeValue | string | null): string | null;
 
   /**
    * Bypass security and trust the given value to be safe HTML. Only use this when the bound HTML
@@ -144,17 +162,13 @@ export abstract class DomSanitizer implements Sanitizer {
   abstract bypassSecurityTrustResourceUrl(value: string): SafeResourceUrl;
 }
 
-export function domSanitizerImplFactory(injector: Injector) {
-  return new DomSanitizerImpl(injector.get(DOCUMENT));
-}
-
-@Injectable({providedIn: 'root', useFactory: domSanitizerImplFactory, deps: [Injector]})
+@Injectable({providedIn: 'root'})
 export class DomSanitizerImpl extends DomSanitizer {
   constructor(@Inject(DOCUMENT) private _doc: any) {
     super();
   }
 
-  override sanitize(ctx: SecurityContext, value: SafeValue|string|null): string|null {
+  override sanitize(ctx: SecurityContext, value: SafeValue | string | null): string | null {
     if (value == null) return null;
     switch (ctx) {
       case SecurityContext.NONE:
@@ -173,7 +187,11 @@ export class DomSanitizerImpl extends DomSanitizer {
         if (allowSanitizationBypassOrThrow(value, BypassType.Script)) {
           return unwrapSafeValue(value);
         }
-        throw new Error('unsafe value used in a script context');
+        throw new RuntimeError(
+          RuntimeErrorCode.SANITIZATION_UNSAFE_SCRIPT,
+          (typeof ngDevMode === 'undefined' || ngDevMode) &&
+            'unsafe value used in a script context',
+        );
       case SecurityContext.URL:
         if (allowSanitizationBypassOrThrow(value, BypassType.Url)) {
           return unwrapSafeValue(value);
@@ -183,9 +201,17 @@ export class DomSanitizerImpl extends DomSanitizer {
         if (allowSanitizationBypassOrThrow(value, BypassType.ResourceUrl)) {
           return unwrapSafeValue(value);
         }
-        throw new Error(`unsafe value used in a resource URL context (see ${XSS_SECURITY_URL})`);
+        throw new RuntimeError(
+          RuntimeErrorCode.SANITIZATION_UNSAFE_RESOURCE_URL,
+          (typeof ngDevMode === 'undefined' || ngDevMode) &&
+            `unsafe value used in a resource URL context (see ${XSS_SECURITY_URL})`,
+        );
       default:
-        throw new Error(`Unexpected SecurityContext ${ctx} (see ${XSS_SECURITY_URL})`);
+        throw new RuntimeError(
+          RuntimeErrorCode.SANITIZATION_UNEXPECTED_CTX,
+          (typeof ngDevMode === 'undefined' || ngDevMode) &&
+            `Unexpected SecurityContext ${ctx} (see ${XSS_SECURITY_URL})`,
+        );
     }
   }
 

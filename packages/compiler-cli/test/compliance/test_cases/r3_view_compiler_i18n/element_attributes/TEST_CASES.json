@@ -11,6 +11,12 @@
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
+          ],
+          "files": [
+            {
+              "expected": "meaning_description_template.js",
+              "generated": "meaning_description.js"
+            }
           ]
         }
       ]
@@ -53,6 +59,12 @@
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
+          ],
+          "files": [
+            {
+              "expected": "ng-template_interpolation_template.js",
+              "generated": "ng-template_interpolation.js"
+            }
           ]
         }
       ]
@@ -67,6 +79,12 @@
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
+          ],
+          "files": [
+            {
+              "expected": "ng-template_interpolation_structural_template.js",
+              "generated": "ng-template_interpolation_structural.js"
+            }
           ]
         }
       ]
@@ -123,6 +141,12 @@
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
+          ],
+          "files": [
+            {
+              "expected": "static_attributes_structural_template.js",
+              "generated": "static_attributes_structural.js"
+            }
           ]
         }
       ]
@@ -137,6 +161,12 @@
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
+          ],
+          "files": [
+            {
+              "expected": "interpolation_basic_template.js",
+              "generated": "interpolation_basic.js"
+            }
           ]
         }
       ]
@@ -151,6 +181,12 @@
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
+          ],
+          "files": [
+            {
+              "expected": "interpolation_custom_config_template.js",
+              "generated": "interpolation_custom_config.js"
+            }
           ]
         }
       ]
@@ -165,6 +201,12 @@
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
+          ],
+          "files": [
+            {
+              "expected": "interpolation_nested_context_template.js",
+              "generated": "interpolation_nested_context.js"
+            }
           ]
         }
       ]
@@ -179,20 +221,12 @@
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
-          ]
-        }
-      ]
-    },
-    {
-      "description": "should support complex expressions in interpolation",
-      "inputFiles": [
-        "interpolation_complex_expressions.ts"
-      ],
-      "expectations": [
-        {
-          "extraChecks": [
-            "verifyPlaceholdersIntegrity",
-            "verifyUniqueConsts"
+          ],
+          "files": [
+            {
+              "expected": "interpolation_complex_expressions_template.js",
+              "generated": "interpolation_complex_expressions.js"
+            }
           ]
         }
       ]
@@ -207,6 +241,12 @@
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"
+          ],
+          "files": [
+            {
+              "expected": "i18n_root_node_template.js",
+              "generated": "i18n_root_node.js"
+            }
           ]
         }
       ]

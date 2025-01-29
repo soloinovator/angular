@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {inject, Injectable} from '@angular/core';
@@ -18,7 +18,7 @@ import {PRIMARY_OUTLET, RouteTitleKey} from './shared';
  * The built-in implementation traverses the router state snapshot and finds the deepest primary
  * outlet with `title` property. Given the `Routes` below, navigating to
  * `/base/child(popup:aux)` would result in the document title being set to "child".
- * ```
+ * ```ts
  * [
  *   {path: 'base', title: 'base', children: [
  *     {path: 'child', title: 'child'},
@@ -33,7 +33,7 @@ import {PRIMARY_OUTLET, RouteTitleKey} from './shared';
  * incorporate titles in named outlets.
  *
  * @publicApi
- * @see [Page title guide](guide/router#setting-the-page-title)
+ * @see [Page title guide](guide/routing/common-router-tasks#setting-the-page-title)
  */
 @Injectable({providedIn: 'root', useFactory: () => inject(DefaultTitleStrategy)})
 export abstract class TitleStrategy {
@@ -43,12 +43,12 @@ export abstract class TitleStrategy {
   /**
    * @returns The `title` of the deepest primary route.
    */
-  buildTitle(snapshot: RouterStateSnapshot): string|undefined {
-    let pageTitle: string|undefined;
-    let route: ActivatedRouteSnapshot|undefined = snapshot.root;
+  buildTitle(snapshot: RouterStateSnapshot): string | undefined {
+    let pageTitle: string | undefined;
+    let route: ActivatedRouteSnapshot | undefined = snapshot.root;
     while (route !== undefined) {
       pageTitle = this.getResolvedTitleForRoute(route) ?? pageTitle;
-      route = route.children.find(child => child.outlet === PRIMARY_OUTLET);
+      route = route.children.find((child) => child.outlet === PRIMARY_OUTLET);
     }
     return pageTitle;
   }

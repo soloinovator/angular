@@ -3,10 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {getOriginalError} from './util/errors';
+import {inject, InjectionToken} from './di';
+import {NgZone} from './zone';
 
 /**
  * Provides a hook for centralized exception handling.
@@ -18,13 +19,19 @@ import {getOriginalError} from './util/errors';
  * @usageNotes
  * ### Example
  *
- * ```
+ * ```ts
  * class MyErrorHandler implements ErrorHandler {
  *   handleError(error) {
  *     // do something with the exception
  *   }
  * }
  *
+ * // Provide in standalone apps
+ * bootstrapApplication(AppComponent, {
+ *   providers: [{provide: ErrorHandler, useClass: MyErrorHandler}]
+ * })
+ *
+ * // Provide in module-based apps
  * @NgModule({
  *   providers: [{provide: ErrorHandler, useClass: MyErrorHandler}]
  * })
@@ -40,21 +47,24 @@ export class ErrorHandler {
   _console: Console = console;
 
   handleError(error: any): void {
-    const originalError = this._findOriginalError(error);
-
     this._console.error('ERROR', error);
-    if (originalError) {
-      this._console.error('ORIGINAL ERROR', originalError);
-    }
-  }
-
-  /** @internal */
-  _findOriginalError(error: any): Error|null {
-    let e = error && getOriginalError(error);
-    while (e && getOriginalError(e)) {
-      e = getOriginalError(e);
-    }
-
-    return e || null;
   }
 }
+
+/**
+ * `InjectionToken` used to configure how to call the `ErrorHandler`.
+ *
+ * `NgZone` is provided by default today so the default (and only) implementation for this
+ * is calling `ErrorHandler.handleError` outside of the Angular zone.
+ */
+export const INTERNAL_APPLICATION_ERROR_HANDLER = new InjectionToken<(e: any) => void>(
+  typeof ngDevMode === 'undefined' || ngDevMode ? 'internal error handler' : '',
+  {
+    providedIn: 'root',
+    factory: () => {
+      const zone = inject(NgZone);
+      const userErrorHandler = inject(ErrorHandler);
+      return (e: unknown) => zone.runOutsideAngular(() => userErrorHandler.handleError(e));
+    },
+  },
+);

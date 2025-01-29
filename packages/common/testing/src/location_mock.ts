@@ -3,14 +3,17 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Location, LocationStrategy} from '@angular/common';
-import {EventEmitter, Injectable} from '@angular/core';
-import {SubscriptionLike} from 'rxjs';
-
-import {normalizeQueryParams} from '../../src/location/util';
+import {
+  Location,
+  LocationStrategy,
+  PopStateEvent,
+  ɵnormalizeQueryParams as normalizeQueryParams,
+} from '@angular/common';
+import {Injectable} from '@angular/core';
+import {Subject, SubscriptionLike} from 'rxjs';
 
 /**
  * A spy for {@link Location} that allows tests to fire simulated location events.
@@ -23,7 +26,7 @@ export class SpyLocation implements Location {
   private _history: LocationState[] = [new LocationState('', '', null)];
   private _historyIndex: number = 0;
   /** @internal */
-  _subject: EventEmitter<any> = new EventEmitter();
+  _subject = new Subject<PopStateEvent>();
   /** @internal */
   _basePath: string = '';
   /** @internal */
@@ -31,8 +34,9 @@ export class SpyLocation implements Location {
   /** @internal */
   _urlChangeListeners: ((url: string, state: unknown) => void)[] = [];
   /** @internal */
-  _urlChangeSubscription: SubscriptionLike|null = null;
+  _urlChangeSubscription: SubscriptionLike | null = null;
 
+  /** @nodoc */
   ngOnDestroy(): void {
     this._urlChangeSubscription?.unsubscribe();
     this._urlChangeListeners = [];
@@ -56,14 +60,15 @@ export class SpyLocation implements Location {
 
   isCurrentPathEqualTo(path: string, query: string = ''): boolean {
     const givenPath = path.endsWith('/') ? path.substring(0, path.length - 1) : path;
-    const currPath =
-        this.path().endsWith('/') ? this.path().substring(0, this.path().length - 1) : this.path();
+    const currPath = this.path().endsWith('/')
+      ? this.path().substring(0, this.path().length - 1)
+      : this.path();
 
-    return currPath == givenPath + (query.length > 0 ? ('?' + query) : '');
+    return currPath == givenPath + (query.length > 0 ? '?' + query : '');
   }
 
   simulateUrlPop(pathname: string) {
-    this._subject.emit({'url': pathname, 'pop': true, 'type': 'popstate'});
+    this._subject.next({'url': pathname, 'pop': true, 'type': 'popstate'});
   }
 
   simulateHashChange(pathname: string) {
@@ -73,8 +78,8 @@ export class SpyLocation implements Location {
     this.urlChanges.push('hash: ' + pathname);
     // the browser will automatically fire popstate event before each `hashchange` event, so we need
     // to simulate it.
-    this._subject.emit({'url': pathname, 'pop': true, 'type': 'popstate'});
-    this._subject.emit({'url': pathname, 'pop': true, 'type': 'hashchange'});
+    this._subject.next({'url': pathname, 'pop': true, 'type': 'popstate'});
+    this._subject.next({'url': pathname, 'pop': true, 'type': 'hashchange'});
   }
 
   prepareExternalUrl(url: string): string {
@@ -94,7 +99,7 @@ export class SpyLocation implements Location {
       return;
     }
 
-    const url = path + (query.length > 0 ? ('?' + query) : '');
+    const url = path + (query.length > 0 ? '?' + query : '');
     this.urlChanges.push(url);
     this._notifyUrlChangeListeners(path + normalizeQueryParams(query), state);
   }
@@ -113,24 +118,32 @@ export class SpyLocation implements Location {
     history.path = path;
     history.query = query;
 
-    const url = path + (query.length > 0 ? ('?' + query) : '');
+    const url = path + (query.length > 0 ? '?' + query : '');
     this.urlChanges.push('replace: ' + url);
     this._notifyUrlChangeListeners(path + normalizeQueryParams(query), state);
   }
 
   forward() {
-    if (this._historyIndex < (this._history.length - 1)) {
+    if (this._historyIndex < this._history.length - 1) {
       this._historyIndex++;
-      this._subject.emit(
-          {'url': this.path(), 'state': this.getState(), 'pop': true, 'type': 'popstate'});
+      this._subject.next({
+        'url': this.path(),
+        'state': this.getState(),
+        'pop': true,
+        'type': 'popstate',
+      });
     }
   }
 
   back() {
     if (this._historyIndex > 0) {
       this._historyIndex--;
-      this._subject.emit(
-          {'url': this.path(), 'state': this.getState(), 'pop': true, 'type': 'popstate'});
+      this._subject.next({
+        'url': this.path(),
+        'state': this.getState(),
+        'pop': true,
+        'type': 'popstate',
+      });
     }
   }
 
@@ -138,19 +151,21 @@ export class SpyLocation implements Location {
     const nextPageIndex = this._historyIndex + relativePosition;
     if (nextPageIndex >= 0 && nextPageIndex < this._history.length) {
       this._historyIndex = nextPageIndex;
-      this._subject.emit(
-          {'url': this.path(), 'state': this.getState(), 'pop': true, 'type': 'popstate'});
+      this._subject.next({
+        'url': this.path(),
+        'state': this.getState(),
+        'pop': true,
+        'type': 'popstate',
+      });
     }
   }
 
   onUrlChange(fn: (url: string, state: unknown) => void): VoidFunction {
     this._urlChangeListeners.push(fn);
 
-    if (!this._urlChangeSubscription) {
-      this._urlChangeSubscription = this.subscribe(v => {
-        this._notifyUrlChangeListeners(v.url, v.state);
-      });
-    }
+    this._urlChangeSubscription ??= this.subscribe((v) => {
+      this._notifyUrlChangeListeners(v.url, v.state);
+    });
 
     return () => {
       const fnIndex = this._urlChangeListeners.indexOf(fn);
@@ -165,13 +180,19 @@ export class SpyLocation implements Location {
 
   /** @internal */
   _notifyUrlChangeListeners(url: string = '', state: unknown) {
-    this._urlChangeListeners.forEach(fn => fn(url, state));
+    this._urlChangeListeners.forEach((fn) => fn(url, state));
   }
 
   subscribe(
-      onNext: (value: any) => void, onThrow?: ((error: any) => void)|null,
-      onReturn?: (() => void)|null): SubscriptionLike {
-    return this._subject.subscribe({next: onNext, error: onThrow, complete: onReturn});
+    onNext: (value: any) => void,
+    onThrow?: ((error: any) => void) | null,
+    onReturn?: (() => void) | null,
+  ): SubscriptionLike {
+    return this._subject.subscribe({
+      next: onNext,
+      error: onThrow ?? undefined,
+      complete: onReturn ?? undefined,
+    });
   }
 
   normalize(url: string): string {
@@ -188,5 +209,9 @@ export class SpyLocation implements Location {
 }
 
 class LocationState {
-  constructor(public path: string, public query: string, public state: any) {}
+  constructor(
+    public path: string,
+    public query: string,
+    public state: any,
+  ) {}
 }

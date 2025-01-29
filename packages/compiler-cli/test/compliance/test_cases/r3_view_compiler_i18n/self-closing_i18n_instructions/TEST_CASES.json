@@ -50,6 +50,12 @@
       ],
       "expectations": [
         {
+          "files": [
+            {
+              "generated": "styles.js",
+              "expected": "styles.js"
+            }
+          ],
           "extraChecks": [
             "verifyPlaceholdersIntegrity",
             "verifyUniqueConsts"

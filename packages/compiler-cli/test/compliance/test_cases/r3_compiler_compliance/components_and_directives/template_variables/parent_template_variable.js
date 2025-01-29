@@ -7,7 +7,7 @@ function MyComponent_li_1_li_4_Template(rf, ctx) {
   if (rf & 2) {
     const $info$ = ctx.$implicit;
     const $item$ = $r3$.ɵɵnextContext().$implicit;
-    $r3$.ɵɵadvance(1);
+    $r3$.ɵɵadvance();
     $r3$.ɵɵtextInterpolate2(" ", $item$.name, ": ", $info$.description, " ");
   }
 }
@@ -34,6 +34,7 @@ function MyComponent_li_1_Template(rf, ctx) {
 MyComponent.ɵcmp = /*@__PURE__*/ $r3$.ɵɵdefineComponent({
   type: MyComponent,
   selectors: [["my-component"]],
+  standalone: false,
   decls: 2,
   vars: 1,
   consts: [[__AttributeMarker.Template__, "for", "forOf"]],
@@ -44,10 +45,10 @@ MyComponent.ɵcmp = /*@__PURE__*/ $r3$.ɵɵdefineComponent({
       $r3$.ɵɵelementEnd();
     }
     if (rf & 2) {
-      $r3$.ɵɵadvance(1);
+      $r3$.ɵɵadvance();
       $r3$.ɵɵproperty("forOf", ctx.items);
     }
   },
-  dependencies: function () { return [ForOfDirective]; },
+  dependencies: () => [ForOfDirective],
   encapsulation: 2
 });

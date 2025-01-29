@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {InjectionToken, Injector} from '@angular/core';
@@ -16,14 +16,14 @@ export class MultiReporter extends Reporter {
     return [
       {
         provide: _CHILDREN,
-        useFactory: (injector: Injector) => childTokens.map(token => injector.get(token)),
+        useFactory: (injector: Injector) => childTokens.map((token) => injector.get(token)),
         deps: [Injector],
       },
       {
         provide: MultiReporter,
         useFactory: (children: Reporter[]) => new MultiReporter(children),
-        deps: [_CHILDREN]
-      }
+        deps: [_CHILDREN],
+      },
     ];
   }
 
@@ -32,13 +32,16 @@ export class MultiReporter extends Reporter {
   }
 
   override reportMeasureValues(values: MeasureValues): Promise<any[]> {
-    return Promise.all(this._reporters.map(reporter => reporter.reportMeasureValues(values)));
+    return Promise.all(this._reporters.map((reporter) => reporter.reportMeasureValues(values)));
   }
 
-  override reportSample(completeSample: MeasureValues[], validSample: MeasureValues[]):
-      Promise<any[]> {
+  override reportSample(
+    completeSample: MeasureValues[],
+    validSample: MeasureValues[],
+  ): Promise<any[]> {
     return Promise.all(
-        this._reporters.map(reporter => reporter.reportSample(completeSample, validSample)));
+      this._reporters.map((reporter) => reporter.reportSample(completeSample, validSample)),
+    );
   }
 }
 

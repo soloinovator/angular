@@ -3,11 +3,38 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {DOCUMENT, ɵgetDOM as getDOM} from '@angular/common';
-import {ANALYZE_FOR_ENTRY_COMPONENTS, ApplicationRef, Component, ComponentRef, ContentChild, destroyPlatform, Directive, ErrorHandler, EventEmitter, HostListener, InjectionToken, Injector, Input, NgModule, NgModuleRef, NgZone, Output, Pipe, PipeTransform, Provider, QueryList, Renderer2, SimpleChanges, TemplateRef, ViewChildren, ViewContainerRef} from '@angular/core';
+import {
+  ApplicationRef,
+  Component,
+  ComponentRef,
+  ContentChild,
+  createComponent,
+  destroyPlatform,
+  Directive,
+  EnvironmentInjector,
+  ErrorHandler,
+  EventEmitter,
+  HostListener,
+  InjectionToken,
+  Injector,
+  Input,
+  NgModule,
+  NgZone,
+  Output,
+  Pipe,
+  PipeTransform,
+  Provider,
+  QueryList,
+  Renderer2,
+  SimpleChanges,
+  TemplateRef,
+  ViewChildren,
+  ViewContainerRef,
+} from '@angular/core';
 import {fakeAsync, inject, TestBed, tick} from '@angular/core/testing';
 import {BrowserModule, By} from '@angular/platform-browser';
 import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
@@ -62,48 +89,53 @@ describe('regressions', () => {
     });
 
     it('should only update the bound property when using asyncPipe - #15205', fakeAsync(() => {
-         @Component({template: '<div myDir [a]="p | async" [b]="2"></div>'})
-         class MyComp {
-           p = Promise.resolve(1);
-         }
+      @Component({
+        template: '<div myDir [a]="p | async" [b]="2"></div>',
+        standalone: false,
+      })
+      class MyComp {
+        p = Promise.resolve(1);
+      }
 
-         @Directive({selector: '[myDir]'})
-         class MyDir {
-           setterCalls: {[key: string]: any} = {};
-           // TODO(issue/24571): remove '!'.
-           changes!: SimpleChanges;
+      @Directive({
+        selector: '[myDir]',
+        standalone: false,
+      })
+      class MyDir {
+        setterCalls: {[key: string]: any} = {};
+        changes: SimpleChanges | undefined;
 
-           @Input()
-           set a(v: number) {
-             this.setterCalls['a'] = v;
-           }
-           @Input()
-           set b(v: number) {
-             this.setterCalls['b'] = v;
-           }
+        @Input()
+        set a(v: number) {
+          this.setterCalls['a'] = v;
+        }
+        @Input()
+        set b(v: number) {
+          this.setterCalls['b'] = v;
+        }
 
-           ngOnChanges(changes: SimpleChanges) {
-             this.changes = changes;
-           }
-         }
+        ngOnChanges(changes: SimpleChanges) {
+          this.changes = changes;
+        }
+      }
 
-         TestBed.configureTestingModule({declarations: [MyDir, MyComp]});
-         const fixture = TestBed.createComponent(MyComp);
-         const dir = fixture.debugElement.query(By.directive(MyDir)).injector.get(MyDir) as MyDir;
+      TestBed.configureTestingModule({declarations: [MyDir, MyComp]});
+      const fixture = TestBed.createComponent(MyComp);
+      const dir = fixture.debugElement.query(By.directive(MyDir)).injector.get(MyDir) as MyDir;
 
-         fixture.detectChanges();
-         expect(dir.setterCalls).toEqual({'a': null, 'b': 2});
-         expect(Object.keys(dir.changes)).toEqual(['a', 'b']);
+      fixture.detectChanges();
+      expect(dir.setterCalls).toEqual({'a': null, 'b': 2});
+      expect(Object.keys(dir.changes ?? {})).toEqual(['a', 'b']);
 
-         dir.setterCalls = {};
-         dir.changes = {};
+      dir.setterCalls = {};
+      dir.changes = {};
 
-         tick();
-         fixture.detectChanges();
+      tick();
+      fixture.detectChanges();
 
-         expect(dir.setterCalls).toEqual({'a': 1});
-         expect(Object.keys(dir.changes)).toEqual(['a']);
-       }));
+      expect(dir.setterCalls).toEqual({'a': 1});
+      expect(Object.keys(dir.changes)).toEqual(['a']);
+    }));
 
     it('should only evaluate methods once - #10639', () => {
       TestBed.configureTestingModule({declarations: [MyCountingComp]});
@@ -118,10 +150,13 @@ describe('regressions', () => {
     });
 
     it('should evaluate a conditional in a statement binding', () => {
-      @Component({selector: 'some-comp', template: '<p (click)="nullValue?.click()"></p>'})
+      @Component({
+        selector: 'some-comp',
+        template: '<p (click)="nullValue?.click()"></p>',
+        standalone: false,
+      })
       class SomeComponent {
-        // TODO(issue/24571): remove '!'.
-        nullValue!: SomeReferencedClass;
+        nullValue: SomeReferencedClass | undefined;
       }
 
       class SomeReferencedClass {
@@ -129,8 +164,9 @@ describe('regressions', () => {
       }
 
       expect(() => {
-        const fixture = TestBed.configureTestingModule({declarations: [SomeComponent]})
-                            .createComponent(SomeComponent);
+        const fixture = TestBed.configureTestingModule({
+          declarations: [SomeComponent],
+        }).createComponent(SomeComponent);
 
         fixture.detectChanges(/* checkNoChanges */ false);
       }).not.toThrow();
@@ -171,8 +207,10 @@ describe('regressions', () => {
       const token2 = new InjectionToken('someToken');
       const tokenValue1 = {'a': 1};
       const tokenValue2 = {'a': 1};
-      const injector = createInjector(
-          [{provide: token1, useValue: tokenValue1}, {provide: token2, useValue: tokenValue2}]);
+      const injector = createInjector([
+        {provide: token1, useValue: tokenValue1},
+        {provide: token2, useValue: tokenValue2},
+      ]);
 
       expect(injector.get(token1)).toEqual(tokenValue1);
       expect(injector.get(token2)).toEqual(tokenValue2);
@@ -185,19 +223,6 @@ describe('regressions', () => {
       const data = [new TestClass(1), new TestClass(2)];
       const injector = createInjector([{provide: 'someToken', useValue: data}]);
       expect(injector.get('someToken')).toEqual(data);
-    });
-
-    describe('ANALYZE_FOR_ENTRY_COMPONENTS providers', () => {
-      it('should support class instances', () => {
-        class SomeObject {
-          someMethod() {}
-        }
-
-        expect(
-            () => createInjector(
-                [{provide: ANALYZE_FOR_ENTRY_COMPONENTS, useValue: new SomeObject(), multi: true}]))
-            .not.toThrow();
-      });
     });
   });
 
@@ -230,24 +255,33 @@ describe('regressions', () => {
 
   it('should generate the correct output when constructors have the same name', () => {
     function ComponentFactory(selector: string, template: string) {
-      @Component({selector, template})
-      class MyComponent {
-      }
+      @Component({
+        selector,
+        template,
+        standalone: false,
+      })
+      class MyComponent {}
       return MyComponent;
     }
     const HeroComponent = ComponentFactory('my-hero', 'my hero');
     const VillainComponent = ComponentFactory('a-villain', 'a villain');
     const MainComponent = ComponentFactory(
-        'my-app', 'I was saved by <my-hero></my-hero> from <a-villain></a-villain>.');
+      'my-app',
+      'I was saved by <my-hero></my-hero> from <a-villain></a-villain>.',
+    );
 
-    TestBed.configureTestingModule(
-        {declarations: [HeroComponent, VillainComponent, MainComponent]});
+    TestBed.configureTestingModule({
+      declarations: [HeroComponent, VillainComponent, MainComponent],
+    });
     const fixture = TestBed.createComponent(MainComponent);
     expect(fixture.nativeElement).toHaveText('I was saved by my hero from a villain.');
   });
 
   it('should allow to use the renderer outside of views', () => {
-    @Component({template: ''})
+    @Component({
+      template: '',
+      standalone: false,
+    })
     class MyComp {
       constructor(public renderer: Renderer2) {}
     }
@@ -260,18 +294,23 @@ describe('regressions', () => {
   });
 
   it('should not recreate TemplateRef references during dirty checking', () => {
-    @Component({template: '<div [someDir]="someRef"></div><ng-template #someRef></ng-template>'})
-    class MyComp {
-    }
+    @Component({
+      template: '<div [someDir]="someRef"></div><ng-template #someRef></ng-template>',
+      standalone: false,
+    })
+    class MyComp {}
 
-    @Directive({selector: '[someDir]'})
+    @Directive({
+      selector: '[someDir]',
+      standalone: false,
+    })
     class MyDir {
-      // TODO(issue/24571): remove '!'.
-      @Input('someDir') template!: TemplateRef<any>;
+      @Input('someDir') template: TemplateRef<any> | undefined;
     }
 
-    const ctx =
-        TestBed.configureTestingModule({declarations: [MyComp, MyDir]}).createComponent(MyComp);
+    const ctx = TestBed.configureTestingModule({declarations: [MyComp, MyDir]}).createComponent(
+      MyComp,
+    );
     const dir = <MyDir>ctx.debugElement.query(By.directive(MyDir)).injector.get(MyDir);
 
     expect(dir.template).toBeUndefined();
@@ -285,9 +324,11 @@ describe('regressions', () => {
   });
 
   it('should not recreate ViewContainerRefs in queries', () => {
-    @Component({template: '<div #vc></div><div *ngIf="show" #vc></div>'})
+    @Component({
+      template: '<div #vc></div><div *ngIf="show" #vc></div>',
+      standalone: false,
+    })
     class MyComp {
-      // TODO(issue/24571): remove '!'.
       @ViewChildren('vc', {read: ViewContainerRef}) viewContainers!: QueryList<ViewContainerRef>;
 
       show = true;
@@ -315,12 +356,15 @@ describe('regressions', () => {
 
   describe('empty templates - #15143', () => {
     it('should allow empty components', () => {
-      @Component({template: ''})
-      class MyComp {
-      }
+      @Component({
+        template: '',
+        standalone: false,
+      })
+      class MyComp {}
 
-      const fixture =
-          TestBed.configureTestingModule({declarations: [MyComp]}).createComponent(MyComp);
+      const fixture = TestBed.configureTestingModule({declarations: [MyComp]}).createComponent(
+        MyComp,
+      );
       fixture.detectChanges();
 
       expect(fixture.debugElement.childNodes.length).toBe(0);
@@ -328,14 +372,20 @@ describe('regressions', () => {
   });
 
   it('should throw if @ContentChild and @Input are on the same property', () => {
-    @Directive({selector: 'test'})
+    @Directive({
+      selector: 'test',
+      standalone: false,
+    })
     class Test {
-      @Input() @ContentChild(TemplateRef, {static: true}) tpl!: TemplateRef<any>;
+      @Input() @ContentChild(TemplateRef, {static: true}) tpl: TemplateRef<any> | undefined;
     }
 
-    @Component({selector: 'my-app', template: `<test></test>`})
-    class App {
-    }
+    @Component({
+      selector: 'my-app',
+      template: `<test></test>`,
+      standalone: false,
+    })
+    class App {}
 
     expect(() => {
       TestBed.configureTestingModule({declarations: [App, Test]}).createComponent(App);
@@ -343,15 +393,18 @@ describe('regressions', () => {
   });
 
   it('should not add ng-version for dynamically created components', () => {
-    @Component({template: ''})
-    class App {
-    }
+    @Component({
+      template: '',
+      standalone: false,
+    })
+    class App {}
 
-    const modRef = TestBed.configureTestingModule({declarations: [App]}).inject(NgModuleRef);
-    const compRef =
-        modRef.componentFactoryResolver.resolveComponentFactory(App).create(Injector.NULL);
+    const compRef = createComponent(App, {
+      environmentInjector: TestBed.inject(EnvironmentInjector),
+    });
 
     expect(compRef.location.nativeElement.hasAttribute('ng-version')).toBe(false);
+    compRef.destroy();
   });
 });
 
@@ -389,7 +442,8 @@ describe('regressions using bootstrap', () => {
       @Component({
         selector: COMP_SELECTOR,
         template:
-            '<button (click)="next()"></button><button (click)="nextAndThrow()"></button><button (dirClick)="nextAndThrow()"></button><span>Value:{{value}}</span><span>{{throwIfNeeded()}}</span>'
+          '<button (click)="next()"></button><button (click)="nextAndThrow()"></button><button (dirClick)="nextAndThrow()"></button><span>Value:{{value}}</span><span>{{throwIfNeeded()}}</span>',
+        standalone: false,
       })
       class ErrorComp {
         value = 0;
@@ -410,7 +464,10 @@ describe('regressions using bootstrap', () => {
         }
       }
 
-      @Directive({selector: '[dirClick]'})
+      @Directive({
+        selector: '[dirClick]',
+        standalone: false,
+      })
       class EventDir {
         @Output() dirClick = new EventEmitter();
 
@@ -426,46 +483,47 @@ describe('regressions using bootstrap', () => {
         bootstrap: [ErrorComp],
         providers: [{provide: ErrorHandler, useValue: errorHandler}],
       })
-      class TestModule {
-      }
+      class TestModule {}
 
-      platformBrowserDynamic().bootstrapModule(TestModule).then((ref) => {
-        NgZone.assertNotInAngularZone();
-        const appRef = ref.injector.get(ApplicationRef) as ApplicationRef;
-        const compRef = appRef.components[0] as ComponentRef<ErrorComp>;
-        const compEl = compRef.location.nativeElement;
-        const nextBtn = compEl.children[0];
-        const nextAndThrowBtn = compEl.children[1];
-        const nextAndThrowDirBtn = compEl.children[2];
+      platformBrowserDynamic()
+        .bootstrapModule(TestModule)
+        .then((ref) => {
+          NgZone.assertNotInAngularZone();
+          const appRef = ref.injector.get(ApplicationRef) as ApplicationRef;
+          const compRef = appRef.components[0] as ComponentRef<ErrorComp>;
+          const compEl = compRef.location.nativeElement;
+          const nextBtn = compEl.children[0];
+          const nextAndThrowBtn = compEl.children[1];
+          const nextAndThrowDirBtn = compEl.children[2];
 
-        const errorDelta = 1;
-        let currentErrorIndex = 0;
+          const errorDelta = 1;
+          let currentErrorIndex = 0;
 
-        nextBtn.click();
-        assertValueAndErrors(compEl, 1, currentErrorIndex);
-        currentErrorIndex += errorDelta;
-        nextBtn.click();
-        assertValueAndErrors(compEl, 2, currentErrorIndex);
-        currentErrorIndex += errorDelta;
+          nextBtn.click();
+          assertValueAndErrors(compEl, 1, currentErrorIndex);
+          currentErrorIndex += errorDelta;
+          nextBtn.click();
+          assertValueAndErrors(compEl, 2, currentErrorIndex);
+          currentErrorIndex += errorDelta;
 
-        nextAndThrowBtn.click();
-        assertValueAndErrors(compEl, 3, currentErrorIndex);
-        currentErrorIndex += errorDelta;
-        nextAndThrowBtn.click();
-        assertValueAndErrors(compEl, 4, currentErrorIndex);
-        currentErrorIndex += errorDelta;
+          nextAndThrowBtn.click();
+          assertValueAndErrors(compEl, 3, currentErrorIndex);
+          currentErrorIndex += errorDelta;
+          nextAndThrowBtn.click();
+          assertValueAndErrors(compEl, 4, currentErrorIndex);
+          currentErrorIndex += errorDelta;
 
-        nextAndThrowDirBtn.click();
-        assertValueAndErrors(compEl, 5, currentErrorIndex);
-        currentErrorIndex += errorDelta;
-        nextAndThrowDirBtn.click();
-        assertValueAndErrors(compEl, 6, currentErrorIndex);
-        currentErrorIndex += errorDelta;
+          nextAndThrowDirBtn.click();
+          assertValueAndErrors(compEl, 5, currentErrorIndex);
+          currentErrorIndex += errorDelta;
+          nextAndThrowDirBtn.click();
+          assertValueAndErrors(compEl, 6, currentErrorIndex);
+          currentErrorIndex += errorDelta;
 
-        // Assert that there were no more errors
-        expect(logger.errors.length).toBe(currentErrorIndex);
-        done();
-      });
+          // Assert that there were no more errors
+          expect(logger.errors.length).toBe(currentErrorIndex);
+          done();
+        });
 
       function assertValueAndErrors(compEl: any, value: number, errorIndex: number) {
         expect(compEl).toHaveText(`Value:${value}`);
@@ -479,32 +537,51 @@ describe('regressions using bootstrap', () => {
   }
 });
 
-@Component({selector: 'my-comp', template: ''})
+@Component({
+  selector: 'my-comp',
+  template: '',
+  standalone: false,
+})
 class MyComp1 {
   constructor(public injector: Injector) {}
 }
 
-@Pipe({name: 'somePipe', pure: true})
+@Pipe({
+  name: 'somePipe',
+  pure: true,
+  standalone: false,
+})
 class PlatformPipe implements PipeTransform {
   transform(value: any): any {
     return 'somePlatformPipe';
   }
 }
 
-@Pipe({name: 'somePipe', pure: true})
+@Pipe({
+  name: 'somePipe',
+  pure: true,
+  standalone: false,
+})
 class CustomPipe implements PipeTransform {
   transform(value: any): any {
     return 'someCustomPipe';
   }
 }
 
-@Component({selector: 'cmp-content', template: `<ng-content></ng-content>`})
-class CmpWithNgContent {
-}
+@Component({
+  selector: 'cmp-content',
+  template: `<ng-content></ng-content>`,
+  standalone: false,
+})
+class CmpWithNgContent {}
 
-@Component({selector: 'counting-cmp', template: ''})
+@Component({
+  selector: 'counting-cmp',
+  template: '',
+  standalone: false,
+})
 class MyCountingComp {
-  method(): {value: string}|undefined {
+  method(): {value: string} | undefined {
     MyCountingComp.calls++;
     return {value: 'counting method value'};
   }
@@ -515,7 +592,10 @@ class MyCountingComp {
   static calls = 0;
 }
 
-@Pipe({name: 'countingPipe'})
+@Pipe({
+  name: 'countingPipe',
+  standalone: false,
+})
 class CountingPipe implements PipeTransform {
   transform(value: any): any {
     CountingPipe.calls++;
@@ -530,20 +610,20 @@ class CountingPipe implements PipeTransform {
 @Component({
   selector: 'left',
   template: `L<right *ngIf="false"></right>`,
+  standalone: false,
 })
-class LeftComp {
-}
+class LeftComp {}
 
 @Component({
   selector: 'right',
   template: `R<left *ngIf="false"></left>`,
+  standalone: false,
 })
-class RightComp {
-}
+class RightComp {}
 
 @Component({
   selector: 'fakeRecursiveComp',
   template: `[<left *ngIf="false"></left><right *ngIf="false"></right>]`,
+  standalone: false,
 })
-export class FakeRecursiveComp {
-}
+export class FakeRecursiveComp {}

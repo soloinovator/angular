@@ -3,14 +3,13 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {makeParamDecorator} from '../util/decorators';
 
 import {attachInjectFlag} from './injector_compatibility';
 import {DecoratorFlags, InternalInjectFlags} from './interface/injector';
-
 
 /**
  * Type of the Inject decorator / constructor function.
@@ -29,14 +28,13 @@ export interface InjectDecorator {
    * When `@Inject()` is not present, the injector uses the type annotation of the
    * parameter as the provider.
    *
-   * <code-example path="core/di/ts/metadata_spec.ts" region="InjectWithoutDecorator">
-   * </code-example>
+   * {@example core/di/ts/metadata_spec.ts region='InjectWithoutDecorator'}
    *
-   * @see ["Dependency Injection Guide"](guide/dependency-injection)
+   * @see [Dependency Injection Guide](guide/di/dependency-injection
    *
    */
   (token: any): any;
-  new(token: any): Inject;
+  new (token: any): Inject;
 }
 
 /**
@@ -46,7 +44,7 @@ export interface InjectDecorator {
  */
 export interface Inject {
   /**
-   * A [DI token](guide/glossary#di-token) that maps to the dependency to be injected.
+   * A DI token that maps to the dependency to be injected.
    */
   token: any;
 }
@@ -58,9 +56,11 @@ export interface Inject {
  * @publicApi
  */
 export const Inject: InjectDecorator = attachInjectFlag(
-    // Disable tslint because `DecoratorFlags` is a const enum which gets inlined.
-    // tslint:disable-next-line: no-toplevel-property-access
-    makeParamDecorator('Inject', (token: any) => ({token})), DecoratorFlags.Inject);
+  // Disable tslint because `DecoratorFlags` is a const enum which gets inlined.
+  makeParamDecorator('Inject', (token: any) => ({token})),
+  // tslint:disable-next-line: no-toplevel-property-access
+  DecoratorFlags.Inject,
+);
 
 /**
  * Type of the Optional decorator / constructor function.
@@ -80,13 +80,12 @@ export interface OptionalDecorator {
    *
    * The following code allows the possibility of a `null` result:
    *
-   * <code-example path="core/di/ts/metadata_spec.ts" region="Optional">
-   * </code-example>
+   * {@example core/di/ts/metadata_spec.ts region='Optional'}
    *
-   * @see ["Dependency Injection Guide"](guide/dependency-injection).
+   * @see [Dependency Injection Guide](guide/di/dependency-injection.
    */
   (): any;
-  new(): Optional;
+  new (): Optional;
 }
 
 /**
@@ -103,9 +102,9 @@ export interface Optional {}
  * @publicApi
  */
 export const Optional: OptionalDecorator =
-    // Disable tslint because `InternalInjectFlags` is a const enum which gets inlined.
-    // tslint:disable-next-line: no-toplevel-property-access
-    attachInjectFlag(makeParamDecorator('Optional'), InternalInjectFlags.Optional);
+  // Disable tslint because `InternalInjectFlags` is a const enum which gets inlined.
+  // tslint:disable-next-line: no-toplevel-property-access
+  attachInjectFlag(makeParamDecorator('Optional'), InternalInjectFlags.Optional);
 
 /**
  * Type of the Self decorator / constructor function.
@@ -126,15 +125,14 @@ export interface SelfDecorator {
    * by the local injector when instantiating the class itself, but not
    * when instantiating a child.
    *
-   * <code-example path="core/di/ts/metadata_spec.ts" region="Self">
-   * </code-example>
+   * {@example core/di/ts/metadata_spec.ts region='Self'}
    *
-   * @see `SkipSelf`
-   * @see `Optional`
+   * @see {@link SkipSelf}
+   * @see {@link Optional}
    *
    */
   (): any;
-  new(): Self;
+  new (): Self;
 }
 
 /**
@@ -151,10 +149,9 @@ export interface Self {}
  * @publicApi
  */
 export const Self: SelfDecorator =
-    // Disable tslint because `InternalInjectFlags` is a const enum which gets inlined.
-    // tslint:disable-next-line: no-toplevel-property-access
-    attachInjectFlag(makeParamDecorator('Self'), InternalInjectFlags.Self);
-
+  // Disable tslint because `InternalInjectFlags` is a const enum which gets inlined.
+  // tslint:disable-next-line: no-toplevel-property-access
+  attachInjectFlag(makeParamDecorator('Self'), InternalInjectFlags.Self);
 
 /**
  * Type of the `SkipSelf` decorator / constructor function.
@@ -173,16 +170,15 @@ export interface SkipSelfDecorator {
    * In the following example, the dependency can be resolved when
    * instantiating a child, but not when instantiating the class itself.
    *
-   * <code-example path="core/di/ts/metadata_spec.ts" region="SkipSelf">
-   * </code-example>
+   * {@example core/di/ts/metadata_spec.ts region='SkipSelf'}
    *
-   * @see [Dependency Injection guide](guide/dependency-injection-in-action#skip).
-   * @see `Self`
-   * @see `Optional`
+   * @see [Dependency Injection guide](guide/di/di-in-action#skip).
+   * @see {@link Self}
+   * @see {@link Optional}
    *
    */
   (): any;
-  new(): SkipSelf;
+  new (): SkipSelf;
 }
 
 /**
@@ -199,9 +195,9 @@ export interface SkipSelf {}
  * @publicApi
  */
 export const SkipSelf: SkipSelfDecorator =
-    // Disable tslint because `InternalInjectFlags` is a const enum which gets inlined.
-    // tslint:disable-next-line: no-toplevel-property-access
-    attachInjectFlag(makeParamDecorator('SkipSelf'), InternalInjectFlags.SkipSelf);
+  // Disable tslint because `InternalInjectFlags` is a const enum which gets inlined.
+  // tslint:disable-next-line: no-toplevel-property-access
+  attachInjectFlag(makeParamDecorator('SkipSelf'), InternalInjectFlags.SkipSelf);
 
 /**
  * Type of the `Host` decorator / constructor function.
@@ -218,14 +214,13 @@ export interface HostDecorator {
    *
    * The following shows use with the `@Optional` decorator, and allows for a `null` result.
    *
-   * <code-example path="core/di/ts/metadata_spec.ts" region="Host">
-   * </code-example>
+   * {@example core/di/ts/metadata_spec.ts region='Host'}
    *
    * For an extended example, see ["Dependency Injection
-   * Guide"](guide/dependency-injection-in-action#optional).
+   * Guide"](guide/di/di-in-action#optional).
    */
   (): any;
-  new(): Host;
+  new (): Host;
 }
 
 /**
@@ -242,6 +237,6 @@ export interface Host {}
  * @publicApi
  */
 export const Host: HostDecorator =
-    // Disable tslint because `InternalInjectFlags` is a const enum which gets inlined.
-    // tslint:disable-next-line: no-toplevel-property-access
-    attachInjectFlag(makeParamDecorator('Host'), InternalInjectFlags.Host);
+  // Disable tslint because `InternalInjectFlags` is a const enum which gets inlined.
+  // tslint:disable-next-line: no-toplevel-property-access
+  attachInjectFlag(makeParamDecorator('Host'), InternalInjectFlags.Host);

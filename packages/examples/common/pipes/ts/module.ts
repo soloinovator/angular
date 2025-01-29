@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, NgModule} from '@angular/core';
@@ -57,19 +57,30 @@ import {TitleCasePipeComponent} from './titlecase_pipe';
 
     <h2><code>keyvalue</code></h2>
     <keyvalue-pipe></keyvalue-pipe>
-  `
+  `,
+  standalone: false,
 })
-export class AppComponent {
-}
+export class AppComponent {}
 
 @NgModule({
   declarations: [
-    AsyncPromisePipeComponent, AsyncObservablePipeComponent, AppComponent, JsonPipeComponent,
-    DatePipeComponent, DeprecatedDatePipeComponent, LowerUpperPipeComponent, TitleCasePipeComponent,
-    NumberPipeComponent, PercentPipeComponent, CurrencyPipeComponent, SlicePipeStringComponent,
-    SlicePipeListComponent, I18nPluralPipeComponent, I18nSelectPipeComponent, KeyValuePipeComponent
+    AsyncPromisePipeComponent,
+    AsyncObservablePipeComponent,
+    AppComponent,
+    JsonPipeComponent,
+    DatePipeComponent,
+    DeprecatedDatePipeComponent,
+    LowerUpperPipeComponent,
+    TitleCasePipeComponent,
+    NumberPipeComponent,
+    PercentPipeComponent,
+    CurrencyPipeComponent,
+    SlicePipeStringComponent,
+    SlicePipeListComponent,
+    I18nPluralPipeComponent,
+    I18nSelectPipeComponent,
+    KeyValuePipeComponent,
   ],
   imports: [BrowserModule],
 })
-export class AppModule {
-}
+export class AppModule {}

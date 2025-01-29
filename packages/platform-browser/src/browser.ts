@@ -3,46 +3,75 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {CommonModule, DOCUMENT, XhrFactory, ɵPLATFORM_BROWSER_ID as PLATFORM_BROWSER_ID} from '@angular/common';
-import {APP_ID, ApplicationModule, ApplicationRef, createPlatformFactory, EnvironmentProviders, ErrorHandler, Inject, InjectionToken, ModuleWithProviders, NgModule, NgZone, Optional, PLATFORM_ID, PLATFORM_INITIALIZER, platformCore, PlatformRef, Provider, RendererFactory2, SkipSelf, StaticProvider, Testability, TestabilityRegistry, Type, ɵINJECTOR_SCOPE as INJECTOR_SCOPE, ɵinternalCreateApplication as internalCreateApplication, ɵsetDocument, ɵTESTABILITY as TESTABILITY, ɵTESTABILITY_GETTER as TESTABILITY_GETTER} from '@angular/core';
+import {
+  CommonModule,
+  DOCUMENT,
+  XhrFactory,
+  ɵPLATFORM_BROWSER_ID as PLATFORM_BROWSER_ID,
+} from '@angular/common';
+import {
+  ApplicationConfig as ApplicationConfigFromCore,
+  ApplicationModule,
+  ApplicationRef,
+  createPlatformFactory,
+  ErrorHandler,
+  InjectionToken,
+  NgModule,
+  NgZone,
+  PLATFORM_ID,
+  PLATFORM_INITIALIZER,
+  platformCore,
+  PlatformRef,
+  Provider,
+  RendererFactory2,
+  StaticProvider,
+  Testability,
+  TestabilityRegistry,
+  Type,
+  ɵINJECTOR_SCOPE as INJECTOR_SCOPE,
+  ɵinternalCreateApplication as internalCreateApplication,
+  ɵRuntimeError as RuntimeError,
+  ɵsetDocument,
+  ɵTESTABILITY as TESTABILITY,
+  ɵTESTABILITY_GETTER as TESTABILITY_GETTER,
+  inject,
+} from '@angular/core';
 
 import {BrowserDomAdapter} from './browser/browser_adapter';
-import {SERVER_TRANSITION_PROVIDERS, TRANSITION_ID} from './browser/server-transition';
 import {BrowserGetTestability} from './browser/testability';
 import {BrowserXhr} from './browser/xhr';
 import {DomRendererFactory2} from './dom/dom_renderer';
 import {DomEventsPlugin} from './dom/events/dom_events';
 import {EVENT_MANAGER_PLUGINS, EventManager} from './dom/events/event_manager';
 import {KeyEventsPlugin} from './dom/events/key_events';
-import {DomSharedStylesHost, SharedStylesHost} from './dom/shared_styles_host';
-
-const NG_DEV_MODE = typeof ngDevMode === 'undefined' || !!ngDevMode;
+import {SharedStylesHost} from './dom/shared_styles_host';
+import {RuntimeErrorCode} from './errors';
 
 /**
  * Set of config options available during the application bootstrap operation.
  *
  * @publicApi
+ *
+ * @deprecated
+ * `ApplicationConfig` has moved, please import `ApplicationConfig` from `@angular/core` instead.
  */
-export interface ApplicationConfig {
-  /**
-   * List of providers that should be available to the root component and all its children.
-   */
-  providers: Array<Provider|EnvironmentProviders>;
-}
+// The below is a workaround to add a deprecated message.
+type ApplicationConfig = ApplicationConfigFromCore;
+export {ApplicationConfig};
 
 /**
  * Bootstraps an instance of an Angular application and renders a standalone component as the
  * application's root component. More information about standalone components can be found in [this
- * guide](guide/standalone-components).
+ * guide](guide/components/importing).
  *
  * @usageNotes
  * The root component passed into this function *must* be a standalone one (should have the
  * `standalone: true` flag in the `@Component` decorator config).
  *
- * ```typescript
+ * ```angular-ts
  * @Component({
  *   standalone: true,
  *   template: 'Hello world!'
@@ -55,7 +84,7 @@ export interface ApplicationConfig {
  * You can add the list of providers that should be available in the application injector by
  * specifying the `providers` field in an object passed as the second argument:
  *
- * ```typescript
+ * ```ts
  * await bootstrapApplication(RootComponent, {
  *   providers: [
  *     {provide: BACKEND_URL, useValue: 'https://yourdomain.com/api'}
@@ -66,7 +95,7 @@ export interface ApplicationConfig {
  * The `importProvidersFrom` helper method can be used to collect all providers from any
  * existing NgModule (and transitively from all NgModules that it imports):
  *
- * ```typescript
+ * ```ts
  * await bootstrapApplication(RootComponent, {
  *   providers: [
  *     importProvidersFrom(SomeNgModule)
@@ -79,7 +108,7 @@ export interface ApplicationConfig {
  * providers using `provideProtractorTestingSupport()` function and adding them into the `providers`
  * array, for example:
  *
- * ```typescript
+ * ```ts
  * import {provideProtractorTestingSupport} from '@angular/platform-browser';
  *
  * await bootstrapApplication(RootComponent, {providers: [provideProtractorTestingSupport()]});
@@ -93,7 +122,9 @@ export interface ApplicationConfig {
  * @publicApi
  */
 export function bootstrapApplication(
-    rootComponent: Type<unknown>, options?: ApplicationConfig): Promise<ApplicationRef> {
+  rootComponent: Type<unknown>,
+  options?: ApplicationConfig,
+): Promise<ApplicationRef> {
   return internalCreateApplication({rootComponent, ...createProvidersConfig(options)});
 }
 
@@ -115,11 +146,8 @@ export function createApplication(options?: ApplicationConfig) {
 
 function createProvidersConfig(options?: ApplicationConfig) {
   return {
-    appProviders: [
-      ...BROWSER_MODULE_PROVIDERS,
-      ...(options?.providers ?? []),
-    ],
-    platformProviders: INTERNAL_BROWSER_PLATFORM_PROVIDERS
+    appProviders: [...BROWSER_MODULE_PROVIDERS, ...(options?.providers ?? [])],
+    platformProviders: INTERNAL_BROWSER_PLATFORM_PROVIDERS,
   };
 }
 
@@ -136,7 +164,8 @@ function createProvidersConfig(options?: ApplicationConfig) {
  */
 export function provideProtractorTestingSupport(): Provider[] {
   // Return a copy to prevent changes to the original array in case any in-place
-  // alterations are performed to the `provideProtractorTestingSupport` call results in app code.
+  // alterations are performed to the `provideProtractorTestingSupport` call results in app
+  // code.
   return [...TESTABILITY_PROVIDERS];
 }
 
@@ -167,7 +196,7 @@ export const INTERNAL_BROWSER_PLATFORM_PROVIDERS: StaticProvider[] = [
  * @publicApi
  */
 export const platformBrowser: (extraProviders?: StaticProvider[]) => PlatformRef =
-    createPlatformFactory(platformCore, 'browser', INTERNAL_BROWSER_PLATFORM_PROVIDERS);
+  createPlatformFactory(platformCore, 'browser', INTERNAL_BROWSER_PLATFORM_PROVIDERS);
 
 /**
  * Internal marker to signal whether providers from the `BrowserModule` are already present in DI.
@@ -175,8 +204,9 @@ export const platformBrowser: (extraProviders?: StaticProvider[]) => PlatformRef
  * `BrowserModule` presence itself, since the standalone-based bootstrap just imports
  * `BrowserModule` providers without referencing the module itself.
  */
-const BROWSER_MODULE_PROVIDERS_MARKER =
-    new InjectionToken(NG_DEV_MODE ? 'BrowserModule Providers Marker' : '');
+const BROWSER_MODULE_PROVIDERS_MARKER = new InjectionToken(
+  typeof ngDevMode === 'undefined' || ngDevMode ? 'BrowserModule Providers Marker' : '',
+);
 
 const TESTABILITY_PROVIDERS = [
   {
@@ -187,34 +217,33 @@ const TESTABILITY_PROVIDERS = [
   {
     provide: TESTABILITY,
     useClass: Testability,
-    deps: [NgZone, TestabilityRegistry, TESTABILITY_GETTER]
+    deps: [NgZone, TestabilityRegistry, TESTABILITY_GETTER],
   },
   {
-    provide: Testability,  // Also provide as `Testability` for backwards-compatibility.
+    provide: Testability, // Also provide as `Testability` for backwards-compatibility.
     useClass: Testability,
-    deps: [NgZone, TestabilityRegistry, TESTABILITY_GETTER]
-  }
+    deps: [NgZone, TestabilityRegistry, TESTABILITY_GETTER],
+  },
 ];
 
 const BROWSER_MODULE_PROVIDERS: Provider[] = [
   {provide: INJECTOR_SCOPE, useValue: 'root'},
-  {provide: ErrorHandler, useFactory: errorHandler, deps: []}, {
+  {provide: ErrorHandler, useFactory: errorHandler, deps: []},
+  {
     provide: EVENT_MANAGER_PLUGINS,
     useClass: DomEventsPlugin,
     multi: true,
-    deps: [DOCUMENT, NgZone, PLATFORM_ID]
+    deps: [DOCUMENT, NgZone, PLATFORM_ID],
   },
-  {provide: EVENT_MANAGER_PLUGINS, useClass: KeyEventsPlugin, multi: true, deps: [DOCUMENT]}, {
-    provide: DomRendererFactory2,
-    useClass: DomRendererFactory2,
-    deps: [EventManager, DomSharedStylesHost, APP_ID]
-  },
+  {provide: EVENT_MANAGER_PLUGINS, useClass: KeyEventsPlugin, multi: true, deps: [DOCUMENT]},
+  DomRendererFactory2,
+  SharedStylesHost,
+  EventManager,
   {provide: RendererFactory2, useExisting: DomRendererFactory2},
-  {provide: SharedStylesHost, useExisting: DomSharedStylesHost},
-  {provide: DomSharedStylesHost, useClass: DomSharedStylesHost, deps: [DOCUMENT]},
-  {provide: EventManager, useClass: EventManager, deps: [EVENT_MANAGER_PLUGINS, NgZone]},
   {provide: XhrFactory, useClass: BrowserXhr, deps: []},
-  NG_DEV_MODE ? {provide: BROWSER_MODULE_PROVIDERS_MARKER, useValue: true} : []
+  typeof ngDevMode === 'undefined' || ngDevMode
+    ? {provide: BROWSER_MODULE_PROVIDERS_MARKER, useValue: true}
+    : [],
 ];
 
 /**
@@ -227,38 +256,24 @@ const BROWSER_MODULE_PROVIDERS: Provider[] = [
  * @publicApi
  */
 @NgModule({
-  providers: [
-    ...BROWSER_MODULE_PROVIDERS,  //
-    ...TESTABILITY_PROVIDERS
-  ],
+  providers: [...BROWSER_MODULE_PROVIDERS, ...TESTABILITY_PROVIDERS],
   exports: [CommonModule, ApplicationModule],
 })
 export class BrowserModule {
-  constructor(@Optional() @SkipSelf() @Inject(BROWSER_MODULE_PROVIDERS_MARKER)
-              providersAlreadyPresent: boolean|null) {
-    if (NG_DEV_MODE && providersAlreadyPresent) {
-      throw new Error(
-          `Providers from the \`BrowserModule\` have already been loaded. If you need access ` +
-          `to common directives such as NgIf and NgFor, import the \`CommonModule\` instead.`);
-    }
-  }
+  constructor() {
+    if (typeof ngDevMode === 'undefined' || ngDevMode) {
+      const providersAlreadyPresent = inject(BROWSER_MODULE_PROVIDERS_MARKER, {
+        optional: true,
+        skipSelf: true,
+      });
 
-  /**
-   * Configures a browser-based app to transition from a server-rendered app, if
-   * one is present on the page.
-   *
-   * @param params An object containing an identifier for the app to transition.
-   * The ID must match between the client and server versions of the app.
-   * @returns The reconfigured `BrowserModule` to import into the app's root `AppModule`.
-   */
-  static withServerTransition(params: {appId: string}): ModuleWithProviders<BrowserModule> {
-    return {
-      ngModule: BrowserModule,
-      providers: [
-        {provide: APP_ID, useValue: params.appId},
-        {provide: TRANSITION_ID, useExisting: APP_ID},
-        SERVER_TRANSITION_PROVIDERS,
-      ],
-    };
+      if (providersAlreadyPresent) {
+        throw new RuntimeError(
+          RuntimeErrorCode.BROWSER_MODULE_ALREADY_LOADED,
+          `Providers from the \`BrowserModule\` have already been loaded. If you need access ` +
+            `to common directives such as NgIf and NgFor, import the \`CommonModule\` instead.`,
+        );
+      }
+    }
   }
 }

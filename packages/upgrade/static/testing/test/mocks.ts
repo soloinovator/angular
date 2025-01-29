@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Inject, Injectable, NgModule} from '@angular/core';
@@ -42,10 +42,9 @@ export function serverRequestFactory(i: ng.IInjectorService) {
     Logger,
     Inventory,
     {provide: 'serverRequest', useFactory: serverRequestFactory, deps: ['$injector']},
-  ]
+  ],
 })
-export class AppModule {
-}
+export class AppModule {}
 /* END: Angular bits */
 
 /* START: AngularJS bits */
@@ -54,23 +53,21 @@ export const shoppingCartInstance: {inventory?: Inventory} = {};
 
 export function defineAppModule() {
   ng.module_('app', [])
-      .factory('logger', downgradeInjectable(Logger))
-      .factory('inventory', downgradeInjectable(Inventory))
-      .factory(
-          'serverRequest',
-          [
-            'logger',
-            function(logger: Logger) {
-              serverRequestInstance.logger = logger;
-              return serverRequestInstance;
-            }
-          ])
-      .factory('shoppingCart', [
-        'inventory',
-        function(inventory: Inventory) {
-          shoppingCartInstance.inventory = inventory;
-          return shoppingCartInstance;
-        }
-      ]);
+    .factory('logger', downgradeInjectable(Logger))
+    .factory('inventory', downgradeInjectable(Inventory))
+    .factory('serverRequest', [
+      'logger',
+      function (logger: Logger) {
+        serverRequestInstance.logger = logger;
+        return serverRequestInstance;
+      },
+    ])
+    .factory('shoppingCart', [
+      'inventory',
+      function (inventory: Inventory) {
+        shoppingCartInstance.inventory = inventory;
+        return shoppingCartInstance;
+      },
+    ]);
 }
 /* END: AngularJS bits */

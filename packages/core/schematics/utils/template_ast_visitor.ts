@@ -3,16 +3,40 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import type {TmplAstBoundAttribute, TmplAstBoundEvent, TmplAstBoundText, TmplAstContent, TmplAstElement, TmplAstIcu, TmplAstNode, TmplAstRecursiveVisitor, TmplAstReference, TmplAstTemplate, TmplAstText, TmplAstTextAttribute, TmplAstVariable} from '@angular/compiler';
+import type {
+  TmplAstBoundAttribute,
+  TmplAstBoundEvent,
+  TmplAstBoundText,
+  TmplAstContent,
+  TmplAstDeferredBlock,
+  TmplAstDeferredBlockError,
+  TmplAstDeferredBlockLoading,
+  TmplAstDeferredBlockPlaceholder,
+  TmplAstDeferredTrigger,
+  TmplAstElement,
+  TmplAstIfBlockBranch,
+  TmplAstForLoopBlock,
+  TmplAstForLoopBlockEmpty,
+  TmplAstIcu,
+  TmplAstIfBlock,
+  TmplAstNode,
+  TmplAstRecursiveVisitor,
+  TmplAstReference,
+  TmplAstSwitchBlock,
+  TmplAstSwitchBlockCase,
+  TmplAstTemplate,
+  TmplAstText,
+  TmplAstTextAttribute,
+  TmplAstVariable,
+  TmplAstUnknownBlock,
+  TmplAstLetDeclaration,
+} from '@angular/compiler';
 
 /**
  * A base class that can be used to implement a Render3 Template AST visitor.
- * This class is used instead of the `NullVisitor` found within the `@angular/compiler` because
- * the `NullVisitor` requires a deep import which is no longer supported with the ESM bundled
- * packages as of v13.
  * Schematics are also currently required to be CommonJS to support execution within the Angular
  * CLI. As a result, the ESM `@angular/compiler` package must be loaded via a native dynamic import.
  * Using a dynamic import makes classes extending from classes present in `@angular/compiler`
@@ -44,6 +68,19 @@ export class TemplateAstVisitor implements TmplAstRecursiveVisitor {
   visitText(text: TmplAstText): void {}
   visitBoundText(text: TmplAstBoundText): void {}
   visitIcu(icu: TmplAstIcu): void {}
+  visitDeferredBlock(deferred: TmplAstDeferredBlock): void {}
+  visitDeferredBlockPlaceholder(block: TmplAstDeferredBlockPlaceholder): void {}
+  visitDeferredBlockError(block: TmplAstDeferredBlockError): void {}
+  visitDeferredBlockLoading(block: TmplAstDeferredBlockLoading): void {}
+  visitDeferredTrigger(trigger: TmplAstDeferredTrigger): void {}
+  visitUnknownBlock(block: TmplAstUnknownBlock): void {}
+  visitSwitchBlock(block: TmplAstSwitchBlock): void {}
+  visitSwitchBlockCase(block: TmplAstSwitchBlockCase): void {}
+  visitForLoopBlock(block: TmplAstForLoopBlock): void {}
+  visitForLoopBlockEmpty(block: TmplAstForLoopBlockEmpty): void {}
+  visitIfBlock(block: TmplAstIfBlock): void {}
+  visitIfBlockBranch(block: TmplAstIfBlockBranch): void {}
+  visitLetDeclaration(decl: TmplAstLetDeclaration): void {}
 
   /**
    * Visits all the provided nodes in order using this Visitor's visit methods.

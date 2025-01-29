@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {exactMatchOptions, subsetMatchOptions} from '../src/router';
@@ -49,7 +49,7 @@ describe('UrlTree', () => {
         expect(containsTree(t1, t2, exactMatchOptions)).toBe(true);
       });
 
-      it('should return true when queryParams are the same but with diffrent order', () => {
+      it('should return true when queryParams are the same but with different order', () => {
         const t1 = serializer.parse('/one/two?test=1&page=5');
         const t2 = serializer.parse('/one/two?page=5&test=1');
         expect(containsTree(t1, t2, exactMatchOptions)).toBe(true);
@@ -254,13 +254,15 @@ describe('UrlTree', () => {
           expect(containsTree(t1, t2, {...subsetMatchOptions, matrixParams})).toBe(true);
         });
 
-        it('should return true when matrix params match on subset of urlTree match ' +
-               'with container paths split into multiple segments',
-           () => {
-             const t1 = serializer.parse('/one;a=1/(two;b=2//left:three)');
-             const t2 = serializer.parse('/one;a=1/two;b=2');
-             expect(containsTree(t1, t2, {...subsetMatchOptions, matrixParams})).toBe(true);
-           });
+        it(
+          'should return true when matrix params match on subset of urlTree match ' +
+            'with container paths split into multiple segments',
+          () => {
+            const t1 = serializer.parse('/one;a=1/(two;b=2//left:three)');
+            const t2 = serializer.parse('/one;a=1/two;b=2');
+            expect(containsTree(t1, t2, {...subsetMatchOptions, matrixParams})).toBe(true);
+          },
+        );
       });
 
       describe('subset match', () => {
@@ -290,13 +292,15 @@ describe('UrlTree', () => {
           expect(containsTree(t1, t2, {...subsetMatchOptions, matrixParams})).toBe(true);
         });
 
-        it('should return true when matrix params match on subset of urlTree match ' +
-               'with container paths split into multiple segments',
-           () => {
-             const t1 = serializer.parse('/one;a=1/(two;b=2//left:three)');
-             const t2 = serializer.parse('/one;a=1/two');
-             expect(containsTree(t1, t2, {...subsetMatchOptions, matrixParams})).toBe(true);
-           });
+        it(
+          'should return true when matrix params match on subset of urlTree match ' +
+            'with container paths split into multiple segments',
+          () => {
+            const t1 = serializer.parse('/one;a=1/(two;b=2//left:three)');
+            const t2 = serializer.parse('/one;a=1/two');
+            expect(containsTree(t1, t2, {...subsetMatchOptions, matrixParams})).toBe(true);
+          },
+        );
       });
     });
   });

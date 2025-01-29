@@ -3,16 +3,29 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Component, Directive, EventEmitter, Input, OnChanges, Output, Pipe, PipeTransform, SimpleChanges, TemplateRef, ViewContainerRef} from '@angular/core';
+import {
+  Component,
+  Directive,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  Pipe,
+  PipeTransform,
+  SimpleChanges,
+  TemplateRef,
+  ViewContainerRef,
+} from '@angular/core';
 
 import {Hero} from './app.component';
 
 @Directive({
   selector: '[string-model]',
   exportAs: 'stringModel',
+  standalone: false,
 })
 export class StringModel {
   @Input() model: string = 'model';
@@ -21,6 +34,7 @@ export class StringModel {
 
 @Directive({
   selector: '[number-model]',
+  standalone: false,
 })
 export class NumberModel {
   @Input('inputAlias') model: number = 0;
@@ -31,6 +45,7 @@ export class NumberModel {
   selector: '[hint-model]',
   inputs: ['hint'],
   outputs: ['hintChange'],
+  standalone: false,
 })
 export class HintModel {
   hint: string = 'hint';
@@ -41,10 +56,16 @@ class CounterDirectiveContext<T> {
   constructor(public $implicit: T) {}
 }
 
-@Directive({selector: '[counterOf]'})
+@Directive({
+  selector: '[counterOf]',
+  standalone: false,
+})
 export class CounterDirective implements OnChanges {
   // Object does not have an "$implicit" property.
-  constructor(private container: ViewContainerRef, private template: TemplateRef<Object>) {}
+  constructor(
+    private container: ViewContainerRef,
+    private template: TemplateRef<Object>,
+  ) {}
 
   @Input('counterOf') counter: number = 0;
   ngOnChanges(_changes: SimpleChanges) {
@@ -56,37 +77,49 @@ export class CounterDirective implements OnChanges {
 }
 
 interface WithContextDirectiveContext {
-  $implicit: {implicitPerson: Hero;};
+  $implicit: {implicitPerson: Hero};
   nonImplicitPerson: Hero;
 }
 
-@Directive({selector: '[withContext]'})
+@Directive({
+  selector: '[withContext]',
+  standalone: false,
+})
 export class WithContextDirective {
   constructor(_template: TemplateRef<WithContextDirectiveContext>) {}
 
-  static ngTemplateContextGuard(dir: WithContextDirective, ctx: unknown):
-      ctx is WithContextDirectiveContext {
+  static ngTemplateContextGuard(
+    dir: WithContextDirective,
+    ctx: unknown,
+  ): ctx is WithContextDirectiveContext {
     return true;
   }
 }
 
-@Directive({selector: 'button[custom-button][compound]'})
+@Directive({
+  selector: 'button[custom-button][compound]',
+  standalone: false,
+})
 export class CompoundCustomButtonDirective {
   @Input() config?: {color?: string};
 }
 
-@Directive({selector: '[eventSelector]'})
+@Directive({
+  selector: '[eventSelector]',
+  standalone: false,
+})
 export class EventSelectorDirective {
   @Output() eventSelector = new EventEmitter<void>();
 }
 
 @Pipe({
   name: 'prefixPipe',
+  standalone: false,
 })
 export class TestPipe implements PipeTransform {
   transform(value: string, prefix: string): string;
   transform(value: number, prefix: number): number;
-  transform(value: string|number, prefix: string|number): string|number {
+  transform(value: string | number, prefix: string | number): string | number {
     if (typeof value === 'string') {
       return `${prefix} ${value}`;
     }
@@ -100,6 +133,7 @@ export class TestPipe implements PipeTransform {
 /*BeginTestComponent*/ @Component({
   selector: 'test-comp',
   template: '<div>Testing: {{name}}</div>',
+  standalone: false,
 })
 export class TestComponent {
   @Input('tcName') name = 'test';
@@ -108,6 +142,7 @@ export class TestComponent {
 
 @Component({
   templateUrl: 'test.ng',
+  standalone: false,
 })
 export class TemplateReference {
   /**
@@ -131,7 +166,7 @@ export class TemplateReference {
   readonlyHeroes: ReadonlyArray<Readonly<Hero>> = this.heroes;
   constNames = [{name: 'name'}] as const;
   private myField = 'My Field';
-  strOrNumber: string|number = '';
+  strOrNumber: string | number = '';
   setTitle(newTitle: string) {
     this.title = newTitle;
   }

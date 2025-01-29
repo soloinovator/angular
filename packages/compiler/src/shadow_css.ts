@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 /**
@@ -13,18 +13,52 @@
  */
 const animationKeywords = new Set([
   // global values
-  'inherit', 'initial', 'revert', 'unset',
+  'inherit',
+  'initial',
+  'revert',
+  'unset',
   // animation-direction
-  'alternate', 'alternate-reverse', 'normal', 'reverse',
+  'alternate',
+  'alternate-reverse',
+  'normal',
+  'reverse',
   // animation-fill-mode
-  'backwards', 'both', 'forwards', 'none',
+  'backwards',
+  'both',
+  'forwards',
+  'none',
   // animation-play-state
-  'paused', 'running',
+  'paused',
+  'running',
   // animation-timing-function
-  'ease', 'ease-in', 'ease-in-out', 'ease-out', 'linear', 'step-start', 'step-end',
+  'ease',
+  'ease-in',
+  'ease-in-out',
+  'ease-out',
+  'linear',
+  'step-start',
+  'step-end',
   // `steps()` function
-  'end', 'jump-both', 'jump-end', 'jump-none', 'jump-start', 'start'
+  'end',
+  'jump-both',
+  'jump-end',
+  'jump-none',
+  'jump-start',
+  'start',
 ]);
+
+/**
+ * The following array contains all of the CSS at-rule identifiers which are scoped.
+ */
+const scopedAtRuleIdentifiers = [
+  '@media',
+  '@supports',
+  '@document',
+  '@layer',
+  '@container',
+  '@scope',
+  '@starting-style',
+];
 
 /**
  * The following class has its origin from a port of shadowCSS from webcomponents.js to TypeScript.
@@ -138,12 +172,30 @@ export class ShadowCss {
    * The hostSelector is the attribute added to the host itself.
    */
   shimCssText(cssText: string, selector: string, hostSelector: string = ''): string {
-    const commentsWithHash = extractCommentsWithHash(cssText);
-    cssText = stripComments(cssText);
-    cssText = this._insertDirectives(cssText);
+    // **NOTE**: Do not strip comments as this will cause component sourcemaps to break
+    // due to shift in lines.
 
+    // Collect comments and replace them with a placeholder, this is done to avoid complicating
+    // the rule parsing RegExp and keep it safer.
+    const comments: string[] = [];
+    cssText = cssText.replace(_commentRe, (m) => {
+      if (m.match(_commentWithHashRe)) {
+        comments.push(m);
+      } else {
+        // Replace non hash comments with empty lines.
+        // This is done so that we do not leak any sensitive data in comments.
+        const newLinesMatches = m.match(_newLinesRe);
+        comments.push((newLinesMatches?.join('') ?? '') + '\n');
+      }
+
+      return COMMENT_PLACEHOLDER;
+    });
+
+    cssText = this._insertDirectives(cssText);
     const scopedCssText = this._scopeCssText(cssText, selector, hostSelector);
-    return [scopedCssText, ...commentsWithHash].join('\n');
+    // Add back comments at the original position.
+    let commentIdx = 0;
+    return scopedCssText.replace(_commentWithHashPlaceHolderRe, () => comments[commentIdx++]);
   }
 
   private _insertDirectives(cssText: string): string {
@@ -162,7 +214,7 @@ export class ShadowCss {
    *
    * For example, we convert this css:
    *
-   * ```
+   * ```scss
    * .box {
    *   animation: box-animation 1s forwards;
    * }
@@ -176,7 +228,7 @@ export class ShadowCss {
    *
    * to this:
    *
-   * ```
+   * ```scss
    * .box {
    *   animation: scopeName_box-animation 1s forwards;
    * }
@@ -195,12 +247,12 @@ export class ShadowCss {
    */
   private _scopeKeyframesRelatedCss(cssText: string, scopeSelector: string): string {
     const unscopedKeyframesSet = new Set<string>();
-    const scopedKeyframesCssText = processRules(
-        cssText,
-        rule => this._scopeLocalKeyframeDeclarations(rule, scopeSelector, unscopedKeyframesSet));
-    return processRules(
-        scopedKeyframesCssText,
-        rule => this._scopeAnimationRule(rule, scopeSelector, unscopedKeyframesSet));
+    const scopedKeyframesCssText = processRules(cssText, (rule) =>
+      this._scopeLocalKeyframeDeclarations(rule, scopeSelector, unscopedKeyframesSet),
+    );
+    return processRules(scopedKeyframesCssText, (rule) =>
+      this._scopeAnimationRule(rule, scopeSelector, unscopedKeyframesSet),
+    );
   }
 
   /**
@@ -210,7 +262,7 @@ export class ShadowCss {
    *
    * For example, it takes a rule such as:
    *
-   * ```
+   * ```scss
    * @keyframes box-animation {
    *   to {
    *     background-color: green;
@@ -220,7 +272,7 @@ export class ShadowCss {
    *
    * and returns:
    *
-   * ```
+   * ```scss
    * @keyframes scopeName_box-animation {
    *   to {
    *     background-color: green;
@@ -237,15 +289,19 @@ export class ShadowCss {
    * @returns the css rule modified with the scoped keyframes name.
    */
   private _scopeLocalKeyframeDeclarations(
-      rule: CssRule, scopeSelector: string, unscopedKeyframesSet: Set<string>): CssRule {
+    rule: CssRule,
+    scopeSelector: string,
+    unscopedKeyframesSet: Set<string>,
+  ): CssRule {
     return {
       ...rule,
       selector: rule.selector.replace(
-          /(^@(?:-webkit-)?keyframes(?:\s+))(['"]?)(.+)\2(\s*)$/,
-          (_, start, quote, keyframeName, endSpaces) => {
-            unscopedKeyframesSet.add(unescapeQuotes(keyframeName, quote));
-            return `${start}${quote}${scopeSelector}_${keyframeName}${quote}${endSpaces}`;
-          }),
+        /(^@(?:-webkit-)?keyframes(?:\s+))(['"]?)(.+)\2(\s*)$/,
+        (_, start, quote, keyframeName, endSpaces) => {
+          unscopedKeyframesSet.add(unescapeQuotes(keyframeName, quote));
+          return `${start}${quote}${scopeSelector}_${keyframeName}${quote}${endSpaces}`;
+        },
+      ),
     };
   }
 
@@ -263,10 +319,14 @@ export class ShadowCss {
    * scoped.
    */
   private _scopeAnimationKeyframe(
-      keyframe: string, scopeSelector: string, unscopedKeyframesSet: ReadonlySet<string>): string {
+    keyframe: string,
+    scopeSelector: string,
+    unscopedKeyframesSet: ReadonlySet<string>,
+  ): string {
     return keyframe.replace(/^(\s*)(['"]?)(.+?)\2(\s*)$/, (_, spaces1, quote, name, spaces2) => {
-      name = `${unscopedKeyframesSet.has(unescapeQuotes(name, quote)) ? scopeSelector + '_' : ''}${
-          name}`;
+      name = `${
+        unscopedKeyframesSet.has(unescapeQuotes(name, quote)) ? scopeSelector + '_' : ''
+      }${name}`;
       return `${spaces1}${quote}${name}${quote}${spaces2}`;
     });
   }
@@ -276,17 +336,17 @@ export class ShadowCss {
    * animation declaration (with possibly multiple animation definitions)
    *
    * The regular expression can be divided in three parts
-   *  - (^|\s+)
-   *    simply captures how many (if any) leading whitespaces are present
+   *  - (^|\s+|,)
+   *    captures how many (if any) leading whitespaces are present or a comma
    *  - (?:(?:(['"])((?:\\\\|\\\2|(?!\2).)+)\2)|(-?[A-Za-z][\w\-]*))
    *    captures two different possible keyframes, ones which are quoted or ones which are valid css
-   * idents (custom properties excluded)
+   * indents (custom properties excluded)
    *  - (?=[,\s;]|$)
    *    simply matches the end of the possible keyframe, valid endings are: a comma, a space, a
    * semicolon or the end of the string
    */
   private _animationDeclarationKeyframesRe =
-      /(^|\s+)(?:(?:(['"])((?:\\\\|\\\2|(?!\2).)+)\2)|(-?[A-Za-z][\w\-]*))(?=[,\s]|$)/g;
+    /(^|\s+|,)(?:(?:(['"])((?:\\\\|\\\2|(?!\2).)+)\2)|(-?[A-Za-z][\w\-]*))(?=[,\s]|$)/g;
 
   /**
    * Scope an animation rule so that the keyframes mentioned in such rule
@@ -301,34 +361,51 @@ export class ShadowCss {
    * @returns the updated css rule.
    **/
   private _scopeAnimationRule(
-      rule: CssRule, scopeSelector: string, unscopedKeyframesSet: ReadonlySet<string>): CssRule {
+    rule: CssRule,
+    scopeSelector: string,
+    unscopedKeyframesSet: ReadonlySet<string>,
+  ): CssRule {
     let content = rule.content.replace(
-        /((?:^|\s+|;)(?:-webkit-)?animation(?:\s*):(?:\s*))([^;]+)/g,
-        (_, start, animationDeclarations) => start +
-            animationDeclarations.replace(
-                this._animationDeclarationKeyframesRe,
-                (original: string, leadingSpaces: string, quote = '', quotedName: string,
-                 nonQuotedName: string) => {
-                  if (quotedName) {
-                    return `${leadingSpaces}${
-                        this._scopeAnimationKeyframe(
-                            `${quote}${quotedName}${quote}`, scopeSelector, unscopedKeyframesSet)}`;
-                  } else {
-                    return animationKeywords.has(nonQuotedName) ?
-                        original :
-                        `${leadingSpaces}${
-                            this._scopeAnimationKeyframe(
-                                nonQuotedName, scopeSelector, unscopedKeyframesSet)}`;
-                  }
-                }));
+      /((?:^|\s+|;)(?:-webkit-)?animation\s*:\s*),*([^;]+)/g,
+      (_, start, animationDeclarations) =>
+        start +
+        animationDeclarations.replace(
+          this._animationDeclarationKeyframesRe,
+          (
+            original: string,
+            leadingSpaces: string,
+            quote = '',
+            quotedName: string,
+            nonQuotedName: string,
+          ) => {
+            if (quotedName) {
+              return `${leadingSpaces}${this._scopeAnimationKeyframe(
+                `${quote}${quotedName}${quote}`,
+                scopeSelector,
+                unscopedKeyframesSet,
+              )}`;
+            } else {
+              return animationKeywords.has(nonQuotedName)
+                ? original
+                : `${leadingSpaces}${this._scopeAnimationKeyframe(
+                    nonQuotedName,
+                    scopeSelector,
+                    unscopedKeyframesSet,
+                  )}`;
+            }
+          },
+        ),
+    );
     content = content.replace(
-        /((?:^|\s+|;)(?:-webkit-)?animation-name(?:\s*):(?:\s*))([^;]+)/g,
-        (_match, start, commaSeparatedKeyframes) => `${start}${
-            commaSeparatedKeyframes.split(',')
-                .map(
-                    (keyframe: string) =>
-                        this._scopeAnimationKeyframe(keyframe, scopeSelector, unscopedKeyframesSet))
-                .join(',')}`);
+      /((?:^|\s+|;)(?:-webkit-)?animation-name(?:\s*):(?:\s*))([^;]+)/g,
+      (_match, start, commaSeparatedKeyframes) =>
+        `${start}${commaSeparatedKeyframes
+          .split(',')
+          .map((keyframe: string) =>
+            this._scopeAnimationKeyframe(keyframe, scopeSelector, unscopedKeyframesSet),
+          )
+          .join(',')}`,
+    );
     return {...rule, content};
   }
 
@@ -347,7 +424,7 @@ export class ShadowCss {
    *
    **/
   private _insertPolyfillDirectivesInCssText(cssText: string): string {
-    return cssText.replace(_cssContentNextSelectorRe, function(...m: string[]) {
+    return cssText.replace(_cssContentNextSelectorRe, function (...m: string[]) {
       return m[2] + '{';
     });
   }
@@ -384,7 +461,7 @@ export class ShadowCss {
    */
   private _scopeCssText(cssText: string, scopeSelector: string, hostSelector: string): string {
     const unscopedRules = this._extractUnscopedRulesFromCssText(cssText);
-    // replace :host and :host-context -shadowcsshost and -shadowcsshost respectively
+    // replace :host and :host-context with -shadowcsshost and -shadowcsshostcontext respectively
     cssText = this._insertPolyfillHostInCssText(cssText);
     cssText = this._convertColonHost(cssText);
     cssText = this._convertColonHostContext(cssText);
@@ -414,7 +491,7 @@ export class ShadowCss {
    **/
   private _extractUnscopedRulesFromCssText(cssText: string): string {
     let r = '';
-    let m: RegExpExecArray|null;
+    let m: RegExpExecArray | null;
     _cssContentUnscopedRuleRe.lastIndex = 0;
     while ((m = _cssContentUnscopedRuleRe.exec(cssText)) !== null) {
       const rule = m[0].replace(m[2], '').replace(m[1], m[4]);
@@ -434,11 +511,11 @@ export class ShadowCss {
     return cssText.replace(_cssColonHostRe, (_, hostSelectors: string, otherSelectors: string) => {
       if (hostSelectors) {
         const convertedSelectors: string[] = [];
-        const hostSelectorArray = hostSelectors.split(',').map(p => p.trim());
+        const hostSelectorArray = hostSelectors.split(',').map((p) => p.trim());
         for (const hostSelector of hostSelectorArray) {
           if (!hostSelector) break;
           const convertedSelector =
-              _polyfillHostNoCombinator + hostSelector.replace(_polyfillHost, '') + otherSelectors;
+            _polyfillHostNoCombinator + hostSelector.replace(_polyfillHost, '') + otherSelectors;
           convertedSelectors.push(convertedSelector);
         }
         return convertedSelectors.join(',');
@@ -464,7 +541,42 @@ export class ShadowCss {
    * .foo<scopeName> .bar { ... }
    */
   private _convertColonHostContext(cssText: string): string {
-    return cssText.replace(_cssColonHostContextReGlobal, selectorText => {
+    const length = cssText.length;
+    let parens = 0;
+    let prev = 0;
+    let result = '';
+
+    // Splits up the selectors on their top-level commas, processes the :host-context in them
+    // individually and stitches them back together. This ensures that individual selectors don't
+    // affect each other.
+    for (let i = 0; i < length; i++) {
+      const char = cssText[i];
+
+      // If we hit a comma and there are no open parentheses, take the current chunk and process it.
+      if (char === ',' && parens === 0) {
+        result += this._convertColonHostContextInSelectorPart(cssText.slice(prev, i)) + ',';
+        prev = i + 1;
+        continue;
+      }
+
+      // We've hit the end. Take everything since the last comma.
+      if (i === length - 1) {
+        result += this._convertColonHostContextInSelectorPart(cssText.slice(prev));
+        break;
+      }
+
+      if (char === '(') {
+        parens++;
+      } else if (char === ')') {
+        parens--;
+      }
+    }
+
+    return result;
+  }
+
+  private _convertColonHostContextInSelectorPart(cssText: string): string {
+    return cssText.replace(_cssColonHostContextReGlobal, (selectorText, pseudoPrefix) => {
       // We have captured a selector that contains a `:host-context` rule.
 
       // For backward compatibility `:host-context` may contain a comma separated list of selectors.
@@ -477,13 +589,16 @@ export class ShadowCss {
       // `:host-context(.one):host-context(.two)`.
       // Execute `_cssColonHostContextRe` over and over until we have extracted all the
       // `:host-context` selectors from this selector.
-      let match: RegExpExecArray|null;
-      while (match = _cssColonHostContextRe.exec(selectorText)) {
+      let match: RegExpExecArray | null;
+      while ((match = _cssColonHostContextRe.exec(selectorText))) {
         // `match` = [':host-context(<selectors>)<rest>', <selectors>, <rest>]
 
         // The `<selectors>` could actually be a comma separated list: `:host-context(.one, .two)`.
-        const newContextSelectors =
-            (match[1] ?? '').trim().split(',').map(m => m.trim()).filter(m => m !== '');
+        const newContextSelectors = (match[1] ?? '')
+          .trim()
+          .split(',')
+          .map((m) => m.trim())
+          .filter((m) => m !== '');
 
         // We must duplicate the current selector group for each of these new selectors.
         // For example if the current groups are:
@@ -507,8 +622,7 @@ export class ShadowCss {
         repeatGroups(contextSelectorGroups, newContextSelectors.length);
         for (let i = 0; i < newContextSelectors.length; i++) {
           for (let j = 0; j < contextSelectorGroupsLength; j++) {
-            contextSelectorGroups[j + (i * contextSelectorGroupsLength)].push(
-                newContextSelectors[i]);
+            contextSelectorGroups[j + i * contextSelectorGroupsLength].push(newContextSelectors[i]);
           }
         }
 
@@ -517,11 +631,13 @@ export class ShadowCss {
       }
 
       // The context selectors now must be combined with each other to capture all the possible
-      // selectors that `:host-context` can match. See `combineHostContextSelectors()` for more
+      // selectors that `:host-context` can match. See `_combineHostContextSelectors()` for more
       // info about how this is done.
       return contextSelectorGroups
-          .map(contextSelectors => combineHostContextSelectors(contextSelectors, selectorText))
-          .join(', ');
+        .map((contextSelectors) =>
+          _combineHostContextSelectors(contextSelectors, selectorText, pseudoPrefix),
+        )
+        .join(', ');
     });
   }
 
@@ -539,11 +655,13 @@ export class ShadowCss {
       let selector = rule.selector;
       let content = rule.content;
       if (rule.selector[0] !== '@') {
-        selector = this._scopeSelector(rule.selector, scopeSelector, hostSelector);
-      } else if (
-          rule.selector.startsWith('@media') || rule.selector.startsWith('@supports') ||
-          rule.selector.startsWith('@document') || rule.selector.startsWith('@layer') ||
-          rule.selector.startsWith('@container')) {
+        selector = this._scopeSelector({
+          selector,
+          scopeSelector,
+          hostSelector,
+          isParentSelector: true,
+        });
+      } else if (scopedAtRuleIdentifiers.some((atRule) => rule.selector.startsWith(atRule))) {
         content = this._scopeSelectors(rule.content, scopeSelector, hostSelector);
       } else if (rule.selector.startsWith('@font-face') || rule.selector.startsWith('@page')) {
         content = this._stripScopingSelectors(rule.content);
@@ -574,28 +692,59 @@ export class ShadowCss {
    * ```
    */
   private _stripScopingSelectors(cssText: string): string {
-    return processRules(cssText, rule => {
-      const selector = rule.selector.replace(_shadowDeepSelectors, ' ')
-                           .replace(_polyfillHostNoCombinatorRe, ' ');
+    return processRules(cssText, (rule) => {
+      const selector = rule.selector
+        .replace(_shadowDeepSelectors, ' ')
+        .replace(_polyfillHostNoCombinatorRe, ' ');
       return new CssRule(selector, rule.content);
     });
   }
 
-  private _scopeSelector(selector: string, scopeSelector: string, hostSelector: string): string {
-    return selector.split(',')
-        .map(part => part.trim().split(_shadowDeepSelectors))
-        .map((deepParts) => {
-          const [shallowPart, ...otherParts] = deepParts;
-          const applyScope = (shallowPart: string) => {
-            if (this._selectorNeedsScoping(shallowPart, scopeSelector)) {
-              return this._applySelectorScope(shallowPart, scopeSelector, hostSelector);
-            } else {
-              return shallowPart;
-            }
-          };
-          return [applyScope(shallowPart), ...otherParts].join(' ');
-        })
-        .join(', ');
+  private _safeSelector: SafeSelector | undefined;
+  private _shouldScopeIndicator: boolean | undefined;
+
+  // `isParentSelector` is used to distinguish the selectors which are coming from
+  // the initial selector string and any nested selectors, parsed recursively,
+  // for example `selector = 'a:where(.one)'` could be the parent, while recursive call
+  // would have `selector = '.one'`.
+  private _scopeSelector({
+    selector,
+    scopeSelector,
+    hostSelector,
+    isParentSelector = false,
+  }: {
+    selector: string;
+    scopeSelector: string;
+    hostSelector: string;
+    isParentSelector?: boolean;
+  }): string {
+    // Split the selector into independent parts by `,` (comma) unless
+    // comma is within parenthesis, for example `:is(.one, two)`.
+    // Negative lookup after comma allows not splitting inside nested parenthesis,
+    // up to three levels (((,))).
+    const selectorSplitRe =
+      / ?,(?!(?:[^)(]*(?:\([^)(]*(?:\([^)(]*(?:\([^)(]*\)[^)(]*)*\)[^)(]*)*\)[^)(]*)*\))) ?/;
+
+    return selector
+      .split(selectorSplitRe)
+      .map((part) => part.split(_shadowDeepSelectors))
+      .map((deepParts) => {
+        const [shallowPart, ...otherParts] = deepParts;
+        const applyScope = (shallowPart: string) => {
+          if (this._selectorNeedsScoping(shallowPart, scopeSelector)) {
+            return this._applySelectorScope({
+              selector: shallowPart,
+              scopeSelector,
+              hostSelector,
+              isParentSelector,
+            });
+          } else {
+            return shallowPart;
+          }
+        };
+        return [applyScope(shallowPart), ...otherParts].join(' ');
+      })
+      .join(', ');
   }
 
   private _selectorNeedsScoping(selector: string, scopeSelector: string): boolean {
@@ -611,23 +760,27 @@ export class ShadowCss {
   }
 
   // scope via name and [is=name]
-  private _applySimpleSelectorScope(selector: string, scopeSelector: string, hostSelector: string):
-      string {
+  private _applySimpleSelectorScope(
+    selector: string,
+    scopeSelector: string,
+    hostSelector: string,
+  ): string {
     // In Android browser, the lastIndex is not reset when the regex is used in String.replace()
     _polyfillHostRe.lastIndex = 0;
     if (_polyfillHostRe.test(selector)) {
       const replaceBy = `[${hostSelector}]`;
-      return selector
-          .replace(
-              _polyfillHostNoCombinatorRe,
-              (hnc, selector) => {
-                return selector.replace(
-                    /([^:]*)(:*)(.*)/,
-                    (_: string, before: string, colon: string, after: string) => {
-                      return before + replaceBy + colon + after;
-                    });
-              })
-          .replace(_polyfillHostRe, replaceBy + ' ');
+      let result = selector;
+      while (result.match(_polyfillHostNoCombinatorRe)) {
+        result = result.replace(_polyfillHostNoCombinatorRe, (_hnc, selector) => {
+          return selector.replace(
+            /([^:\)]*)(:*)(.*)/,
+            (_: string, before: string, colon: string, after: string) => {
+              return before + replaceBy + colon + after;
+            },
+          );
+        });
+      }
+      return result.replace(_polyfillHostRe, replaceBy);
     }
 
     return scopeSelector + ' ' + selector;
@@ -635,27 +788,40 @@ export class ShadowCss {
 
   // return a selector with [name] suffix on each simple selector
   // e.g. .foo.bar > .zot becomes .foo[name].bar[name] > .zot[name]  /** @internal */
-  private _applySelectorScope(selector: string, scopeSelector: string, hostSelector: string):
-      string {
+  private _applySelectorScope({
+    selector,
+    scopeSelector,
+    hostSelector,
+    isParentSelector,
+  }: {
+    selector: string;
+    scopeSelector: string;
+    hostSelector: string;
+    isParentSelector?: boolean;
+  }): string {
     const isRe = /\[is=([^\]]*)\]/g;
     scopeSelector = scopeSelector.replace(isRe, (_: string, ...parts: string[]) => parts[0]);
 
-    const attrName = '[' + scopeSelector + ']';
+    const attrName = `[${scopeSelector}]`;
 
     const _scopeSelectorPart = (p: string) => {
       let scopedP = p.trim();
 
       if (!scopedP) {
-        return '';
+        return p;
       }
 
-      if (p.indexOf(_polyfillHostNoCombinator) > -1) {
+      if (p.includes(_polyfillHostNoCombinator)) {
         scopedP = this._applySimpleSelectorScope(p, scopeSelector, hostSelector);
+        if (!p.match(_polyfillHostNoCombinatorOutsidePseudoFunction)) {
+          const [_, before, colon, after] = scopedP.match(/([^:]*)(:*)([\s\S]*)/)!;
+          scopedP = before + attrName + colon + after;
+        }
       } else {
         // remove :host since it should be unnecessary
         const t = p.replace(_polyfillHostRe, '');
         if (t.length > 0) {
-          const matches = t.match(/([^:]*)(:*)(.*)/);
+          const matches = t.match(/([^:]*)(:*)([\s\S]*)/);
           if (matches) {
             scopedP = matches[1] + attrName + matches[2] + matches[3];
           }
@@ -665,13 +831,97 @@ export class ShadowCss {
       return scopedP;
     };
 
-    const safeContent = new SafeSelector(selector);
-    selector = safeContent.content();
+    // Wraps `_scopeSelectorPart()` to not use it directly on selectors with
+    // pseudo selector functions like `:where()`. Selectors within pseudo selector
+    // functions are recursively sent to `_scopeSelector()`.
+    const _pseudoFunctionAwareScopeSelectorPart = (selectorPart: string) => {
+      let scopedPart = '';
+
+      // Collect all outer `:where()` and `:is()` selectors,
+      // counting parenthesis to keep nested selectors intact.
+      const pseudoSelectorParts = [];
+      let pseudoSelectorMatch: RegExpExecArray | null;
+      while (
+        (pseudoSelectorMatch = _cssPrefixWithPseudoSelectorFunction.exec(selectorPart)) !== null
+      ) {
+        let openedBrackets = 1;
+        let index = _cssPrefixWithPseudoSelectorFunction.lastIndex;
+
+        while (index < selectorPart.length) {
+          const currentSymbol = selectorPart[index];
+          index++;
+          if (currentSymbol === '(') {
+            openedBrackets++;
+            continue;
+          }
+          if (currentSymbol === ')') {
+            openedBrackets--;
+            if (openedBrackets === 0) {
+              break;
+            }
+            continue;
+          }
+        }
+
+        pseudoSelectorParts.push(
+          `${pseudoSelectorMatch[0]}${selectorPart.slice(_cssPrefixWithPseudoSelectorFunction.lastIndex, index)}`,
+        );
+        _cssPrefixWithPseudoSelectorFunction.lastIndex = index;
+      }
+
+      // If selector consists of only `:where()` and `:is()` on the outer level
+      // scope those pseudo-selectors individually, otherwise scope the whole
+      // selector.
+      if (pseudoSelectorParts.join('') === selectorPart) {
+        scopedPart = pseudoSelectorParts
+          .map((selectorPart) => {
+            const [cssPseudoSelectorFunction] =
+              selectorPart.match(_cssPrefixWithPseudoSelectorFunction) ?? [];
+
+            // Unwrap the pseudo selector to scope its contents.
+            // For example,
+            // - `:where(selectorToScope)` -> `selectorToScope`;
+            // - `:is(.foo, .bar)` -> `.foo, .bar`.
+            const selectorToScope = selectorPart.slice(cssPseudoSelectorFunction?.length, -1);
+
+            if (selectorToScope.includes(_polyfillHostNoCombinator)) {
+              this._shouldScopeIndicator = true;
+            }
+
+            const scopedInnerPart = this._scopeSelector({
+              selector: selectorToScope,
+              scopeSelector,
+              hostSelector,
+            });
+
+            // Put the result back into the pseudo selector function.
+            return `${cssPseudoSelectorFunction}${scopedInnerPart})`;
+          })
+          .join('');
+      } else {
+        this._shouldScopeIndicator =
+          this._shouldScopeIndicator || selectorPart.includes(_polyfillHostNoCombinator);
+        scopedPart = this._shouldScopeIndicator ? _scopeSelectorPart(selectorPart) : selectorPart;
+      }
+
+      return scopedPart;
+    };
+
+    if (isParentSelector) {
+      this._safeSelector = new SafeSelector(selector);
+      selector = this._safeSelector.content();
+    }
 
     let scopedSelector = '';
     let startIndex = 0;
-    let res: RegExpExecArray|null;
-    const sep = /( |>|\+|~(?!=))\s*/g;
+    let res: RegExpExecArray | null;
+    // Combinators aren't used as a delimiter if they are within parenthesis,
+    // for example `:where(.one .two)` stays intact.
+    // Similarly to selector separation by comma initially, negative lookahead
+    // is used here to not break selectors within nested parenthesis up to three
+    // nested layers.
+    const sep =
+      /( |>|\+|~(?!=))(?!([^)(]*(?:\([^)(]*(?:\([^)(]*(?:\([^)(]*\)[^)(]*)*\)[^)(]*)*\)[^)(]*)*\)))\s*/g;
 
     // If a selector appears before :host it should not be shimmed as it
     // matches on ancestor elements and not on elements in the host's shadow
@@ -684,39 +934,49 @@ export class ShadowCss {
     // - `tag:host` -> `tag[h]` (this is to avoid breaking legacy apps, should not match anything)
     // - `tag :host` -> `tag [h]` (`tag` is not scoped because it's considered part of a
     //   `:host-context(tag)`)
-    const hasHost = selector.indexOf(_polyfillHostNoCombinator) > -1;
-    // Only scope parts after the first `-shadowcsshost-no-combinator` when it is present
-    let shouldScope = !hasHost;
+    const hasHost = selector.includes(_polyfillHostNoCombinator);
+    // Only scope parts after or on the same level as the first `-shadowcsshost-no-combinator`
+    // when it is present. The selector has the same level when it is a part of a pseudo
+    // selector, like `:where()`, for example `:where(:host, .foo)` would result in `.foo`
+    // being scoped.
+    if (isParentSelector || this._shouldScopeIndicator) {
+      this._shouldScopeIndicator = !hasHost;
+    }
 
     while ((res = sep.exec(selector)) !== null) {
       const separator = res[1];
-      const part = selector.slice(startIndex, res.index).trim();
+      // Do not trim the selector, as otherwise this will break sourcemaps
+      // when they are defined on multiple lines
+      // Example:
+      //  div,
+      //  p { color: red}
+      const part = selector.slice(startIndex, res.index);
 
       // A space following an escaped hex value and followed by another hex character
       // (ie: ".\fc ber" for ".über") is not a separator between 2 selectors
       // also keep in mind that backslashes are replaced by a placeholder by SafeSelector
       // These escaped selectors happen for example when esbuild runs with optimization.minify.
-      if (part.match(_placeholderRe) && selector[res.index + 1]?.match(/[a-fA-F\d]/)) {
+      if (part.match(/__esc-ph-(\d+)__/) && selector[res.index + 1]?.match(/[a-fA-F\d]/)) {
         continue;
       }
 
-      shouldScope = shouldScope || part.indexOf(_polyfillHostNoCombinator) > -1;
-      const scopedPart = shouldScope ? _scopeSelectorPart(part) : part;
+      const scopedPart = _pseudoFunctionAwareScopeSelectorPart(part);
       scopedSelector += `${scopedPart} ${separator} `;
       startIndex = sep.lastIndex;
     }
 
     const part = selector.substring(startIndex);
-    shouldScope = shouldScope || part.indexOf(_polyfillHostNoCombinator) > -1;
-    scopedSelector += shouldScope ? _scopeSelectorPart(part) : part;
+    scopedSelector += _pseudoFunctionAwareScopeSelectorPart(part);
 
     // replace the placeholders with their original values
-    return safeContent.restore(scopedSelector);
+    // using values stored inside the `safeSelector` instance.
+    return this._safeSelector!.restore(scopedSelector);
   }
 
   private _insertPolyfillHostInCssText(selector: string): string {
-    return selector.replace(_colonHostContextRe, _polyfillHostContext)
-        .replace(_colonHostRe, _polyfillHost);
+    return selector
+      .replace(_colonHostContextRe, _polyfillHostContext)
+      .replace(_colonHostRe, _polyfillHost);
   }
 }
 
@@ -735,7 +995,13 @@ class SafeSelector {
     // pseudo-class, but writing `.foo\:blue` will match, because the colon was escaped.
     // Replace all escape sequences (`\` followed by a character) with a placeholder so
     // that our handling of pseudo-selectors doesn't mess with them.
-    selector = this._escapeRegexMatches(selector, /(\\.)/g);
+    // Escaped characters have a specific placeholder so they can be detected separately.
+    selector = selector.replace(/(\\.)/g, (_, keep) => {
+      const replaceBy = `__esc-ph-${this.index}__`;
+      this.placeholders.push(keep);
+      this.index++;
+      return replaceBy;
+    });
 
     // Replaces the expression in `:nth-child(2n + 1)` with a placeholder.
     // WS and "+" would otherwise be interpreted as selector separators.
@@ -748,7 +1014,7 @@ class SafeSelector {
   }
 
   restore(content: string): string {
-    return content.replace(_placeholderRe, (_ph, index) => this.placeholders[+index]);
+    return content.replace(/__(?:ph|esc-ph)-(\d+)__/g, (_ph, index) => this.placeholders[+index]);
   }
 
   content(): string {
@@ -769,22 +1035,32 @@ class SafeSelector {
   }
 }
 
+const _cssScopedPseudoFunctionPrefix = '(:(where|is)\\()?';
+const _cssPrefixWithPseudoSelectorFunction = /:(where|is)\(/gi;
 const _cssContentNextSelectorRe =
-    /polyfill-next-selector[^}]*content:[\s]*?(['"])(.*?)\1[;\s]*}([^{]*?){/gim;
+  /polyfill-next-selector[^}]*content:[\s]*?(['"])(.*?)\1[;\s]*}([^{]*?){/gim;
 const _cssContentRuleRe = /(polyfill-rule)[^}]*(content:[\s]*(['"])(.*?)\3)[;\s]*[^}]*}/gim;
 const _cssContentUnscopedRuleRe =
-    /(polyfill-unscoped-rule)[^}]*(content:[\s]*(['"])(.*?)\3)[;\s]*[^}]*}/gim;
+  /(polyfill-unscoped-rule)[^}]*(content:[\s]*(['"])(.*?)\3)[;\s]*[^}]*}/gim;
 const _polyfillHost = '-shadowcsshost';
 // note: :host-context pre-processed to -shadowcsshostcontext.
 const _polyfillHostContext = '-shadowcsscontext';
-const _parenSuffix = '(?:\\((' +
-    '(?:\\([^)(]*\\)|[^)(]*)+?' +
-    ')\\))?([^,{]*)';
-const _cssColonHostRe = new RegExp(_polyfillHost + _parenSuffix, 'gim');
-const _cssColonHostContextReGlobal = new RegExp(_polyfillHostContext + _parenSuffix, 'gim');
-const _cssColonHostContextRe = new RegExp(_polyfillHostContext + _parenSuffix, 'im');
+const _parenSuffix = '(?:\\((' + '(?:\\([^)(]*\\)|[^)(]*)+?' + ')\\))';
+const _cssColonHostRe = new RegExp(_polyfillHost + _parenSuffix + '?([^,{]*)', 'gim');
+// note: :host-context patterns are terminated with `{`, as opposed to :host which
+// is both `{` and `,` because :host-context handles top-level commas differently.
+const _hostContextPattern = _polyfillHostContext + _parenSuffix + '?([^{]*)';
+const _cssColonHostContextReGlobal = new RegExp(
+  `${_cssScopedPseudoFunctionPrefix}(${_hostContextPattern})`,
+  'gim',
+);
+const _cssColonHostContextRe = new RegExp(_hostContextPattern, 'im');
 const _polyfillHostNoCombinator = _polyfillHost + '-no-combinator';
-const _polyfillHostNoCombinatorRe = /-shadowcsshost-no-combinator([^\s]*)/;
+const _polyfillHostNoCombinatorOutsidePseudoFunction = new RegExp(
+  `${_polyfillHostNoCombinator}(?![^(]*\\))`,
+  'g',
+);
+const _polyfillHostNoCombinatorRe = /-shadowcsshost-no-combinator([^\s,]*)/;
 const _shadowDOMSelectorsRe = [
   /::shadow/g,
   /::content/g,
@@ -802,22 +1078,17 @@ const _polyfillHostRe = /-shadowcsshost/gim;
 const _colonHostRe = /:host/gim;
 const _colonHostContextRe = /:host-context/gim;
 
+const _newLinesRe = /\r?\n/g;
 const _commentRe = /\/\*[\s\S]*?\*\//g;
-
-const _placeholderRe = /__ph-(\d+)__/g;
-
-function stripComments(input: string): string {
-  return input.replace(_commentRe, '');
-}
-
-const _commentWithHashRe = /\/\*\s*#\s*source(Mapping)?URL=[\s\S]+?\*\//g;
-
-function extractCommentsWithHash(input: string): string[] {
-  return input.match(_commentWithHashRe) || [];
-}
+const _commentWithHashRe = /\/\*\s*#\s*source(Mapping)?URL=/g;
+const COMMENT_PLACEHOLDER = '%COMMENT%';
+const _commentWithHashPlaceHolderRe = new RegExp(COMMENT_PLACEHOLDER, 'g');
 
 const BLOCK_PLACEHOLDER = '%BLOCK%';
-const _ruleRe = /(\s*)([^;\{\}]+?)(\s*)((?:{%BLOCK%}?\s*;?)|(?:\s*;))/g;
+const _ruleRe = new RegExp(
+  `(\\s*(?:${COMMENT_PLACEHOLDER}\\s*)*)([^;\\{\\}]+?)(\\s*)((?:{%BLOCK%}?\\s*;?)|(?:\\s*;))`,
+  'g',
+);
 const CONTENT_PAIRS = new Map([['{', '}']]);
 
 const COMMA_IN_PLACEHOLDER = '%COMMA_IN_PLACEHOLDER%';
@@ -829,7 +1100,10 @@ const _cssSemiInPlaceholderReGlobal = new RegExp(SEMI_IN_PLACEHOLDER, 'g');
 const _cssColonInPlaceholderReGlobal = new RegExp(COLON_IN_PLACEHOLDER, 'g');
 
 export class CssRule {
-  constructor(public selector: string, public content: string) {}
+  constructor(
+    public selector: string,
+    public content: string,
+  ) {}
 }
 
 export function processRules(input: string, ruleCallback: (rule: CssRule) => CssRule): string {
@@ -853,18 +1127,25 @@ export function processRules(input: string, ruleCallback: (rule: CssRule) => Css
 }
 
 class StringWithEscapedBlocks {
-  constructor(public escapedString: string, public blocks: string[]) {}
+  constructor(
+    public escapedString: string,
+    public blocks: string[],
+  ) {}
 }
 
 function escapeBlocks(
-    input: string, charPairs: Map<string, string>, placeholder: string): StringWithEscapedBlocks {
+  input: string,
+  charPairs: Map<string, string>,
+  placeholder: string,
+): StringWithEscapedBlocks {
   const resultParts: string[] = [];
   const escapedBlocks: string[] = [];
   let openCharCount = 0;
   let nonBlockStartIndex = 0;
   let blockStartIndex = -1;
-  let openChar: string|undefined;
-  let closeChar: string|undefined;
+  let openChar: string | undefined;
+  let closeChar: string | undefined;
+
   for (let i = 0; i < input.length; i++) {
     const char = input[i];
     if (char === '\\') {
@@ -888,12 +1169,14 @@ function escapeBlocks(
       resultParts.push(input.substring(nonBlockStartIndex, blockStartIndex));
     }
   }
+
   if (blockStartIndex !== -1) {
     escapedBlocks.push(input.substring(blockStartIndex));
     resultParts.push(placeholder);
   } else {
     resultParts.push(input.substring(nonBlockStartIndex));
   }
+
   return new StringWithEscapedBlocks(resultParts.join(''), escapedBlocks);
 }
 
@@ -905,7 +1188,7 @@ function escapeBlocks(
 const ESCAPE_IN_STRING_MAP: {[key: string]: string} = {
   ';': SEMI_IN_PLACEHOLDER,
   ',': COMMA_IN_PLACEHOLDER,
-  ':': COLON_IN_PLACEHOLDER
+  ':': COLON_IN_PLACEHOLDER,
 };
 
 /**
@@ -930,7 +1213,7 @@ const ESCAPE_IN_STRING_MAP: {[key: string]: string} = {
  **/
 function escapeInStrings(input: string): string {
   let result = input;
-  let currentQuoteChar: string|null = null;
+  let currentQuoteChar: string | null = null;
   for (let i = 0; i < result.length; i++) {
     const char = result[i];
     if (char === '\\') {
@@ -941,13 +1224,13 @@ function escapeInStrings(input: string): string {
         if (char === currentQuoteChar) {
           currentQuoteChar = null;
         } else {
-          const placeholder: string|undefined = ESCAPE_IN_STRING_MAP[char];
+          const placeholder: string | undefined = ESCAPE_IN_STRING_MAP[char];
           if (placeholder) {
             result = `${result.substr(0, i)}${placeholder}${result.substr(i + 1)}`;
             i += placeholder.length - 1;
           }
         }
-      } else if (char === '\'' || char === '"') {
+      } else if (char === "'" || char === '"') {
         currentQuoteChar = char;
       }
     }
@@ -1025,13 +1308,16 @@ function unescapeQuotes(str: string, isQuoted: boolean): string {
  *
  * And so on...
  *
- * @param hostMarker the string that selects the host element.
  * @param contextSelectors an array of context selectors that will be combined.
  * @param otherSelectors the rest of the selectors that are not context selectors.
  */
-function combineHostContextSelectors(contextSelectors: string[], otherSelectors: string): string {
+function _combineHostContextSelectors(
+  contextSelectors: string[],
+  otherSelectors: string,
+  pseudoPrefix = '',
+): string {
   const hostMarker = _polyfillHostNoCombinator;
-  _polyfillHostRe.lastIndex = 0;  // reset the regex to ensure we get an accurate test
+  _polyfillHostRe.lastIndex = 0; // reset the regex to ensure we get an accurate test
   const otherSelectorsHasHost = _polyfillHostRe.test(otherSelectors);
 
   // If there are no context selectors then just output a host marker
@@ -1056,11 +1342,12 @@ function combineHostContextSelectors(contextSelectors: string[], otherSelectors:
   // Finally connect the selector to the `hostMarker`s: either acting directly on the host
   // (A<hostMarker>) or as an ancestor (A <hostMarker>).
   return combined
-      .map(
-          s => otherSelectorsHasHost ?
-              `${s}${otherSelectors}` :
-              `${s}${hostMarker}${otherSelectors}, ${s} ${hostMarker}${otherSelectors}`)
-      .join(',');
+    .map((s) =>
+      otherSelectorsHasHost
+        ? `${pseudoPrefix}${s}${otherSelectors}`
+        : `${pseudoPrefix}${s}${hostMarker}${otherSelectors}, ${pseudoPrefix}${s} ${hostMarker}${otherSelectors}`,
+    )
+    .join(',');
 }
 
 /**
@@ -1078,7 +1365,7 @@ export function repeatGroups(groups: string[][], multiples: number): void {
   const length = groups.length;
   for (let i = 1; i < multiples; i++) {
     for (let j = 0; j < length; j++) {
-      groups[j + (i * length)] = groups[j].slice(0);
+      groups[j + i * length] = groups[j].slice(0);
     }
   }
 }

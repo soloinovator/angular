@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Injector, Type} from '@angular/core';
@@ -33,7 +33,7 @@ export interface NgElementConstructor<P> {
    * Initializes a constructor instance.
    * @param injector If provided, overrides the configured injector.
    */
-  new(injector?: Injector): NgElement&WithProperties<P>;
+  new (injector?: Injector): NgElement & WithProperties<P>;
 }
 
 /**
@@ -49,7 +49,7 @@ export abstract class NgElement extends HTMLElement {
   /**
    * A subscription to change, connect, and disconnect events in the custom element.
    */
-  protected ngElementEventsSubscription: Subscription|null = null;
+  protected ngElementEventsSubscription: Subscription | null = null;
 
   /**
    * Prototype for a handler that responds to a change in an observed attribute.
@@ -60,7 +60,11 @@ export abstract class NgElement extends HTMLElement {
    * @returns Nothing.
    */
   abstract attributeChangedCallback(
-      attrName: string, oldValue: string|null, newValue: string, namespace?: string): void;
+    attrName: string,
+    oldValue: string | null,
+    newValue: string,
+    namespace?: string,
+  ): void;
   /**
    * Prototype for a handler that responds to the insertion of the custom element in the DOM.
    * @returns Nothing.
@@ -81,7 +85,7 @@ export abstract class NgElement extends HTMLElement {
  * @publicApi
  */
 export type WithProperties<P> = {
-  [property in keyof P]: P[property]
+  [property in keyof P]: P[property];
 };
 
 /**
@@ -126,43 +130,42 @@ export interface NgElementConfig {
  * @publicApi
  */
 export function createCustomElement<P>(
-    component: Type<any>, config: NgElementConfig): NgElementConstructor<P> {
+  component: Type<any>,
+  config: NgElementConfig,
+): NgElementConstructor<P> {
   const inputs = getComponentInputs(component, config.injector);
 
   const strategyFactory =
-      config.strategyFactory || new ComponentNgElementStrategyFactory(component, config.injector);
+    config.strategyFactory || new ComponentNgElementStrategyFactory(component, config.injector);
 
   const attributeToPropertyInputs = getDefaultAttributeToPropertyInputs(inputs);
 
   class NgElementImpl extends NgElement {
     // Work around a bug in closure typed optimizations(b/79557487) where it is not honoring static
     // field externs. So using quoted access to explicitly prevent renaming.
-    static readonly['observedAttributes'] = Object.keys(attributeToPropertyInputs);
+    static readonly ['observedAttributes'] = Object.keys(attributeToPropertyInputs);
 
     protected override get ngElementStrategy(): NgElementStrategy {
-      // NOTE:
-      // Some polyfills (e.g. `document-register-element`) do not call the constructor, therefore
-      // it is not safe to set `ngElementStrategy` in the constructor and assume it will be
-      // available inside the methods.
-      //
       // TODO(andrewseguin): Add e2e tests that cover cases where the constructor isn't called. For
       // now this is tested using a Google internal test suite.
       if (!this._ngElementStrategy) {
-        const strategy = this._ngElementStrategy =
-            strategyFactory.create(this.injector || config.injector);
+        const strategy = (this._ngElementStrategy = strategyFactory.create(
+          this.injector || config.injector,
+        ));
 
         // Re-apply pre-existing input values (set as properties on the element) through the
         // strategy.
-        inputs.forEach(({propName}) => {
+        // TODO(alxhub): why are we doing this? this makes no sense.
+        inputs.forEach(({propName, transform}) => {
           if (!this.hasOwnProperty(propName)) {
             // No pre-existing value for `propName`.
             return;
           }
 
-          // Delete the property from the instance and re-apply it through the strategy.
+          // Delete the property from the DOM node and re-apply it through the strategy.
           const value = (this as any)[propName];
           delete (this as any)[propName];
-          strategy.setInputValue(propName, value);
+          strategy.setInputValue(propName, value, transform);
         });
       }
 
@@ -176,9 +179,13 @@ export function createCustomElement<P>(
     }
 
     override attributeChangedCallback(
-        attrName: string, oldValue: string|null, newValue: string, namespace?: string): void {
-      const propName = attributeToPropertyInputs[attrName]!;
-      this.ngElementStrategy.setInputValue(propName, newValue);
+      attrName: string,
+      oldValue: string | null,
+      newValue: string,
+      namespace?: string,
+    ): void {
+      const [propName, transform] = attributeToPropertyInputs[attrName]!;
+      this.ngElementStrategy.setInputValue(propName, newValue, transform);
     }
 
     override connectedCallback(): void {
@@ -222,7 +229,7 @@ export function createCustomElement<P>(
 
     private subscribeToEvents(): void {
       // Listen for events from the strategy and dispatch them as custom events.
-      this.ngElementEventsSubscription = this.ngElementStrategy.events.subscribe(e => {
+      this.ngElementEventsSubscription = this.ngElementStrategy.events.subscribe((e) => {
         const customEvent = new CustomEvent(e.name, {detail: e.value});
         this.dispatchEvent(customEvent);
       });
@@ -230,18 +237,18 @@ export function createCustomElement<P>(
   }
 
   // Add getters and setters to the prototype for each property input.
-  inputs.forEach(({propName}) => {
+  inputs.forEach(({propName, transform}) => {
     Object.defineProperty(NgElementImpl.prototype, propName, {
       get(): any {
         return this.ngElementStrategy.getInputValue(propName);
       },
       set(newValue: any): void {
-        this.ngElementStrategy.setInputValue(propName, newValue);
+        this.ngElementStrategy.setInputValue(propName, newValue, transform);
       },
       configurable: true,
       enumerable: true,
     });
   });
 
-  return (NgElementImpl as any) as NgElementConstructor<P>;
+  return NgElementImpl as any as NgElementConstructor<P>;
 }

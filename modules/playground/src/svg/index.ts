@@ -3,28 +3,30 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, NgModule} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
 import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
 
-@Component({selector: '[svg-group]', template: `<svg:text x="20" y="20">Hello</svg:text>`})
-export class SvgGroup {
-}
+@Component({
+  selector: '[svg-group]',
+  template: `<svg:text x="20" y="20">Hello</svg:text>`,
+  standalone: false,
+})
+export class SvgGroup {}
 
 @Component({
   selector: 'svg-app',
   template: `<svg>
     <g svg-group></g>
-  </svg>`
+  </svg>`,
+  standalone: false,
 })
-export class SvgApp {
-}
+export class SvgApp {}
 
 @NgModule({bootstrap: [SvgApp], declarations: [SvgApp, SvgGroup], imports: [BrowserModule]})
-export class ExampleModule {
-}
+export class ExampleModule {}
 
 platformBrowserDynamic().bootstrapModule(ExampleModule);

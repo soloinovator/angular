@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 require('cypress-iframe');
@@ -21,20 +21,21 @@ describe('change of the state should reflect in property update', () => {
 
     // Select the todo item
     cy.get('.tree-wrapper')
-        .find('.tree-node:contains("app-todo[TooltipDirective]")')
-        .first()
-        .click({force: true});
+      .find('.tree-node:contains("app-todo[TooltipDirective]")')
+      .first()
+      .click({force: true});
 
     // Expand the todo in the property explorer
     cy.get('.explorer-panel:contains("app-todo")')
-        .find('ng-property-view mat-tree-node:contains("todo")')
-        .click();
+      .find('ng-property-view mat-tree-node:contains("todo")')
+      .click();
 
     // Verify its value is now completed
     cy.contains(
-        '.explorer-panel:contains("app-todo") ' +
-            'ng-property-view mat-tree-node:contains("completed") ' +
-            'ng-property-editor .editor',
-        'true');
+      '.explorer-panel:contains("app-todo") ' +
+        'ng-property-view mat-tree-node:contains("completed") ' +
+        'ng-property-editor .editor',
+      'true',
+    );
   });
 });

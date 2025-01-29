@@ -589,7 +589,8 @@
       ],
       "compilerOptions": {
         "sourceMap": true
-      }
+      },
+      "skipForTemplatePipeline": true
     },
     {
       "description": "should map *ngFor scenario (partial compile)",
@@ -788,12 +789,23 @@
       "inputFiles": [
         "i18n_message_interpolation_whitespace.ts"
       ],
+      "expectations": [
+        {
+          "files": [
+            {
+              "generated": "i18n_message_interpolation_whitespace.js",
+              "expected": "i18n_message_interpolation_whitespace_template.js"
+            }
+          ]
+        }
+      ],
       "compilationModeFilter": [
         "full compile"
       ],
       "compilerOptions": {
         "sourceMap": true
-      }
+      },
+      "skipForTemplatePipeline": true
     },
     {
       "description": "should correctly handle collapsed whitespace in interpolation placeholder i18n message source-mappings (partial compile)",
@@ -805,7 +817,7 @@
           "files": [
             {
               "generated": "i18n_message_interpolation_whitespace.js",
-              "expected": "i18n_message_interpolation_whitespace_partial.js"
+              "expected": "i18n_message_interpolation_whitespace_partial_template.js"
             }
           ]
         }

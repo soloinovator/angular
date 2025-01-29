@@ -3,12 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Expression, ExternalExpr} from '@angular/compiler';
+
 import {AbsoluteFsPath} from '../../../file_system';
 import {ClassDeclaration} from '../../../reflection';
+
 import {SemanticReference, SemanticSymbol} from './api';
 
 export interface SemanticDependencyResult {
@@ -49,7 +51,15 @@ class OpaqueSymbol extends SemanticSymbol {
  */
 export class SemanticDepGraph {
   readonly files = new Map<AbsoluteFsPath, Map<string, SemanticSymbol>>();
-  readonly symbolByDecl = new Map<ClassDeclaration, SemanticSymbol>();
+
+  // Note: the explicit type annotation is used to work around a CI failure on Windows:
+  // error TS2742: The inferred type of 'symbolByDecl' cannot be named without a reference to
+  // '../../../../../../../external/npm/node_modules/typescript/lib/typescript'. This is likely
+  // not portable. A type annotation is necessary.
+  readonly symbolByDecl: Map<ClassDeclaration, SemanticSymbol> = new Map<
+    ClassDeclaration,
+    SemanticSymbol
+  >();
 
   /**
    * Registers a symbol in the graph. The symbol is given a unique identifier if possible, such that
@@ -77,7 +87,7 @@ export class SemanticDepGraph {
    * @param symbol The symbol from another graph for which its equivalent in this graph should be
    * found.
    */
-  getEquivalentSymbol(symbol: SemanticSymbol): SemanticSymbol|null {
+  getEquivalentSymbol(symbol: SemanticSymbol): SemanticSymbol | null {
     // First lookup the symbol by its declaration. It is typical for the declaration to not have
     // changed across rebuilds, so this is likely to find the symbol. Using the declaration also
     // allows to diff symbols for which no unique identifier could be determined.
@@ -96,7 +106,7 @@ export class SemanticDepGraph {
   /**
    * Attempts to find the symbol by its identifier.
    */
-  private getSymbolByName(path: AbsoluteFsPath, identifier: string): SemanticSymbol|null {
+  private getSymbolByName(path: AbsoluteFsPath, identifier: string): SemanticSymbol | null {
     if (!this.files.has(path)) {
       return null;
     }
@@ -110,7 +120,7 @@ export class SemanticDepGraph {
   /**
    * Attempts to resolve the declaration to its semantic symbol.
    */
-  getSymbolByDecl(decl: ClassDeclaration): SemanticSymbol|null {
+  getSymbolByDecl(decl: ClassDeclaration): SemanticSymbol | null {
     if (!this.symbolByDecl.has(decl)) {
       return null;
     }
@@ -132,11 +142,12 @@ export class SemanticDepGraphUpdater {
   private readonly opaqueSymbols = new Map<ClassDeclaration, OpaqueSymbol>();
 
   constructor(
-      /**
-       * The semantic dependency graph of the most recently succeeded compilation, or null if this
-       * is the initial build.
-       */
-      private priorGraph: SemanticDepGraph|null) {}
+    /**
+     * The semantic dependency graph of the most recently succeeded compilation, or null if this
+     * is the initial build.
+     */
+    private priorGraph: SemanticDepGraph | null,
+  ) {}
 
   /**
    * Registers the symbol in the new graph that is being created.
@@ -223,8 +234,10 @@ export class SemanticDepGraphUpdater {
       }
 
       const previousSymbol = priorGraph.getEquivalentSymbol(symbol);
-      if (previousSymbol === null ||
-          symbol.isTypeCheckBlockAffected(previousSymbol, isTypeCheckApiAffected)) {
+      if (
+        previousSymbol === null ||
+        symbol.isTypeCheckBlockAffected(previousSymbol, isTypeCheckApiAffected)
+      ) {
         needsTypeCheckEmit.add(symbol.path);
       }
     }
@@ -272,7 +285,7 @@ export class SemanticDepGraphUpdater {
   }
 }
 
-function getImportPath(expr: Expression): string|null {
+function getImportPath(expr: Expression): string | null {
   if (expr instanceof ExternalExpr) {
     return `${expr.value.moduleName}\$${expr.value.name}`;
   } else {

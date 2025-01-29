@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ɵRuntimeError as RuntimeError} from '@angular/core';
@@ -18,8 +18,9 @@ import {RuntimeErrorCode} from '../../errors';
 export function assertDevMode(checkName: string) {
   if (!ngDevMode) {
     throw new RuntimeError(
-        RuntimeErrorCode.UNEXPECTED_DEV_MODE_CHECK_IN_PROD_MODE,
-        `Unexpected invocation of the ${checkName} in the prod mode. ` +
-            `Please make sure that the prod mode is enabled for production builds.`);
+      RuntimeErrorCode.UNEXPECTED_DEV_MODE_CHECK_IN_PROD_MODE,
+      `Unexpected invocation of the ${checkName} in the prod mode. ` +
+        `Please make sure that the prod mode is enabled for production builds.`,
+    );
   }
 }

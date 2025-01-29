@@ -13,7 +13,7 @@ ts_library(
     srcs = glob(["**/*.ts"]),
     deps = [
         "//packages/platform-server/init",
-        "@npm//domino",
+        "//packages/platform-server/init:bundled_domino_lib",
     ],
 )
 

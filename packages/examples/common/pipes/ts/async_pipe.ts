@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component} from '@angular/core';
@@ -16,13 +16,14 @@ import {Observable, Observer} from 'rxjs';
     <code>promise|async</code>:
     <button (click)="clicked()">{{ arrived ? 'Reset' : 'Resolve' }}</button>
     <span>Wait for it... {{ greeting | async }}</span>
-  </div>`
+  </div>`,
+  standalone: false,
 })
 export class AsyncPromisePipeComponent {
-  greeting: Promise<string>|null = null;
+  greeting: Promise<string> | null = null;
   arrived: boolean = false;
 
-  private resolve: Function|null = null;
+  private resolve: Function | null = null;
 
   constructor() {
     this.reset();
@@ -49,7 +50,8 @@ export class AsyncPromisePipeComponent {
 // #docregion AsyncPipeObservable
 @Component({
   selector: 'async-observable-pipe',
-  template: '<div><code>observable|async</code>: Time: {{ time | async }}</div>'
+  template: '<div><code>observable|async</code>: Time: {{ time | async }}</div>',
+  standalone: false,
 })
 export class AsyncObservablePipeComponent {
   time = new Observable<string>((observer: Observer<string>) => {
@@ -68,7 +70,7 @@ function setInterval(fn: Function, delay: number) {
     rootZone = rootZone.parent;
   }
   rootZone.run(() => {
-    window.setInterval(function(this: unknown) {
+    window.setInterval(function (this: unknown) {
       zone.run(fn, this, arguments as any);
     }, delay);
   });

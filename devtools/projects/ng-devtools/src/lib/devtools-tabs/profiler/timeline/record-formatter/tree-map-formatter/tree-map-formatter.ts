@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ElementProfile, ProfilerFrame} from 'protocol';
@@ -16,7 +16,7 @@ export interface TreeMapNode {
   value: number;
   size: number;
   children: TreeMapNode[];
-  original: ElementProfile|null;
+  original: ElementProfile | null;
 }
 
 export class TreeMapFormatter extends RecordFormatter<TreeMapNode> {
@@ -37,7 +37,10 @@ export class TreeMapFormatter extends RecordFormatter<TreeMapNode> {
   }
 
   override addFrame(
-      nodes: TreeMapNode[], elements: ElementProfile[], prev: TreeMapNode|null = null): void {
+    nodes: TreeMapNode[],
+    elements: ElementProfile[],
+    prev: TreeMapNode | null = null,
+  ): void {
     elements.forEach((element) => {
       if (!element) {
         console.error('Unable to insert undefined element');

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 /**
@@ -17,7 +17,7 @@ describe('MessagePort onproperties', () => {
       <script>
       window.addEventListener('message', onMessage);
       function onMessage(e) {
-        // Use the transfered port to post a message back to the main frame
+        // Use the transferred port to post a message back to the main frame
   	    e.ports[0].postMessage('Message back from the IFrame');
       }
       </script>
@@ -33,9 +33,9 @@ describe('MessagePort onproperties', () => {
   it('onmessge should in the zone', (done) => {
     const channel = new MessageChannel();
     const zone = Zone.current.fork({name: 'zone'});
-    iframe.onload = function() {
+    iframe.onload = function () {
       zone.run(() => {
-        channel.port1.onmessage = function() {
+        channel.port1.onmessage = function () {
           expect(Zone.current.name).toBe(zone.name);
           done();
         };
